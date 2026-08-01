@@ -102,7 +102,7 @@
     }
   },
   "committed_utc": "2026-08-01T18:08:14Z",
-  "forks": "",
+  "forks": 16,
   "lakefile_roots": 13,
   "lean_bytes": 21638952,
   "lean_files": 23,
@@ -113,9 +113,9 @@
   "nanoda_off": 0,
   "nanoda_off_names": [],
   "nanoda_on": 12,
-  "observed_utc": "2026-08-01T21:48:35+00:00",
+  "observed_utc": "2026-08-01T21:49:54+00:00",
   "parents": "(none - root commit)",
   "sha": "d0e1ae7de1317b7d5e32cf7396972e1e85db9435",
-  "stars": "",
+  "stars": 180,
   "total_bytes": 21670511
 }
