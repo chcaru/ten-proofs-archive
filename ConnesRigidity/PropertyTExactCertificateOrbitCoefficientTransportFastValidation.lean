@@ -1,0 +1,55 @@
+
+
+
+import ConnesRigidity.PropertyTExactCertificateOrbitCoefficientTransportFastValidations.Batch00
+import ConnesRigidity.PropertyTExactCertificateOrbitCoefficientTransportFastValidations.Batch01
+import ConnesRigidity.PropertyTExactCertificateOrbitCoefficientTransportFastValidations.Batch02
+import ConnesRigidity.PropertyTExactCertificateOrbitCoefficientTransportFastValidations.Batch03
+import ConnesRigidity.PropertyTExactCertificateOrbitCoefficientTransportFastValidations.Batch04
+import ConnesRigidity.PropertyTExactCertificateOrbitCoefficientTransportFastValidations.Batch05
+import ConnesRigidity.PropertyTExactCertificateOrbitCoefficientTransportFastValidations.Batch06
+import ConnesRigidity.PropertyTExactCertificateOrbitCoefficientTransportFastValidations.Batch07
+import ConnesRigidity.PropertyTExactCertificateOrbitCoefficientTransportFastValidations.Batch08
+import ConnesRigidity.PropertyTExactCertificateOrbitCoefficientTransportFastValidations.Batch09
+import ConnesRigidity.PropertyTExactCertificateOrbitCoefficientTransportFastValidations.Batch10
+import ConnesRigidity.PropertyTExactCertificateOrbitCoefficientTransportFastValidations.Batch11
+import ConnesRigidity.PropertyTExactCertificateOrbitCoefficientTransportFastAssemblyProof
+
+
+
+
+
+
+
+
+
+namespace ConnesRigidity.AffineSymplecticOrbitCertificate
+
+noncomputable section
+
+set_option linter.style.setOption false
+set_option maxRecDepth 1000000
+set_option maxHeartbeats 0
+
+
+
+theorem orbitCoefficientTransportPacketsCheck_valid :
+    orbitCoefficientTransportPacketsCheck 0
+      gramOrbitData.toList orbitCoefficientTransportPacketData = true := by
+  exact orbitCoefficientTransportPacketsCheck_of_batches
+    orbitCoefficientTransportPacketsBatch00_valid
+    orbitCoefficientTransportPacketsBatch01_valid
+    orbitCoefficientTransportPacketsBatch02_valid
+    orbitCoefficientTransportPacketsBatch03_valid
+    orbitCoefficientTransportPacketsBatch04_valid
+    orbitCoefficientTransportPacketsBatch05_valid
+    orbitCoefficientTransportPacketsBatch06_valid
+    orbitCoefficientTransportPacketsBatch07_valid
+    orbitCoefficientTransportPacketsBatch08_valid
+    orbitCoefficientTransportPacketsBatch09_valid
+    orbitCoefficientTransportPacketsBatch10_valid
+    orbitCoefficientTransportPacketsBatch11_valid
+
+end
+
+end ConnesRigidity.AffineSymplecticOrbitCertificate
