@@ -9,223 +9,6 @@ namespace ConnesRigidity
 
 namespace FeedbackCounting
 
-theorem exists_ne_zero_of_sum_fin_two_eq_one
-    (f : Fin 2 → ZMod 2)
-    (h : ∑ i, f i = 1) :
-    ∃ i, f i ≠ 0 := by
-  by_contra hzero
-  push Not at hzero
-  have : (∑ i, f i) = 0 := by
-    apply Finset.sum_eq_zero
-    intro i _
-    exact hzero i
-  rw [this] at h
-  norm_num at h
-
-theorem half_support_of_sum_fin_two_eq_one
-    {A : Type*} [Fintype A]
-    (f : A → Fin 2 → ZMod 2)
-    (h : ∀ a, ∑ i, f a i = 1) :
-    Fintype.card A ≤
-      ((Finset.univ : Finset (A × Fin 2)).filter
-        (fun x ↦ f x.1 x.2 ≠ 0)).card := by
-  classical
-  let choice : A → Fin 2 :=
-    fun a ↦ Classical.choose (exists_ne_zero_of_sum_fin_two_eq_one (f a) (h a))
-  let support :=
-    (Finset.univ : Finset (A × Fin 2)).filter
-      (fun x ↦ f x.1 x.2 ≠ 0)
-  let selected : A → ↥support := fun a ↦
-    ⟨(a, choice a), by
-      simp only [support, Finset.mem_filter, Finset.mem_univ, true_and]
-      exact Classical.choose_spec
-        (exists_ne_zero_of_sum_fin_two_eq_one (f a) (h a))⟩
-  have hselected : Function.Injective selected := by
-    intro a b hab
-    exact congrArg (fun x ↦ x.1.1) hab
-  rw [← Fintype.card_coe support]
-  exact Fintype.card_le_of_injective selected hselected
-
-theorem two_mul_support_card_ge_of_odd_two_point_partition
-    {X A : Type*} [Fintype X] [Finite A]
-    (e : X ≃ A × Fin 2)
-    (f : X → ZMod 2)
-    (hodd : ∀ a, ∑ i, f (e.symm (a, i)) = 1) :
-    Fintype.card X ≤
-      2 * ((Finset.univ : Finset X).filter (fun x ↦ f x ≠ 0)).card := by
-  classical
-  letI := Fintype.ofFinite A
-  let productSupport :=
-    (Finset.univ : Finset (A × Fin 2)).filter
-      (fun x ↦ f (e.symm x) ≠ 0)
-  let support :=
-    (Finset.univ : Finset X).filter (fun x ↦ f x ≠ 0)
-  have hhalf : Fintype.card A ≤ productSupport.card :=
-    half_support_of_sum_fin_two_eq_one
-      (fun a i ↦ f (e.symm (a, i))) hodd
-  let supportEquiv : ↥productSupport ≃ ↥support := {
-    toFun := fun x ↦ ⟨e.symm x.1, by
-      simp only [support, Finset.mem_filter, Finset.mem_univ, true_and]
-      have hx := x.property
-      simp only [productSupport, Finset.mem_filter, Finset.mem_univ, true_and] at hx
-      exact hx⟩
-    invFun := fun x ↦ ⟨e x.1, by
-      simp only [productSupport, Finset.mem_filter, Finset.mem_univ, true_and]
-      have hx := x.property
-      simp only [support, Finset.mem_filter, Finset.mem_univ, true_and] at hx
-      simpa only [e.symm_apply_apply] using hx⟩
-    left_inv := by
-      intro x
-      apply Subtype.ext
-      exact e.apply_symm_apply x.1
-    right_inv := by
-      intro x
-      apply Subtype.ext
-      exact e.symm_apply_apply x.1
-  }
-  have hsupport : productSupport.card = support.card := by
-    rw [← Fintype.card_coe productSupport, ← Fintype.card_coe support]
-    exact Fintype.card_congr supportEquiv
-  have hcard : Fintype.card X = 2 * Fintype.card A := by
-    calc
-      Fintype.card X = Fintype.card (A × Fin 2) :=
-        Fintype.card_congr e
-      _ = 2 * Fintype.card A := by simp [Nat.mul_comm]
-  rw [hcard, ← hsupport]
-  omega
-
-theorem exists_ne_zero_of_sum_fin_four_eq_one
-    (f : Fin 4 → ZMod 2)
-    (h : ∑ i, f i = 1) :
-    ∃ i, f i ≠ 0 := by
-  by_contra hzero
-  push Not at hzero
-  have : (∑ i, f i) = 0 := by
-    apply Finset.sum_eq_zero
-    intro i _
-    exact hzero i
-  rw [this] at h
-  norm_num at h
-
-theorem quarter_support_of_four_point_fibers
-    {A : Type*} [Fintype A]
-    (p : A → Fin 4 → Prop)
-    [DecidablePred fun x : A × Fin 4 ↦ p x.1 x.2]
-    (hp : ∀ a, ∃ i, p a i) :
-    Fintype.card A ≤
-      ((Finset.univ : Finset (A × Fin 4)).filter
-        (fun x ↦ p x.1 x.2)).card := by
-  classical
-  let choice : A → Fin 4 := fun a ↦ Classical.choose (hp a)
-  let inject : A → A × Fin 4 := fun a ↦ (a, choice a)
-  have hinject : Function.Injective inject := by
-    intro a b hab
-    exact congrArg Prod.fst hab
-  let goodSubtype :=
-    {x : A × Fin 4 // x ∈
-      ((Finset.univ : Finset (A × Fin 4)).filter
-        (fun y ↦ p y.1 y.2))}
-  let selected : A → goodSubtype := fun a ↦
-    ⟨inject a, by
-      simp [inject, choice, Classical.choose_spec (hp a)]⟩
-  have hselected : Function.Injective selected := by
-    intro a b hab
-    exact hinject (congrArg Subtype.val hab)
-  let good :=
-    ((Finset.univ : Finset (A × Fin 4)).filter
-      (fun y ↦ p y.1 y.2))
-  change Fintype.card A ≤ good.card
-  rw [← Fintype.card_coe good]
-  exact Fintype.card_le_of_injective selected hselected
-
-theorem quarter_support_of_sum_fin_four_eq_one
-    {A : Type*} [Fintype A]
-    (f : A → Fin 4 → ZMod 2) :
-    (∀ a, ∑ i, f a i = 1) →
-      Fintype.card A ≤
-        ((Finset.univ : Finset (A × Fin 4)).filter
-          (fun x ↦ f x.1 x.2 ≠ 0)).card := by
-  intro h
-  apply quarter_support_of_four_point_fibers
-    (p := fun a i ↦ f a i ≠ 0)
-  intro a
-  exact exists_ne_zero_of_sum_fin_four_eq_one (f a) (h a)
-
-theorem four_mul_support_card_ge_of_odd_four_point_partition
-    {X A : Type*} [Fintype X] [Finite A]
-    (e : X ≃ A × Fin 4)
-    (f : X → ZMod 2)
-    (hodd : ∀ a, ∑ i, f (e.symm (a, i)) = 1) :
-    Fintype.card X ≤
-      4 * ((Finset.univ : Finset X).filter (fun x ↦ f x ≠ 0)).card := by
-  classical
-  letI := Fintype.ofFinite A
-  let productSupport :=
-    (Finset.univ : Finset (A × Fin 4)).filter
-      (fun x ↦ f (e.symm x) ≠ 0)
-  let support :=
-    (Finset.univ : Finset X).filter (fun x ↦ f x ≠ 0)
-  have hquarter : Fintype.card A ≤ productSupport.card := by
-    exact quarter_support_of_sum_fin_four_eq_one
-      (fun a i ↦ f (e.symm (a, i))) hodd
-  let supportEquiv : ↥productSupport ≃ ↥support := {
-    toFun := fun x ↦ ⟨e.symm x.1, by
-      simp only [support, Finset.mem_filter, Finset.mem_univ, true_and]
-      have hx := x.property
-      simp only [productSupport, Finset.mem_filter, Finset.mem_univ, true_and] at hx
-      exact hx⟩
-    invFun := fun x ↦ ⟨e x.1, by
-      simp only [productSupport, Finset.mem_filter, Finset.mem_univ, true_and]
-      have hx := x.property
-      simp only [support, Finset.mem_filter, Finset.mem_univ, true_and] at hx
-      simpa only [e.symm_apply_apply] using hx⟩
-    left_inv := by
-      intro x
-      apply Subtype.ext
-      exact e.apply_symm_apply x.1
-    right_inv := by
-      intro x
-      apply Subtype.ext
-      exact e.symm_apply_apply x.1
-  }
-  have hsupport : productSupport.card = support.card := by
-    rw [← Fintype.card_coe productSupport, ← Fintype.card_coe support]
-    exact Fintype.card_congr supportEquiv
-  have hcard : Fintype.card X = 4 * Fintype.card A := by
-    calc
-      Fintype.card X = Fintype.card (A × Fin 4) :=
-        Fintype.card_congr e
-      _ = 4 * Fintype.card A := by simp [Nat.mul_comm]
-  rw [hcard, ← hsupport]
-  omega
-
-theorem three_twenty_eighths_survive
-    {α : Type*} [DecidableEq α]
-    (univ good primitive : Finset α)
-    (hquarter : univ.card ≤ 4 * good.card)
-    (hseventh : 7 * primitive.card < univ.card) :
-    3 * univ.card <
-      28 * (good \ primitive).card := by
-  have hinter : (good ∩ primitive).card ≤ primitive.card :=
-    Finset.card_le_card Finset.inter_subset_right
-  have hpartition :
-      good.card = (good \ primitive).card + (good ∩ primitive).card := by
-    exact (Finset.card_sdiff_add_card_inter good primitive).symm
-  omega
-
-theorem exists_good_not_primitive
-    {α : Type*}
-    (univ good primitive : Finset α)
-    (hquarter : univ.card ≤ 4 * good.card)
-    (hseventh : 7 * primitive.card < univ.card) :
-    ∃ x ∈ good, x ∉ primitive := by
-  classical
-  have hdensity :=
-    three_twenty_eighths_survive univ good primitive hquarter hseventh
-  have hcard : 0 < (good \ primitive).card := by omega
-  obtain ⟨x, hx⟩ := Finset.card_pos.mp hcard
-  exact ⟨x, (Finset.mem_sdiff.mp hx).1, (Finset.mem_sdiff.mp hx).2⟩
-
 end FeedbackCounting
 
 end ConnesRigidity
@@ -237,143 +20,6 @@ section
 namespace ConnesRigidity
 
 namespace FeedbackBooleanQuadratic
-
-open FeedbackCounting
-
-variable {ι : Type*} [Fintype ι] [DecidableEq ι]
-
-def clearTwoCoordinates
-    (i j : ι) (x : ι → ZMod 2) : ι → ZMod 2 :=
-  Function.update (Function.update x i 0) j 0
-
-abbrev TwoCoordinateBase (i j : ι) :=
-  {x : ι → ZMod 2 // x i = 0 ∧ x j = 0}
-
-def zmodTwoPairEquivFinFour :
-    (ZMod 2 × ZMod 2) ≃ Fin 4 :=
-  (Equiv.prodCongr (ZMod.finEquiv 2).symm.toEquiv
-      (ZMod.finEquiv 2).symm.toEquiv).trans
-    finProdFinEquiv
-
-def cubeEquivTwoCoordinateBase
-    (i j : ι) (hij : i ≠ j) :
-    (ι → ZMod 2) ≃ TwoCoordinateBase i j × Fin 4 where
-  toFun x :=
-    (⟨clearTwoCoordinates i j x, by
-      constructor
-      · simp [clearTwoCoordinates, hij]
-      · simp [clearTwoCoordinates]⟩,
-      zmodTwoPairEquivFinFour (x i, x j))
-  invFun y :=
-    let bits := zmodTwoPairEquivFinFour.symm y.2
-    Function.update (Function.update y.1.1 i bits.1) j bits.2
-  left_inv x := by
-    funext k
-    by_cases hki : k = i
-    · subst k
-      simp [clearTwoCoordinates, hij, zmodTwoPairEquivFinFour]
-    · by_cases hkj : k = j
-      · subst k
-        simp [clearTwoCoordinates, zmodTwoPairEquivFinFour]
-      · simp [clearTwoCoordinates, hki, hkj, zmodTwoPairEquivFinFour]
-  right_inv y := by
-    rcases y with ⟨x, k⟩
-    apply Prod.ext_iff.mpr
-    constructor
-    · apply Subtype.ext
-      funext r
-      by_cases hri : r = i
-      · subst r
-        simp [clearTwoCoordinates, hij, zmodTwoPairEquivFinFour, x.property]
-      · by_cases hrj : r = j
-        · subst r
-          simp [clearTwoCoordinates, zmodTwoPairEquivFinFour, x.property]
-        · simp [clearTwoCoordinates, hri, hrj, zmodTwoPairEquivFinFour]
-    · simp [hij, zmodTwoPairEquivFinFour]
-
-def binarySquareSum
-    (f : (ι → ZMod 2) → ZMod 2)
-    (i j : ι) (x : ι → ZMod 2) : ZMod 2 :=
-  ∑ a : ZMod 2, ∑ b : ZMod 2,
-    f (Function.update (Function.update x i a) j b)
-
-omit [Fintype ι] in
-
-theorem sum_cubeEquivTwoCoordinateBase_fiber
-    (f : (ι → ZMod 2) → ZMod 2)
-    (i j : ι) (hij : i ≠ j)
-    (x : TwoCoordinateBase i j) :
-    (∑ k : Fin 4,
-        f ((cubeEquivTwoCoordinateBase i j hij).symm (x, k))) =
-      binarySquareSum f i j x.1 := by
-  classical
-  rw [binarySquareSum, ← Fintype.sum_prod_type']
-  rw [← zmodTwoPairEquivFinFour.symm.sum_comp
-    (fun p : ZMod 2 × ZMod 2 ↦
-      f (Function.update (Function.update x.1 i p.1) j p.2))]
-  apply Finset.sum_congr rfl
-  intro k _
-  rfl
-
-theorem four_mul_support_card_ge_of_binarySquareSum_eq_one
-    (f : (ι → ZMod 2) → ZMod 2)
-    (i j : ι) (hij : i ≠ j)
-    (hsecond : ∀ x, binarySquareSum f i j x = 1) :
-    Fintype.card (ι → ZMod 2) ≤
-      4 * ((Finset.univ : Finset (ι → ZMod 2)).filter
-        (fun x ↦ f x ≠ 0)).card := by
-  classical
-  apply four_mul_support_card_ge_of_odd_four_point_partition
-    (cubeEquivTwoCoordinateBase i j hij) f
-  intro x
-  rw [sum_cubeEquivTwoCoordinateBase_fiber]
-  exact hsecond x.1
-
-theorem three_twenty_eighths_nonprimitive_support
-    (f : (ι → ZMod 2) → ZMod 2)
-    (i j : ι) (hij : i ≠ j)
-    (hsecond : ∀ x, binarySquareSum f i j x = 1)
-    (primitive : Finset (ι → ZMod 2))
-    (hprimitive :
-      7 * primitive.card < Fintype.card (ι → ZMod 2)) :
-    3 * Fintype.card (ι → ZMod 2) <
-      28 * (((Finset.univ : Finset (ι → ZMod 2)).filter
-        (fun x ↦ f x ≠ 0)) \ primitive).card := by
-  classical
-  have hquarter :=
-    four_mul_support_card_ge_of_binarySquareSum_eq_one
-      f i j hij hsecond
-  have hdensity :=
-    three_twenty_eighths_survive
-      (Finset.univ : Finset (ι → ZMod 2))
-      ((Finset.univ : Finset (ι → ZMod 2)).filter
-        (fun x ↦ f x ≠ 0))
-      primitive
-      (by simpa using hquarter)
-      (by simpa using hprimitive)
-  simpa using hdensity
-
-theorem exists_nonprimitive_of_binarySquareSum_eq_one
-    (f : (ι → ZMod 2) → ZMod 2)
-    (i j : ι) (hij : i ≠ j)
-    (hsecond : ∀ x, binarySquareSum f i j x = 1)
-    (primitive : Finset (ι → ZMod 2))
-    (hprimitive :
-      7 * primitive.card < Fintype.card (ι → ZMod 2)) :
-    ∃ x, f x ≠ 0 ∧ x ∉ primitive := by
-  classical
-  let support :=
-    (Finset.univ : Finset (ι → ZMod 2)).filter (fun x ↦ f x ≠ 0)
-  have hquarter :
-      (Finset.univ : Finset (ι → ZMod 2)).card ≤ 4 * support.card := by
-    simpa [support] using
-      four_mul_support_card_ge_of_binarySquareSum_eq_one
-        f i j hij hsecond
-  obtain ⟨x, hxsupport, hxprimitive⟩ :=
-    exists_good_not_primitive
-      (Finset.univ : Finset (ι → ZMod 2))
-      support primitive hquarter (by simpa using hprimitive)
-  exact ⟨x, (Finset.mem_filter.mp hxsupport).2, hxprimitive⟩
 
 end FeedbackBooleanQuadratic
 
@@ -403,163 +49,6 @@ theorem eq_one_of_ne_zero_zmod_two
   · exact (ha rfl).elim
   · rfl
 
-theorem sum_zmod_two (f : ZMod 2 → ZMod 2) :
-    (∑ x, f x) = f 0 + f 1 := by
-  rw [← (ZMod.finEquiv 2).toEquiv.sum_comp f, Fin.sum_univ_two]
-  rfl
-
-theorem binarySquareSum_const
-    (c : ZMod 2) (i j : ι) (x : ι → ZMod 2) :
-    binarySquareSum (fun _ ↦ c) i j x = 0 := by
-  simp [binarySquareSum]
-
-theorem binarySquareSum_coordinate
-    (k i j : ι) (hij : i ≠ j) (x : ι → ZMod 2) :
-    binarySquareSum (fun y ↦ y k) i j x = 0 := by
-  by_cases hki : k = i
-  · subst k
-    simp [binarySquareSum, hij]
-  · by_cases hkj : k = j
-    · subst k
-      simp [binarySquareSum]
-    · simp [binarySquareSum, hki, hkj]
-
-theorem binarySquareSum_selected_product
-    (i j : ι) (hij : i ≠ j) (x : ι → ZMod 2) :
-    binarySquareSum (fun y ↦ y i * y j) i j x = 1 := by
-  simp [binarySquareSum, hij, sum_zmod_two]
-
-theorem binarySquareSum_other_product
-    (k l i j : ι) (hij : i ≠ j)
-    (hpair : ¬((k = i ∧ l = j) ∨ (k = j ∧ l = i)))
-    (x : ι → ZMod 2) :
-    binarySquareSum (fun y ↦ y k * y l) i j x = 0 := by
-  by_cases hki : k = i
-  · subst k
-    by_cases hlj : l = j
-    · exact (hpair (Or.inl ⟨rfl, hlj⟩)).elim
-    · by_cases hli : l = i
-      · subst l
-        simp [binarySquareSum, hij]
-      · simp [binarySquareSum, hij, hlj, hli]
-  · by_cases hkj : k = j
-    · subst k
-      by_cases hli : l = i
-      · exact (hpair (Or.inr ⟨rfl, hli⟩)).elim
-      · by_cases hlj : l = j
-        · subst l
-          simp [binarySquareSum]
-        · simp [binarySquareSum, hli, hlj]
-    · by_cases hli : l = i
-      · subst l
-        simp [binarySquareSum, hij, hki, hkj]
-      · by_cases hlj : l = j
-        · subst l
-          simp [binarySquareSum, hki, hkj]
-        · simp [binarySquareSum, hki, hkj, hli, hlj]
-
-theorem binarySquareSum_add
-    (f g : (ι → ZMod 2) → ZMod 2)
-    (i j : ι) (x : ι → ZMod 2) :
-    binarySquareSum (fun y ↦ f y + g y) i j x =
-      binarySquareSum f i j x + binarySquareSum g i j x := by
-  simp [binarySquareSum, Finset.sum_add_distrib]
-
-theorem binarySquareSum_mul_left
-    (c : ZMod 2) (f : (ι → ZMod 2) → ZMod 2)
-    (i j : ι) (x : ι → ZMod 2) :
-    binarySquareSum (fun y ↦ c * f y) i j x =
-      c * binarySquareSum f i j x := by
-  simp [binarySquareSum, Finset.mul_sum]
-
-theorem binarySquareSum_fintype_sum
-    {κ : Type*} [Fintype κ]
-    (f : κ → (ι → ZMod 2) → ZMod 2)
-    (i j : ι) (x : ι → ZMod 2) :
-    binarySquareSum (fun y ↦ ∑ k, f k y) i j x =
-      ∑ k, binarySquareSum (f k) i j x := by
-  unfold binarySquareSum
-  calc
-    (∑ a, ∑ b, ∑ k, f k (Function.update (Function.update x i a) j b)) =
-        ∑ a, ∑ k, ∑ b, f k (Function.update (Function.update x i a) j b) := by
-          apply Finset.sum_congr rfl
-          intro a _
-          rw [Finset.sum_comm]
-    _ = ∑ k, ∑ a, ∑ b,
-        f k (Function.update (Function.update x i a) j b) := by
-          rw [Finset.sum_comm]
-
-abbrev OneCoordinateBase (i : ι) :=
-  {k : ι // k ≠ i} → ZMod 2
-
-def cubeEquivOneCoordinate
-    (i : ι) :
-    (ι → ZMod 2) ≃ OneCoordinateBase i × Fin 2 where
-  toFun x :=
-    (fun k ↦ x k, (ZMod.finEquiv 2).symm (x i))
-  invFun y k :=
-    if h : k = i then
-      (ZMod.finEquiv 2) y.2
-    else
-      y.1 ⟨k, h⟩
-  left_inv x := by
-    funext k
-    by_cases hk : k = i
-    · subst k
-      simp
-    · simp [hk]
-  right_inv y := by
-    apply Prod.ext_iff.mpr
-    constructor
-    · funext k
-      simp [k.property]
-    · simp
-
-def affineEval
-    [Fintype ι]
-    (constant : ZMod 2)
-    (linear : ι → ZMod 2)
-    (x : ι → ZMod 2) : ZMod 2 :=
-  constant + ∑ k, linear k * x k
-
-set_option linter.flexible false in
-
-theorem sum_cubeEquivOneCoordinate_affineEval
-    [Fintype ι]
-    (constant : ZMod 2)
-    (linear : ι → ZMod 2)
-    (i : ι)
-    (hi : linear i = 1)
-    (x : OneCoordinateBase i) :
-    (∑ b : Fin 2,
-      affineEval constant linear
-        ((cubeEquivOneCoordinate i).symm (x, b))) = 1 := by
-  classical
-  simp [affineEval, cubeEquivOneCoordinate, Finset.sum_add_distrib]
-  rw [← Finset.sum_add_distrib]
-  rw [Finset.sum_eq_single i]
-  · simp [hi]
-  · intro k _ hki
-    simp [hki]
-    rw [← two_mul, two_eq_zero_zmod_two, zero_mul]
-  · simp
-
-theorem two_mul_support_card_ge_of_affine_linear_ne_zero
-    [Fintype ι]
-    (constant : ZMod 2)
-    (linear : ι → ZMod 2)
-    (i : ι)
-    (hi : linear i ≠ 0) :
-    Fintype.card (ι → ZMod 2) ≤
-      2 * ((Finset.univ : Finset (ι → ZMod 2)).filter
-        (fun x ↦ affineEval constant linear x ≠ 0)).card := by
-  classical
-  apply two_mul_support_card_ge_of_odd_two_point_partition
-    (cubeEquivOneCoordinate i) (affineEval constant linear)
-  intro x
-  apply sum_cubeEquivOneCoordinate_affineEval
-  exact eq_one_of_ne_zero_zmod_two _ hi
-
 abbrev StrictPair (ι : Type*) [LT ι] :=
   {p : ι × ι // p.1 < p.2}
 
@@ -570,201 +59,6 @@ structure BinaryQuadraticPolynomial
   quadratic : StrictPair ι → ZMod 2
 
 namespace BinaryQuadraticPolynomial
-
-variable [Fintype ι] [LinearOrder ι]
-
-def eval
-    (P : BinaryQuadraticPolynomial ι)
-    (x : ι → ZMod 2) : ZMod 2 :=
-  P.constant +
-    (∑ k, P.linear k * x k) +
-    ∑ p, P.quadratic p * (x p.1.1 * x p.1.2)
-
-theorem binarySquareSum_eval
-    (P : BinaryQuadraticPolynomial ι)
-    (p₀ : StrictPair ι)
-    (x : ι → ZMod 2) :
-    binarySquareSum P.eval p₀.1.1 p₀.1.2 x = P.quadratic p₀ := by
-  classical
-  change
-    binarySquareSum
-      (fun y ↦ P.constant +
-        (∑ k, P.linear k * y k) +
-        ∑ p, P.quadratic p * (y p.1.1 * y p.1.2))
-      p₀.1.1 p₀.1.2 x = P.quadratic p₀
-  rw [binarySquareSum_add, binarySquareSum_add,
-    binarySquareSum_const, zero_add,
-    binarySquareSum_fintype_sum]
-  have hlinear :
-      (∑ k,
-        binarySquareSum
-          (fun y ↦ P.linear k * y k) p₀.1.1 p₀.1.2 x) = 0 := by
-    apply Finset.sum_eq_zero
-    intro k _
-    rw [binarySquareSum_mul_left,
-      binarySquareSum_coordinate k p₀.1.1 p₀.1.2
-        (ne_of_lt p₀.property) x, mul_zero]
-  rw [hlinear, zero_add, binarySquareSum_fintype_sum]
-  rw [Finset.sum_eq_single p₀]
-  · rw [binarySquareSum_mul_left,
-      binarySquareSum_selected_product p₀.1.1 p₀.1.2
-        (ne_of_lt p₀.property) x,
-      mul_one]
-  · intro p _ hp
-    rw [binarySquareSum_mul_left]
-    have hpair :
-        ¬((p.1.1 = p₀.1.1 ∧ p.1.2 = p₀.1.2) ∨
-          (p.1.1 = p₀.1.2 ∧ p.1.2 = p₀.1.1)) := by
-      intro h
-      rcases h with h | h
-      · apply hp
-        apply Subtype.ext
-        exact Prod.ext h.1 h.2
-      · have hp_lt : p₀.1.2 < p₀.1.1 := by simpa [h.1, h.2] using p.property
-        exact (lt_asymm p₀.property hp_lt).elim
-    rw [binarySquareSum_other_product
-      p.1.1 p.1.2 p₀.1.1 p₀.1.2
-      (ne_of_lt p₀.property) hpair x, mul_zero]
-  · intro hp
-    exact (hp (Finset.mem_univ p₀)).elim
-
-omit [DecidableEq ι] in
-
-theorem eval_eq_affine_of_quadratic_eq_zero
-    (P : BinaryQuadraticPolynomial ι)
-    (hq : ∀ p, P.quadratic p = 0) :
-    P.eval = affineEval P.constant P.linear := by
-  funext x
-  simp [eval, affineEval, hq]
-
-theorem four_mul_support_card_ge_of_quadratic_coeff_ne_zero
-    (P : BinaryQuadraticPolynomial ι)
-    (p₀ : StrictPair ι)
-    (hp₀ : P.quadratic p₀ ≠ 0) :
-    Fintype.card (ι → ZMod 2) ≤
-      4 * ((Finset.univ : Finset (ι → ZMod 2)).filter
-        (fun x ↦ P.eval x ≠ 0)).card := by
-  apply four_mul_support_card_ge_of_binarySquareSum_eq_one
-    P.eval p₀.1.1 p₀.1.2 (ne_of_lt p₀.property)
-  intro x
-  rw [P.binarySquareSum_eval p₀ x]
-  exact eq_one_of_ne_zero_zmod_two _ hp₀
-
-theorem three_twenty_eighths_nonprimitive_support_of_quadratic_coeff_ne_zero
-    (P : BinaryQuadraticPolynomial ι)
-    (p₀ : StrictPair ι)
-    (hp₀ : P.quadratic p₀ ≠ 0)
-    (primitive : Finset (ι → ZMod 2))
-    (hprimitive :
-      7 * primitive.card < Fintype.card (ι → ZMod 2)) :
-    3 * Fintype.card (ι → ZMod 2) <
-      28 * (((Finset.univ : Finset (ι → ZMod 2)).filter
-        (fun x ↦ P.eval x ≠ 0)) \ primitive).card := by
-  apply three_twenty_eighths_nonprimitive_support
-    P.eval p₀.1.1 p₀.1.2 (ne_of_lt p₀.property)
-  · intro x
-    rw [P.binarySquareSum_eval p₀ x]
-    exact eq_one_of_ne_zero_zmod_two _ hp₀
-  · exact hprimitive
-
-theorem exists_nonprimitive_of_quadratic_coeff_ne_zero
-    (P : BinaryQuadraticPolynomial ι)
-    (p₀ : StrictPair ι)
-    (hp₀ : P.quadratic p₀ ≠ 0)
-    (primitive : Finset (ι → ZMod 2))
-    (hprimitive :
-      7 * primitive.card < Fintype.card (ι → ZMod 2)) :
-    ∃ x, P.eval x ≠ 0 ∧ x ∉ primitive := by
-  apply exists_nonprimitive_of_binarySquareSum_eq_one
-    P.eval p₀.1.1 p₀.1.2 (ne_of_lt p₀.property)
-  · intro x
-    rw [P.binarySquareSum_eval p₀ x]
-    exact eq_one_of_ne_zero_zmod_two _ hp₀
-  · exact hprimitive
-
-theorem four_mul_support_card_ge_of_eval_nonzero
-    (P : BinaryQuadraticPolynomial ι)
-    (hP : ∃ x, P.eval x ≠ 0) :
-    Fintype.card (ι → ZMod 2) ≤
-      4 * ((Finset.univ : Finset (ι → ZMod 2)).filter
-        (fun x ↦ P.eval x ≠ 0)).card := by
-  classical
-  by_cases hquadratic : ∃ p, P.quadratic p ≠ 0
-  · obtain ⟨p, hp⟩ := hquadratic
-    exact P.four_mul_support_card_ge_of_quadratic_coeff_ne_zero p hp
-  · have hquadratic_zero : ∀ p, P.quadratic p = 0 := by
-      intro p
-      by_contra hp
-      exact hquadratic ⟨p, hp⟩
-    have heval : P.eval = affineEval P.constant P.linear :=
-      P.eval_eq_affine_of_quadratic_eq_zero hquadratic_zero
-    by_cases hlinear : ∃ i, P.linear i ≠ 0
-    · obtain ⟨i, hi⟩ := hlinear
-      have hhalf :=
-        two_mul_support_card_ge_of_affine_linear_ne_zero
-          P.constant P.linear i hi
-      have hsupport :
-          ((Finset.univ : Finset (ι → ZMod 2)).filter
-            (fun x ↦ P.eval x ≠ 0)) =
-          ((Finset.univ : Finset (ι → ZMod 2)).filter
-            (fun x ↦ affineEval P.constant P.linear x ≠ 0)) := by
-        ext x
-        simp [heval]
-      rw [hsupport]
-      omega
-    · have hlinear_zero : ∀ i, P.linear i = 0 := by
-        intro i
-        by_contra hi
-        exact hlinear ⟨i, hi⟩
-      obtain ⟨x, hx⟩ := hP
-      have hconstant : P.constant ≠ 0 := by
-        simpa [eval, hquadratic_zero, hlinear_zero] using hx
-      have hsupport :
-          ((Finset.univ : Finset (ι → ZMod 2)).filter
-            (fun x ↦ P.eval x ≠ 0)) =
-          Finset.univ := by
-        ext y
-        simp [eval, hquadratic_zero, hlinear_zero, hconstant]
-      rw [hsupport, Finset.card_univ]
-      omega
-
-theorem three_twenty_eighths_nonprimitive_support_of_eval_nonzero
-    (P : BinaryQuadraticPolynomial ι)
-    (hP : ∃ x, P.eval x ≠ 0)
-    (primitive : Finset (ι → ZMod 2))
-    (hprimitive :
-      7 * primitive.card < Fintype.card (ι → ZMod 2)) :
-    3 * Fintype.card (ι → ZMod 2) <
-      28 * (((Finset.univ : Finset (ι → ZMod 2)).filter
-        (fun x ↦ P.eval x ≠ 0)) \ primitive).card := by
-  apply three_twenty_eighths_survive
-    (Finset.univ : Finset (ι → ZMod 2))
-    ((Finset.univ : Finset (ι → ZMod 2)).filter
-      (fun x ↦ P.eval x ≠ 0))
-    primitive
-  · simpa using P.four_mul_support_card_ge_of_eval_nonzero hP
-  · simpa using hprimitive
-
-theorem exists_nonprimitive_of_eval_nonzero
-    (P : BinaryQuadraticPolynomial ι)
-    (hP : ∃ x, P.eval x ≠ 0)
-    (primitive : Finset (ι → ZMod 2))
-    (hprimitive :
-      7 * primitive.card < Fintype.card (ι → ZMod 2)) :
-    ∃ x, P.eval x ≠ 0 ∧ x ∉ primitive := by
-  classical
-  let support :=
-    (Finset.univ : Finset (ι → ZMod 2)).filter
-      (fun x ↦ P.eval x ≠ 0)
-  have hquarter :
-      (Finset.univ : Finset (ι → ZMod 2)).card ≤
-        4 * support.card := by
-    simpa [support] using P.four_mul_support_card_ge_of_eval_nonzero hP
-  obtain ⟨x, hxsupport, hxprimitive⟩ :=
-    exists_good_not_primitive
-      (Finset.univ : Finset (ι → ZMod 2))
-      support primitive hquarter (by simpa using hprimitive)
-  exact ⟨x, (Finset.mem_filter.mp hxsupport).2, hxprimitive⟩
 
 end BinaryQuadraticPolynomial
 
@@ -836,18 +130,6 @@ noncomputable section
 open scoped NNReal ENNReal
 
 abbrev GroupL2 (G : Type u) := lp (fun _ : G ↦ ℂ) 2
-
-def l2ReindexFun {α : Type u} {β : Type v} (e : α ≃ β)
-    (f : GroupL2 α) : PreLp (fun _ : β ↦ ℂ) :=
-  fun j ↦ f (e.symm j)
-
-theorem l2ReindexFun_mem {α : Type u} {β : Type v} (e : α ≃ β)
-    (f : GroupL2 α) :
-    l2ReindexFun e f ∈ lp (fun _ : β ↦ ℂ) 2 := by
-  change Memℓp (fun j : β ↦ f (e.symm j)) 2
-  rw [memℓp_gen_iff (by norm_num : 0 < (2 : ℝ≥0∞).toReal)]
-  exact (e.symm.summable_iff).2
-    ((lp.memℓp f).summable (by norm_num : 0 < (2 : ℝ≥0∞).toReal))
 
 def l2Reindex {α : Type u} {β : Type v} (e : α ≃ β) :
     GroupL2 α ≃ₗᵢ[ℂ] GroupL2 β where
@@ -996,13 +278,6 @@ def TracialGroupFactorsIsomorphic
 
 end
 
-def ConnesRigidityAssertion : Prop :=
-  ∀ Γ Λ : CountableDiscreteGroup.{0},
-    IsICC Γ →
-    HasKazhdanPropertyT Γ →
-    TracialGroupFactorsIsomorphic Γ Λ →
-    IsICC Λ ∧ GroupsIsomorphic Γ Λ
-
 end ConnesRigidity
 
 end
@@ -1011,261 +286,11 @@ section
 
 namespace ConnesRigidity
 
-universe u v
-
-structure NormalizedAddCocycle (G : Type u) (A : Type v)
-    [Group G] [AddCommGroup A] [DistribMulAction G A] where
-  toFun : G → G → A
-  cocycle : ∀ g h k, toFun (g * h) k + toFun g h =
-    g • toFun h k + toFun g (h * k)
-  one_left : ∀ g, toFun 1 g = 0
-  one_right : ∀ g, toFun g 1 = 0
-
 namespace NormalizedAddCocycle
-
-variable {G : Type u} {A : Type v}
-variable [Group G] [AddCommGroup A] [DistribMulAction G A]
-
-instance : CoeFun (NormalizedAddCocycle G A) (fun _ ↦ G → G → A) :=
-  ⟨NormalizedAddCocycle.toFun⟩
-
-@[ext]
-theorem ext {c d : NormalizedAddCocycle G A} (h : ∀ g k, c g k = d g k) : c = d := by
-  cases c
-  cases d
-  congr
-  funext g k
-  exact h g k
-
-def zero : NormalizedAddCocycle G A where
-  toFun := fun _ _ ↦ 0
-  cocycle := by simp
-  one_left := by simp
-  one_right := by simp
-
-@[simp]
-theorem zero_apply (g h : G) : (zero : NormalizedAddCocycle G A) g h = 0 := rfl
-
-def coboundary (r : G → A) : NormalizedAddCocycle G A where
-  toFun := fun g h ↦
-    g • (r h - r 1) - (r (g * h) - r 1) + (r g - r 1)
-  cocycle := by
-    intro g h k
-    simp only [smul_sub, smul_add, mul_smul, mul_assoc]
-    abel
-  one_left := by simp
-  one_right := by simp
-
-@[simp]
-theorem coboundary_apply (r : G → A) (g h : G) :
-    coboundary r g h =
-      g • (r h - r 1) - (r (g * h) - r 1) + (r g - r 1) := rfl
-
-def IsCoboundary (c : NormalizedAddCocycle G A) : Prop :=
-  ∃ r : G → A, r 1 = 0 ∧ ∀ g h, g • r h - r (g * h) + r g = c g h
-
-theorem isCoboundary_iff_groupCohomology (c : NormalizedAddCocycle G A) :
-    c.IsCoboundary ↔
-      groupCohomology.IsCoboundary₂ (fun gh : G × G ↦ c gh.1 gh.2) := by
-  constructor
-  · rintro ⟨r, -, hr⟩
-    exact ⟨r, hr⟩
-  · rintro ⟨r, hr⟩
-    have hr1 : r 1 = 0 := by
-      simpa [c.one_left] using hr 1 1
-    exact ⟨r, hr1, hr⟩
 
 end NormalizedAddCocycle
 
-structure CocycleExtension {G : Type u} {A : Type v}
-    [Group G] [AddCommGroup A] [DistribMulAction G A]
-    (_c : NormalizedAddCocycle G A) where
-  fst : A
-  snd : G
-
 namespace CocycleExtension
-
-variable {G : Type u} {A : Type v}
-variable [Group G] [AddCommGroup A] [DistribMulAction G A]
-variable (c : NormalizedAddCocycle G A)
-
-@[ext]
-theorem ext {x y : CocycleExtension c}
-    (hfst : x.fst = y.fst) (hsnd : x.snd = y.snd) : x = y := by
-  cases x
-  cases y
-  simp_all
-
-instance [Countable A] [Countable G] : Countable (CocycleExtension c) :=
-  (show Function.Injective (fun x : CocycleExtension c ↦ (x.fst, x.snd)) by
-    intro x y h
-    exact CocycleExtension.ext c (congr_arg Prod.fst h) (congr_arg Prod.snd h)).countable
-
-instance : One (CocycleExtension c) := ⟨⟨0, 1⟩⟩
-
-instance : Mul (CocycleExtension c) where
-  mul x y := ⟨x.fst + x.snd • y.fst + c x.snd y.snd, x.snd * y.snd⟩
-
-instance : Inv (CocycleExtension c) where
-  inv x :=
-    ⟨-(x.snd⁻¹ • (x.fst + c x.snd x.snd⁻¹)), x.snd⁻¹⟩
-
-@[simp]
-theorem one_fst : (1 : CocycleExtension c).fst = 0 := rfl
-
-@[simp]
-theorem one_snd : (1 : CocycleExtension c).snd = 1 := rfl
-
-@[simp]
-theorem mul_fst (x y : CocycleExtension c) :
-    (x * y).fst = x.fst + x.snd • y.fst + c x.snd y.snd := rfl
-
-@[simp]
-theorem mul_snd (x y : CocycleExtension c) :
-    (x * y).snd = x.snd * y.snd := rfl
-
-@[simp]
-theorem inv_fst (x : CocycleExtension c) :
-    (x⁻¹).fst = -(x.snd⁻¹ • (x.fst + c x.snd x.snd⁻¹)) := rfl
-
-@[simp]
-theorem inv_snd (x : CocycleExtension c) :
-    (x⁻¹).snd = x.snd⁻¹ := rfl
-
-private theorem mul_assoc' (x y z : CocycleExtension c) :
-    (x * y) * z = x * (y * z) := by
-  apply CocycleExtension.ext
-  · change
-      (x.fst + x.snd • y.fst + c x.snd y.snd) + (x.snd * y.snd) • z.fst +
-          c (x.snd * y.snd) z.snd =
-        x.fst + x.snd • (y.fst + y.snd • z.fst + c y.snd z.snd) +
-          c x.snd (y.snd * z.snd)
-    calc
-      _ = x.fst + x.snd • y.fst + x.snd • (y.snd • z.fst) +
-          (c (x.snd * y.snd) z.snd + c x.snd y.snd) := by
-            rw [mul_smul]
-            abel
-      _ = x.fst + x.snd • y.fst + x.snd • (y.snd • z.fst) +
-          (x.snd • c y.snd z.snd + c x.snd (y.snd * z.snd)) := by
-            rw [c.cocycle]
-      _ = _ := by
-            rw [smul_add, smul_add]
-            abel
-  · exact mul_assoc _ _ _
-
-private theorem one_mul' (x : CocycleExtension c) : 1 * x = x := by
-  apply CocycleExtension.ext
-  · simp [c.one_left]
-  · simp
-
-private theorem inv_mul_cancel' (x : CocycleExtension c) : x⁻¹ * x = 1 := by
-  apply CocycleExtension.ext
-  · change
-      -(x.snd⁻¹ • (x.fst + c x.snd x.snd⁻¹)) +
-          x.snd⁻¹ • x.fst + c x.snd⁻¹ x.snd = 0
-    have hc := c.cocycle x.snd⁻¹ x.snd x.snd⁻¹
-    simp only [inv_mul_cancel, mul_inv_cancel, c.one_left, c.one_right, add_zero] at hc
-    rw [smul_add, neg_add_rev]
-    abel_nf at hc ⊢
-    simpa [sub_eq_add_neg] using sub_eq_zero.mpr hc
-  · simp
-
-instance : Group (CocycleExtension c) :=
-  Group.ofLeftAxioms (mul_assoc' c) (one_mul' c) (inv_mul_cancel' c)
-
-def inl : Multiplicative A →* CocycleExtension c where
-  toFun a := ⟨a.toAdd, 1⟩
-  map_one' := rfl
-  map_mul' a b := by
-    apply CocycleExtension.ext
-    · simp [c.one_right]
-    · simp
-
-@[simp]
-theorem inl_apply (a : Multiplicative A) :
-    inl c a = ⟨a.toAdd, 1⟩ := rfl
-
-def rightHom : CocycleExtension c →* G where
-  toFun := CocycleExtension.snd
-  map_one' := rfl
-  map_mul' _ _ := rfl
-
-@[simp]
-theorem rightHom_apply (x : CocycleExtension c) : rightHom c x = x.snd := rfl
-
-theorem rightHom_surjective : Function.Surjective (rightHom c) :=
-  fun g ↦ ⟨⟨0, g⟩, rfl⟩
-
-theorem inl_injective : Function.Injective (inl c) := by
-  intro a b h
-  exact Multiplicative.ext (congr_arg CocycleExtension.fst h)
-
-theorem range_inl_eq_ker_rightHom :
-    MonoidHom.range (inl c) = MonoidHom.ker (rightHom c) := by
-  ext x
-  constructor
-  · rintro ⟨a, rfl⟩
-    simp
-  · intro hx
-    have hx' : x.snd = 1 := by simpa using hx
-    refine ⟨Multiplicative.ofAdd x.fst, ?_⟩
-    apply CocycleExtension.ext
-    · rfl
-    · simpa using hx'.symm
-
-def Splitting : Type max u v :=
-  {s : G →* CocycleExtension c // (rightHom c).comp s = MonoidHom.id G}
-
-theorem splitting_apply_snd (s : Splitting c) (g : G) : (s.1 g).snd = g := by
-  have h := DFunLike.congr_fun s.2 g
-  exact h
-
-noncomputable def splittingOfIsCoboundary (hc : c.IsCoboundary) : Splitting c := by
-  let r := Classical.choose hc
-  have hr1 : r 1 = 0 := (Classical.choose_spec hc).1
-  have hr : ∀ g h, g • r h - r (g * h) + r g = c g h :=
-    (Classical.choose_spec hc).2
-  let s : G →* CocycleExtension c :=
-    { toFun := fun g ↦ ⟨-r g, g⟩
-      map_one' := by
-        apply CocycleExtension.ext
-        · simp [hr1]
-        · simp
-      map_mul' := by
-        intro g h
-        apply CocycleExtension.ext
-        · simp only [mul_fst, smul_neg]
-          rw [← hr g h]
-          abel
-        · simp }
-  exact ⟨s, by ext g; rfl⟩
-
-theorem isCoboundaryOfSplitting (s : Splitting c) : c.IsCoboundary := by
-  let r : G → A := fun g ↦ -(s.1 g).fst
-  refine ⟨r, ?_, ?_⟩
-  · have hs1 := s.1.map_one
-    exact neg_eq_zero.mpr (congr_arg CocycleExtension.fst hs1)
-  · intro g h
-    have hs := s.1.map_mul g h
-    have hsg := splitting_apply_snd c s g
-    have hsh := splitting_apply_snd c s h
-    have hfst := congr_arg CocycleExtension.fst hs
-    simp only [mul_fst] at hfst
-    change g • (-(s.1 h).fst) - (-(s.1 (g * h)).fst) + (-(s.1 g).fst) = c g h
-    rw [smul_neg]
-    rw [hsg, hsh] at hfst
-    rw [sub_neg_eq_add]
-    rw [hfst]
-    abel
-
-theorem splitting_nonempty_iff_isCoboundary :
-    Nonempty (Splitting c) ↔ c.IsCoboundary :=
-  ⟨fun ⟨s⟩ ↦ isCoboundaryOfSplitting c s,
-    fun hc ↦ ⟨splittingOfIsCoboundary c hc⟩⟩
-
-theorem noSplitting_of_not_isCoboundary (hc : ¬c.IsCoboundary) :
-    IsEmpty (Splitting c) :=
-  ⟨fun s ↦ hc (isCoboundaryOfSplitting c s)⟩
 
 end CocycleExtension
 
@@ -1277,155 +302,7 @@ section
 
 namespace ConnesRigidity
 
-universe u v w
-
-structure ModTwoLiftingData (G : Type u) (V : Type v) (W : Type w)
-    [Group G] [AddCommGroup V] [AddCommGroup W]
-    [DistribMulAction G V] [DistribMulAction G W] where
-  reduce : V →+ W
-  reduce_smul : ∀ (g : G) (v : V), reduce (g • v) = g • reduce v
-  lift : W → V
-  reduce_lift : ∀ w : W, reduce (lift w) = w
-  lift_zero : lift 0 = 0
-  exponent_two : ∀ w : W, (2 : ℕ) • w = 0
-  exists_half_of_reduce_eq_zero :
-    ∀ v : V, reduce v = 0 → ∃ u : V, (2 : ℕ) • u = v
-  two_nsmul_injective : Function.Injective (fun v : V ↦ (2 : ℕ) • v)
-
 namespace ModTwoLiftingData
-
-variable {G : Type u} {V : Type v} {W : Type w}
-variable [Group G] [AddCommGroup V] [AddCommGroup W]
-variable [DistribMulAction G V] [DistribMulAction G W]
-
-variable (D : ModTwoLiftingData G V W)
-variable (d : G → W)
-
-def liftedOneCochain (g : G) : V :=
-  D.lift (d g)
-
-@[simp]
-theorem reduce_liftedOneCochain (g : G) :
-    D.reduce (D.liftedOneCochain d g) = d g :=
-  D.reduce_lift _
-
-theorem liftedOneCochain_one (hd : groupCohomology.IsCocycle₁ d) :
-    D.liftedOneCochain d 1 = 0 := by
-  rw [liftedOneCochain, groupCohomology.map_one_of_isCocycle₁ hd, D.lift_zero]
-
-def liftDefect (g h : G) : V :=
-  D.liftedOneCochain d g + g • D.liftedOneCochain d h -
-    D.liftedOneCochain d (g * h)
-
-theorem reduce_liftDefect (hd : groupCohomology.IsCocycle₁ d) (g h : G) :
-    D.reduce (D.liftDefect d g h) = 0 := by
-  simp only [liftDefect, map_sub, map_add, D.reduce_smul, reduce_liftedOneCochain]
-  rw [hd g h]
-  abel
-
-noncomputable def halfLiftDefect (hd : groupCohomology.IsCocycle₁ d) (g h : G) : V :=
-  Classical.choose
-    (D.exists_half_of_reduce_eq_zero (D.liftDefect d g h) (D.reduce_liftDefect d hd g h))
-
-theorem two_nsmul_halfLiftDefect (hd : groupCohomology.IsCocycle₁ d) (g h : G) :
-    (2 : ℕ) • D.halfLiftDefect d hd g h = D.liftDefect d g h :=
-  Classical.choose_spec
-    (D.exists_half_of_reduce_eq_zero (D.liftDefect d g h) (D.reduce_liftDefect d hd g h))
-
-theorem halfLiftDefect_one_left (hd : groupCohomology.IsCocycle₁ d) (g : G) :
-    D.halfLiftDefect d hd 1 g = 0 := by
-  apply D.two_nsmul_injective
-  change (2 : ℕ) • D.halfLiftDefect d hd 1 g = (2 : ℕ) • (0 : V)
-  rw [D.two_nsmul_halfLiftDefect]
-  simp [liftDefect, D.liftedOneCochain_one d hd]
-
-theorem halfLiftDefect_one_right (hd : groupCohomology.IsCocycle₁ d) (g : G) :
-    D.halfLiftDefect d hd g 1 = 0 := by
-  apply D.two_nsmul_injective
-  change (2 : ℕ) • D.halfLiftDefect d hd g 1 = (2 : ℕ) • (0 : V)
-  rw [D.two_nsmul_halfLiftDefect]
-  simp [liftDefect, D.liftedOneCochain_one d hd]
-
-theorem halfLiftDefect_cocycle (hd : groupCohomology.IsCocycle₁ d) :
-    ∀ g h k,
-      D.halfLiftDefect d hd (g * h) k + D.halfLiftDefect d hd g h =
-        g • D.halfLiftDefect d hd h k + D.halfLiftDefect d hd g (h * k) := by
-  intro g h k
-  apply D.two_nsmul_injective
-  change
-    (2 : ℕ) •
-        (D.halfLiftDefect d hd (g * h) k + D.halfLiftDefect d hd g h) =
-      (2 : ℕ) •
-        (g • D.halfLiftDefect d hd h k + D.halfLiftDefect d hd g (h * k))
-  simp only [nsmul_add]
-  rw [D.two_nsmul_halfLiftDefect, D.two_nsmul_halfLiftDefect,
-    D.two_nsmul_halfLiftDefect]
-  rw [show (2 : ℕ) • (g • D.halfLiftDefect d hd h k) =
-      g • ((2 : ℕ) • D.halfLiftDefect d hd h k) by
-        exact ((DistribSMul.toAddMonoidHom V g).map_nsmul _ _).symm]
-  rw [D.two_nsmul_halfLiftDefect]
-  simp only [liftDefect, smul_add, smul_sub, mul_smul, mul_assoc]
-  abel
-
-noncomputable def liftedTwoCocycle (hd : groupCohomology.IsCocycle₁ d) :
-    NormalizedAddCocycle G V where
-  toFun := D.halfLiftDefect d hd
-  cocycle := D.halfLiftDefect_cocycle d hd
-  one_left := D.halfLiftDefect_one_left d hd
-  one_right := D.halfLiftDefect_one_right d hd
-
-@[simp]
-theorem liftedTwoCocycle_apply (hd : groupCohomology.IsCocycle₁ d) (g h : G) :
-    D.liftedTwoCocycle d hd g h = D.halfLiftDefect d hd g h := rfl
-
-theorem two_nsmul_liftedTwoCocycle (hd : groupCohomology.IsCocycle₁ d) (g h : G) :
-    (2 : ℕ) • D.liftedTwoCocycle d hd g h = D.liftDefect d g h :=
-  D.two_nsmul_halfLiftDefect d hd g h
-
-theorem liftedTwoCocycle_not_isCoboundary
-    (hd : groupCohomology.IsCocycle₁ d)
-    (hd_not : ¬groupCohomology.IsCoboundary₁ d)
-    (hV : ∀ F : G → V, groupCohomology.IsCocycle₁ F →
-      groupCohomology.IsCoboundary₁ F) :
-    ¬(D.liftedTwoCocycle d hd).IsCoboundary := by
-  intro hc
-  rcases hc with ⟨r, hr1, hr⟩
-  let F : G → V := fun g ↦ D.liftedOneCochain d g - (2 : ℕ) • r g
-  have hF : groupCohomology.IsCocycle₁ F := by
-    intro g h
-    change
-      D.liftedOneCochain d (g * h) - (2 : ℕ) • r (g * h) =
-        g • (D.liftedOneCochain d h - (2 : ℕ) • r h) +
-          (D.liftedOneCochain d g - (2 : ℕ) • r g)
-    have htwo := D.two_nsmul_liftedTwoCocycle d hd g h
-    have hr' := hr g h
-    simp only [liftDefect] at htwo
-    rw [← hr'] at htwo
-    simp only [nsmul_add, nsmul_sub] at htwo
-    rw [show (2 : ℕ) • (g • r h) = g • ((2 : ℕ) • r h) by
-      exact ((DistribSMul.toAddMonoidHom V g).map_nsmul _ _).symm] at htwo
-    have hsum :
-        (g • ((2 : ℕ) • r h) - (2 : ℕ) • r (g * h) + (2 : ℕ) • r g) +
-            D.liftedOneCochain d (g * h) =
-          D.liftedOneCochain d g + g • D.liftedOneCochain d h :=
-      (eq_sub_iff_add_eq.mp htwo)
-    rw [smul_sub]
-    calc
-      D.liftedOneCochain d (g * h) - (2 : ℕ) • r (g * h) =
-          (g • ((2 : ℕ) • r h) - (2 : ℕ) • r (g * h) + (2 : ℕ) • r g +
-              D.liftedOneCochain d (g * h)) -
-            (g • ((2 : ℕ) • r h) + (2 : ℕ) • r g) := by abel
-      _ = (D.liftedOneCochain d g + g • D.liftedOneCochain d h) -
-            (g • ((2 : ℕ) • r h) + (2 : ℕ) • r g) := by rw [hsum]
-      _ = (g • D.liftedOneCochain d h - g • ((2 : ℕ) • r h)) +
-            (D.liftedOneCochain d g - (2 : ℕ) • r g) := by abel
-  have hFred (g : G) : D.reduce (F g) = d g := by
-    simp only [F, map_sub, reduce_liftedOneCochain, map_nsmul, D.exponent_two, sub_zero]
-  rcases hV F hF with ⟨x, hx⟩
-  apply hd_not
-  refine ⟨D.reduce x, ?_⟩
-  intro g
-  rw [← hFred g, ← hx g, map_sub, D.reduce_smul]
 
 end ModTwoLiftingData
 
@@ -1437,170 +314,7 @@ section
 
 namespace ConnesRigidity
 
-open Matrix
-
-abbrev SymplecticIndex := Fin 2 ⊕ Fin 2
-
-abbrev IntegralLattice := SymplecticIndex → ℤ
-
-abbrev ModTwoSpace := SymplecticIndex → ZMod 2
-
-abbrev IntegralSymplecticGroup := Matrix.symplecticGroup (Fin 2) ℤ
-
-instance : Countable IntegralSymplecticGroup := by
-  let f : IntegralSymplecticGroup → SymplecticIndex → SymplecticIndex → ℤ :=
-    fun g i j ↦ g.1 i j
-  apply (show Function.Injective f by
-    intro g h hgh
-    apply Subtype.ext
-    funext i j
-    exact congr_fun (congr_fun hgh i) j).countable
-
-instance : DistribMulAction IntegralSymplecticGroup IntegralLattice :=
-  DistribMulAction.compHom IntegralLattice
-    (Matrix.symplecticGroup (Fin 2) ℤ).subtype
-
-def reducedMatrixHom :
-    IntegralSymplecticGroup →* Matrix SymplecticIndex SymplecticIndex (ZMod 2) where
-  toFun g := (g.1 : Matrix SymplecticIndex SymplecticIndex ℤ).map
-    (Int.castRingHom (ZMod 2))
-  map_one' :=
-    Matrix.map_one (Int.castRingHom (ZMod 2)) (map_zero _) (map_one _)
-  map_mul' g h := by
-    ext i j
-    simp [Matrix.mul_apply]
-
-instance : DistribMulAction IntegralSymplecticGroup ModTwoSpace :=
-  DistribMulAction.compHom ModTwoSpace reducedMatrixHom
-
-def reduceVector : IntegralLattice →+ ModTwoSpace where
-  toFun v i := (v i : ZMod 2)
-  map_zero' := by
-    funext i
-    simp
-  map_add' v w := by
-    funext i
-    simp
-
-@[simp]
-theorem reduceVector_apply (v : IntegralLattice) (i : SymplecticIndex) :
-    reduceVector v i = (v i : ZMod 2) := rfl
-
-def liftVector (w : ModTwoSpace) : IntegralLattice :=
-  fun i ↦ ZMod.cast (w i)
-
-@[simp]
-theorem reduceVector_liftVector (w : ModTwoSpace) :
-    reduceVector (liftVector w) = w := by
-  funext i
-  change ((ZMod.cast (w i) : ℤ) : ZMod 2) = w i
-  exact ZMod.intCast_zmod_cast _
-
-@[simp]
-theorem liftVector_zero : liftVector (0 : ModTwoSpace) = 0 := by
-  funext i
-  simp [liftVector]
-
-theorem reduceVector_smul (g : IntegralSymplecticGroup) (v : IntegralLattice) :
-    reduceVector (g • v) = g • reduceVector v := by
-  funext i
-  exact RingHom.map_mulVec (Int.castRingHom (ZMod 2)) g.1 v i
-
-theorem modTwoSpace_exponent_two (w : ModTwoSpace) :
-    (2 : ℕ) • w = 0 := by
-  funext i
-  change (2 : ℕ) • w i = 0
-  rw [two_nsmul]
-  exact CharTwo.add_self_eq_zero _
-
-theorem exists_half_of_reduceVector_eq_zero
-    (v : IntegralLattice) (hv : reduceVector v = 0) :
-    ∃ u : IntegralLattice, (2 : ℕ) • u = v := by
-  have hdiv : ∀ i, (2 : ℤ) ∣ v i := by
-    intro i
-    apply (ZMod.intCast_zmod_eq_zero_iff_dvd (v i) 2).mp
-    have hi := congr_fun hv i
-    simpa using hi
-  choose u hu using hdiv
-  refine ⟨u, ?_⟩
-  funext i
-  change (2 : ℕ) • u i = v i
-  simpa [nsmul_eq_mul] using (hu i).symm
-
-theorem two_nsmul_integralLattice_injective :
-    Function.Injective (fun v : IntegralLattice ↦ (2 : ℕ) • v) := by
-  exact nsmul_right_injective (by norm_num : (2 : ℕ) ≠ 0)
-
-def symplecticModTwoLiftingData :
-    ModTwoLiftingData IntegralSymplecticGroup IntegralLattice ModTwoSpace where
-  reduce := reduceVector
-  reduce_smul := reduceVector_smul
-  lift := liftVector
-  reduce_lift := reduceVector_liftVector
-  lift_zero := liftVector_zero
-  exponent_two := modTwoSpace_exponent_two
-  exists_half_of_reduce_eq_zero := exists_half_of_reduceVector_eq_zero
-  two_nsmul_injective := two_nsmul_integralLattice_injective
-
-def modTwoSymplecticForm (x y : ModTwoSpace) : ZMod 2 :=
-  ∑ i : Fin 2, (x (Sum.inl i) * y (Sum.inr i) +
-    x (Sum.inr i) * y (Sum.inl i))
-
-def standardQuadraticForm (x : ModTwoSpace) : ZMod 2 :=
-  ∑ i : Fin 2, x (Sum.inl i) * x (Sum.inr i)
-
-theorem standardQuadraticForm_add (x y : ModTwoSpace) :
-    standardQuadraticForm (x + y) =
-      standardQuadraticForm x + standardQuadraticForm y + modTwoSymplecticForm x y := by
-  classical
-  simp only [standardQuadraticForm, modTwoSymplecticForm, Pi.add_apply, add_mul, mul_add,
-    Finset.sum_add_distrib]
-  have hcross :
-      (∑ i : Fin 2, y (Sum.inl i) * x (Sum.inr i)) =
-        ∑ i : Fin 2, x (Sum.inr i) * y (Sum.inl i) := by
-    apply Finset.sum_congr rfl
-    intro i _
-    exact mul_comm _ _
-  rw [hcross]
-  abel
-
-structure IntegralSymplecticCocycleInput where
-  d : IntegralSymplecticGroup → ModTwoSpace
-  defining_identity :
-    ∀ (g : IntegralSymplecticGroup) (w : ModTwoSpace),
-      standardQuadraticForm (g⁻¹ • w) + standardQuadraticForm w =
-        modTwoSymplecticForm (d g) w
-  cocycle : groupCohomology.IsCocycle₁ d
-  not_coboundary : ¬groupCohomology.IsCoboundary₁ d
-  integral_one_cocycles_are_coboundaries :
-    ∀ F : IntegralSymplecticGroup → IntegralLattice,
-      groupCohomology.IsCocycle₁ F → groupCohomology.IsCoboundary₁ F
-
 namespace IntegralSymplecticCocycleInput
-
-variable (I : IntegralSymplecticCocycleInput)
-
-noncomputable def twoCocycle :
-    NormalizedAddCocycle IntegralSymplecticGroup IntegralLattice :=
-  symplecticModTwoLiftingData.liftedTwoCocycle I.d I.cocycle
-
-theorem twoCocycle_not_isCoboundary :
-    ¬I.twoCocycle.IsCoboundary :=
-  symplecticModTwoLiftingData.liftedTwoCocycle_not_isCoboundary
-    I.d I.cocycle I.not_coboundary I.integral_one_cocycles_are_coboundaries
-
-abbrev GammaZero :=
-  CocycleExtension
-    (NormalizedAddCocycle.zero :
-      NormalizedAddCocycle IntegralSymplecticGroup IntegralLattice)
-
-noncomputable abbrev GammaOne :=
-  CocycleExtension I.twoCocycle
-
-theorem gammaOne_has_no_splitting :
-    IsEmpty (CocycleExtension.Splitting I.twoCocycle) :=
-  CocycleExtension.noSplitting_of_not_isCoboundary I.twoCocycle
-    I.twoCocycle_not_isCoboundary
 
 end IntegralSymplecticCocycleInput
 
@@ -1620,74 +334,7 @@ universe u
 
 namespace UnitaryRepresentation
 
-variable {G H : Type u} [Group G]
-  [NormedAddCommGroup H] [InnerProductSpace ℂ H] [CompleteSpace H]
-
-def stabilizer (π : UnitaryRepresentation G H) (ξ : H) : Subgroup G where
-  carrier := {g | (π g : H →L[ℂ] H) ξ = ξ}
-  one_mem' := by
-    simp
-  mul_mem' := by
-    intro g h hg hh
-    change (π g : H →L[ℂ] H) ξ = ξ at hg
-    change (π h : H →L[ℂ] H) ξ = ξ at hh
-    simp [map_mul, hh, hg]
-  inv_mem' := by
-    intro g hg
-    calc
-      (π g⁻¹ : H →L[ℂ] H) ξ =
-          (π g⁻¹ : H →L[ℂ] H) ((π g : H →L[ℂ] H) ξ) := by rw [hg]
-      _ = ξ := by
-        change (↑(π g⁻¹ * π g) : H →L[ℂ] H) ξ = ξ
-        rw [← map_mul]
-        simp
-
-@[simp]
-theorem mem_stabilizer_iff
-    (π : UnitaryRepresentation G H) (ξ : H) (g : G) :
-    g ∈ π.stabilizer ξ ↔ (π g : H →L[ℂ] H) ξ = ξ :=
-  Iff.rfl
-
 end UnitaryRepresentation
-
-def IsGeneratingSet (G : Type u) [Group G] (K : Finset G) : Prop :=
-  Subgroup.closure (K : Set G) = ⊤
-
-theorem UnitaryRepresentation.isInvariant_of_isGeneratingSet
-    {G H : Type u} [Group G]
-    [NormedAddCommGroup H] [InnerProductSpace ℂ H] [CompleteSpace H]
-    (π : UnitaryRepresentation G H) (K : Finset G) (hK : IsGeneratingSet G K)
-    (ξ : H) (hξ : ∀ g ∈ K, (π g : H →L[ℂ] H) ξ = ξ) :
-    π.IsInvariant ξ := by
-  have hsubset : (K : Set G) ⊆ π.stabilizer ξ := by
-    intro g hg
-    exact hξ g hg
-  have hclosure : Subgroup.closure (K : Set G) ≤ π.stabilizer ξ :=
-    (Subgroup.closure_le _).mpr hsubset
-  rw [hK] at hclosure
-  intro g
-  exact hclosure (Subgroup.mem_top g)
-
-def IsKazhdanPair
-    (G : CountableDiscreteGroup.{u}) (K : Finset G) (ε : ℝ) : Prop :=
-  0 < ε ∧
-    ∀ (H : Type u)
-      (_ : NormedAddCommGroup H)
-      (_ : InnerProductSpace ℂ H)
-      (_ : CompleteSpace H)
-      (π : UnitaryRepresentation G H)
-      (ξ : H),
-      ‖ξ‖ = 1 →
-      (∀ g ∈ K, ‖(π g : H →L[ℂ] H) ξ - ξ‖ < ε) →
-        ∃ η : H, η ≠ 0 ∧ π.IsInvariant η
-
-theorem hasKazhdanPropertyT_of_isKazhdanPair
-    (G : CountableDiscreteGroup.{u}) (K : Finset G) (ε : ℝ)
-    (hK : IsKazhdanPair G K ε) :
-    HasKazhdanPropertyT G := by
-  intro H _ _ _ π hπ
-  obtain ⟨ξ, hξ, hclose⟩ := hπ K ε hK.1
-  exact hK.2 H inferInstance inferInstance inferInstance π ξ hξ hclose
 
 theorem UnitaryRepresentation.hasAlmostInvariantUnitVectors_comp
     {G H K : Type u} [Group G] [Group H]
@@ -2250,11 +897,6 @@ noncomputable def shiftedQuotientCoeffEquiv (n : ℕ) :
     ShiftedQuotient n ≃ₗ[F] (Fin 4 → Fin n → F) :=
   (shiftedQuotientEquiv n).trans (truncatedVectorEquiv n)
 
-theorem truncatedPolynomial_card (n : ℕ) :
-    Nat.card (TruncatedPolynomial n) = 2 ^ n := by
-  rw [Nat.card_congr (truncatedPolynomialEquiv n).toEquiv]
-  simp
-
 theorem truncatedVector_card (n : ℕ) :
     Nat.card (TruncatedVector n) = 2 ^ (4 * n) := by
   rw [Nat.card_congr (truncatedVectorEquiv n).toEquiv]
@@ -2264,13 +906,6 @@ theorem shiftedQuotient_card (n : ℕ) :
     Nat.card (ShiftedQuotient n) = 2 ^ (4 * n) := by
   rw [Nat.card_congr (shiftedQuotientEquiv n).toEquiv]
   exact truncatedVector_card n
-
-theorem shiftedQuotient_card_injective {m n : ℕ}
-    (h : Nat.card (ShiftedQuotient m) = Nat.card (ShiftedQuotient n)) :
-    m = n := by
-  rw [shiftedQuotient_card, shiftedQuotient_card] at h
-  exact Nat.mul_left_cancel (by decide : 0 < 4)
-    ((Nat.pow_right_injective (by decide : 2 ≤ 2)) h)
 
 end
 
@@ -2360,27 +995,6 @@ def actingGroup : ConnesRigidity.CountableDiscreteGroup where
   group := inferInstance
   countable := inferInstance
 
-def quotientGroup : ConnesRigidity.CountableDiscreteGroup where
-  Carrier := Q
-  group := inferInstance
-  countable := inferInstance
-
-theorem mem_KSubgroup_iff (g : IntegralSpecialLinearGroup) :
-    g ∈ KSubgroup ↔ modThreeGroupHom g = 1 := Iff.rfl
-
-theorem mem_KSubgroup_iff_entries (g : IntegralSpecialLinearGroup) :
-    g ∈ KSubgroup ↔
-      ∀ i j : Index, modThreeAtZero (g i j) = if i = j then 1 else 0 := by
-  rw [mem_KSubgroup_iff]
-  constructor
-  · intro h i j
-    have hij := congrArg (fun A : TernarySpecialLinearGroup => A i j) h
-    simpa [Matrix.one_apply] using hij
-  · intro h
-    apply Matrix.SpecialLinearGroup.ext
-    intro i j
-    simpa [Matrix.one_apply] using h i j
-
 instance : KSubgroup.FiniteIndex := Subgroup.finiteIndex_ker modThreeGroupHom
 
 def modTwoPolynomial : IntegralPolynomial →+* BinaryPolynomial :=
@@ -2405,8 +1019,6 @@ def modTwoGroupHom : IntegralSpecialLinearGroup →* Q :=
     modTwoGroupHom g i j = modTwoPolynomial (g i j) := rfl
 
 def pi₂ : K →* Q := modTwoGroupHom.comp KSubgroup.subtype
-
-abbrev piTwo : K →* Q := pi₂
 
 @[simp] theorem pi₂_apply (g : K) :
     pi₂ g = modTwoGroupHom (g : IntegralSpecialLinearGroup) := rfl
@@ -2683,25 +1295,6 @@ theorem fg_of_finiteIndex_subgroup (H : Subgroup G) [H.FiniteIndex]
     simpa using hg
   exact Group.fg_def.2 (htop ▸ hHfg.sup hRfg)
 
-theorem finiteIndex_fg_iff (H : Subgroup G) [H.FiniteIndex] :
-    Group.FG G ↔ Group.FG H := by
-  constructor
-  · intro hG
-    letI : Group.FG G := hG
-    exact H.fg_of_index_ne_zero
-  · exact fg_of_finiteIndex_subgroup H
-
-theorem fg_of_finiteIndex_range {G' : Type*} [Group G']
-    (f : G →* G') [Group.FG G] [f.range.FiniteIndex] : Group.FG G' :=
-  fg_of_finiteIndex_subgroup f.range
-    (Group.fg_of_surjective f.rangeRestrict_surjective)
-
-theorem fg_of_range_index_ne_zero {G' : Type*} [Group G']
-    (f : G →* G') [Group.FG G]
-    (hindex : f.range.index ≠ 0) : Group.FG G' := by
-  letI : f.range.FiniteIndex := Subgroup.finiteIndex_iff.mpr hindex
-  exact fg_of_finiteIndex_range f
-
 end ConnesRigidity
 
 end
@@ -2950,18 +1543,6 @@ theorem actingGroup_hasKazhdanPropertyT
   exact hasKazhdanPropertyT_subgroup_of_finiteIndex
     integralGroup KSubgroup hUniversalLattice
 
-theorem integralGroup_finitelyGenerated
-    (hUniversalLattice : ErshovJaikinUniversalLatticePropertyT) :
-    Group.FG integralGroup :=
-  hasKazhdanPropertyT_finitelyGenerated integralGroup hUniversalLattice
-
-theorem actingGroup_finitelyGenerated
-    (hUniversalLattice : ErshovJaikinUniversalLatticePropertyT) :
-    Group.FG actingGroup := by
-  letI : Group.FG IntegralSpecialLinearGroup :=
-    integralGroup_finitelyGenerated hUniversalLattice
-  exact KSubgroup.fg_of_index_ne_zero
-
 end ConnesRigidity
 
 end
@@ -3076,84 +1657,10 @@ theorem integral_transvection_mem_of_one_and_X
   have hp : p ∈ S := by simp [hS]
   exact hp i j hij
 
-noncomputable def integralElementaryGenerators :
-    Finset IntegralSpecialLinearGroup :=
-  Finset.univ.biUnion fun i : Index =>
-    Finset.univ.biUnion fun j : Index =>
-      if h : i ≠ j then
-        ({(1 : IntegralPolynomial), Polynomial.X} : Finset IntegralPolynomial).image
-          (Matrix.SpecialLinearGroup.transvection h)
-      else ∅
-
-theorem mem_integralElementaryGenerators (g : IntegralSpecialLinearGroup) :
-    g ∈ integralElementaryGenerators ↔
-      ∃ (i j : Index) (h : i ≠ j) (a : IntegralPolynomial),
-        (a = 1 ∨ a = Polynomial.X) ∧
-          Matrix.SpecialLinearGroup.transvection h a = g := by
-  classical
-  constructor
-  · intro hg
-    unfold integralElementaryGenerators at hg
-    obtain ⟨i, _, hi⟩ := Finset.mem_biUnion.mp hg
-    obtain ⟨j, _, hj⟩ := Finset.mem_biUnion.mp hi
-    by_cases h : i ≠ j
-    · rw [dif_pos h] at hj
-      obtain ⟨a, ha, hga⟩ := Finset.mem_image.mp hj
-      refine ⟨i, j, h, a, ?_, hga⟩
-      simpa using ha
-    · rw [dif_neg h] at hj
-      simpa using hj
-  · rintro ⟨i, j, h, a, ha, rfl⟩
-    unfold integralElementaryGenerators
-    apply Finset.mem_biUnion.mpr
-    refine ⟨i, Finset.mem_univ i, ?_⟩
-    apply Finset.mem_biUnion.mpr
-    refine ⟨j, Finset.mem_univ j, ?_⟩
-    rw [dif_pos h]
-    apply Finset.mem_image.mpr
-    exact ⟨a, by simpa using ha, rfl⟩
-
 def integralElementarySubgroup : Subgroup IntegralSpecialLinearGroup :=
   Subgroup.closure
     {g | ∃ (i j : Index) (h : i ≠ j) (p : IntegralPolynomial),
       g = Matrix.SpecialLinearGroup.transvection h p}
-
-theorem integralElementarySubgroup_eq_finite_closure :
-    integralElementarySubgroup =
-      Subgroup.closure
-        (integralElementaryGenerators : Set IntegralSpecialLinearGroup) := by
-  let H : Subgroup IntegralSpecialLinearGroup :=
-    Subgroup.closure
-      (integralElementaryGenerators : Set IntegralSpecialLinearGroup)
-  have hone : ∀ (i j : Index) (h : i ≠ j),
-      Matrix.SpecialLinearGroup.transvection h (1 : IntegralPolynomial) ∈ H := by
-    intro i j h
-    apply Subgroup.subset_closure
-    exact (mem_integralElementaryGenerators _).mpr
-      ⟨i, j, h, 1, Or.inl rfl, rfl⟩
-  have hX : ∀ (i j : Index) (h : i ≠ j),
-      Matrix.SpecialLinearGroup.transvection h
-        (Polynomial.X : IntegralPolynomial) ∈ H := by
-    intro i j h
-    apply Subgroup.subset_closure
-    exact (mem_integralElementaryGenerators _).mpr
-      ⟨i, j, h, Polynomial.X, Or.inr rfl, rfl⟩
-  apply le_antisymm
-  · change Subgroup.closure _ ≤ H
-    rw [Subgroup.closure_le]
-    rintro _ ⟨i, j, h, a, rfl⟩
-    exact integral_transvection_mem_of_one_and_X H hone hX i j h a
-  · rw [Subgroup.closure_le]
-    intro g hg
-    obtain ⟨i, j, h, a, _, rfl⟩ :=
-      (mem_integralElementaryGenerators g).mp hg
-    exact Subgroup.subset_closure ⟨i, j, h, a, rfl⟩
-
-theorem integralElementarySubgroup_finitelyGenerated :
-    Group.FG integralElementarySubgroup := by
-  apply (Group.fg_iff_subgroup_fg integralElementarySubgroup).mpr
-  refine ⟨integralElementaryGenerators, ?_⟩
-  exact integralElementarySubgroup_eq_finite_closure.symm
 
 theorem integral_transvection_mem_elementary_commutator
     (i j : Index) (hij : i ≠ j) (a : IntegralPolynomial) :
@@ -3182,135 +1689,6 @@ theorem integralElementarySubgroup_isPerfect :
     rw [Subgroup.closure_le]
     rintro _ ⟨i, j, hij, a, rfl⟩
     exact integral_transvection_mem_elementary_commutator i j hij a
-
-theorem integralSpecialLinearGroup_isPerfect_of_elementary_eq_top
-    (hSuslin : integralElementarySubgroup = ⊤) :
-    Group.IsPerfect IntegralSpecialLinearGroup := by
-  have htop : Group.IsPerfect
-      (⊤ : Subgroup IntegralSpecialLinearGroup) := by
-    rw [← hSuslin]
-    exact integralElementarySubgroup_isPerfect
-  exact Group.IsPerfect.top_iff.mp htop
-
-theorem integralElementaryGenerators_card_le :
-    integralElementaryGenerators.card ≤ 24 := by
-  classical
-  let roots : Index → Index → Finset IntegralSpecialLinearGroup := fun i j =>
-    if h : i ≠ j then
-      ({(1 : IntegralPolynomial), Polynomial.X} : Finset IntegralPolynomial).image
-        (Matrix.SpecialLinearGroup.transvection h)
-    else ∅
-  have hroot (i j : Index) :
-      (roots i j).card ≤ if i = j then 0 else 2 := by
-    by_cases h : i = j
-    · subst j
-      simp [roots]
-    · rw [if_neg h]
-      simp only [roots, dif_pos h]
-      exact Finset.card_image_le.trans Finset.card_le_two
-  calc
-    integralElementaryGenerators.card =
-        (Finset.univ.biUnion fun i : Index =>
-          Finset.univ.biUnion fun j : Index => roots i j).card := rfl
-    _ ≤ ∑ i : Index, (Finset.univ.biUnion fun j : Index => roots i j).card :=
-      Finset.card_biUnion_le
-    _ ≤ ∑ i : Index, ∑ j : Index, (roots i j).card := by
-      exact Finset.sum_le_sum fun i _ => Finset.card_biUnion_le
-    _ ≤ ∑ i : Index, ∑ j : Index, if i = j then 0 else 2 := by
-      exact Finset.sum_le_sum fun i _ =>
-        Finset.sum_le_sum fun j _ => hroot i j
-    _ = 24 := by decide
-
-theorem transvection_injective_on_nonzero_roots
-    {ι A : Type*} [Fintype ι] [DecidableEq ι] [CommRing A]
-    {i j k l : ι} (hij : i ≠ j) (hkl : k ≠ l)
-    {a b : A} (ha : a ≠ 0)
-    (heq : Matrix.SpecialLinearGroup.transvection hij a =
-      Matrix.SpecialLinearGroup.transvection hkl b) :
-    i = k ∧ j = l ∧ a = b := by
-  have hs : Matrix.single i j a = Matrix.single k l b := by
-    apply add_left_cancel
-    exact congrArg Subtype.val heq
-  have hentry := congrArg (fun M : Matrix ι ι A => M i j) hs
-  by_cases hik : i = k
-  · subst k
-    by_cases hjl : j = l
-    · subst l
-      exact ⟨rfl, rfl, by simpa using hentry⟩
-    · exfalso
-      apply ha
-      simpa [Matrix.single_apply, Ne.symm hjl] using hentry
-  · exfalso
-    apply ha
-    simpa [Matrix.single_apply, Ne.symm hik] using hentry
-
-theorem integralPolynomial_X_ne_one :
-    (Polynomial.X : IntegralPolynomial) ≠ 1 := by
-  intro h
-  have hcoeff := congrArg (fun p : IntegralPolynomial => p.coeff 0) h
-  simpa using hcoeff
-
-abbrev IntegralGeneratorTuple := (Index × Index) × Bool
-
-def integralGeneratorTuples : Finset IntegralGeneratorTuple :=
-  Finset.univ.filter fun z : IntegralGeneratorTuple => z.1.1 ≠ z.1.2
-
-def integralGeneratorFromTuple
-    (z : IntegralGeneratorTuple) : IntegralSpecialLinearGroup :=
-  if h : z.1.1 ≠ z.1.2 then
-    Matrix.SpecialLinearGroup.transvection h
-      (if z.2 then (Polynomial.X : IntegralPolynomial) else 1)
-  else 1
-
-theorem integralGeneratorFromTuple_mem
-    (z : IntegralGeneratorTuple) (hz : z ∈ integralGeneratorTuples) :
-    integralGeneratorFromTuple z ∈ integralElementaryGenerators := by
-  rcases z with ⟨⟨i, j⟩, c⟩
-  have hij : i ≠ j := by simpa [integralGeneratorTuples] using hz
-  simp only [integralGeneratorFromTuple, dif_pos hij]
-  unfold integralElementaryGenerators
-  apply Finset.mem_biUnion.mpr
-  refine ⟨i, Finset.mem_univ i, ?_⟩
-  apply Finset.mem_biUnion.mpr
-  refine ⟨j, Finset.mem_univ j, ?_⟩
-  rw [dif_pos hij]
-  apply Finset.mem_image.mpr
-  refine ⟨if c then Polynomial.X else 1, ?_, rfl⟩
-  cases c <;> simp
-
-theorem integralGeneratorFromTuple_injOn :
-    Set.InjOn integralGeneratorFromTuple
-      (integralGeneratorTuples : Set IntegralGeneratorTuple) := by
-  rintro ⟨⟨i, j⟩, c⟩ hi ⟨⟨k, l⟩, d⟩ hk heq
-  have hij : i ≠ j := by simpa [integralGeneratorTuples] using hi
-  have hkl : k ≠ l := by simpa [integralGeneratorTuples] using hk
-  simp only [integralGeneratorFromTuple, dif_pos hij, dif_pos hkl] at heq
-  have ha : (if c then (Polynomial.X : IntegralPolynomial) else 1) ≠ 0 := by
-    cases c <;> simp [Polynomial.X_ne_zero]
-  obtain ⟨hik, hjl, hcoeff⟩ :=
-    transvection_injective_on_nonzero_roots hij hkl ha heq
-  subst k
-  subst l
-  congr 1
-  cases c <;> cases d <;>
-    simp_all [integralPolynomial_X_ne_one, Ne.symm integralPolynomial_X_ne_one]
-
-theorem integralElementaryGenerators_card :
-    integralElementaryGenerators.card = 24 := by
-  apply Nat.le_antisymm integralElementaryGenerators_card_le
-  have hcard : integralGeneratorTuples.card = 24 := by decide
-  rw [← hcard]
-  exact Finset.card_le_card_of_injOn integralGeneratorFromTuple
-    (fun z hz => integralGeneratorFromTuple_mem z hz)
-    integralGeneratorFromTuple_injOn
-
-theorem integralSpecialLinearGroup_finitelyGenerated_of_elementary_eq_top
-    (hSuslin : integralElementarySubgroup = ⊤) :
-    Group.FG IntegralSpecialLinearGroup := by
-  apply Group.fg_def.mpr
-  rw [← hSuslin]
-  exact (Group.fg_iff_subgroup_fg integralElementarySubgroup).mp
-    integralElementarySubgroup_finitelyGenerated
 
 end ConnesRigidity
 
@@ -3354,35 +1732,9 @@ theorem universalLatticePropertyT_of_elementary
     ErshovJaikinUniversalLatticePropertyT :=
   (integralElementaryGroup_propertyT_iff_integralGroup hSuslin).mp hElementary
 
-theorem elementaryPropertyT_of_universalLattice
-    (hSuslin : SuslinElementaryGeneration)
-    (hIntegral : ErshovJaikinUniversalLatticePropertyT) :
-    ErshovJaikinElementaryPropertyT :=
-  (integralElementaryGroup_propertyT_iff_integralGroup hSuslin).mpr hIntegral
-
-theorem integralElementaryGroup_finitelyGenerated :
-    Group.FG integralElementaryGroup :=
-  integralElementarySubgroup_finitelyGenerated
-
 theorem integralElementaryGroup_isPerfect :
     Group.IsPerfect integralElementaryGroup :=
   integralElementarySubgroup_isPerfect
-
-theorem integralElementaryGenerators_closure_eq_top_of_suslin
-    (hSuslin : SuslinElementaryGeneration) :
-    Subgroup.closure
-        (integralElementaryGenerators : Set IntegralSpecialLinearGroup) = ⊤ :=
-  integralElementarySubgroup_eq_finite_closure.symm.trans hSuslin
-
-theorem integralGroup_finitelyGenerated_of_suslin
-    (hSuslin : SuslinElementaryGeneration) :
-    Group.FG integralGroup :=
-  integralSpecialLinearGroup_finitelyGenerated_of_elementary_eq_top hSuslin
-
-theorem integralGroup_isPerfect_of_suslin
-    (hSuslin : SuslinElementaryGeneration) :
-    Group.IsPerfect integralGroup :=
-  integralSpecialLinearGroup_isPerfect_of_elementary_eq_top hSuslin
 
 end
 
@@ -3434,27 +1786,6 @@ def suslinAugmentationKernel : Subgroup IntegralSpecialLinearGroup :=
 
 def SuslinRelativeElementaryGeneration : Prop :=
   suslinAugmentationKernel ≤ integralElementarySubgroup
-
-theorem mem_suslinAugmentationKernel_iff_entries
-    (g : IntegralSpecialLinearGroup) :
-    g ∈ suslinAugmentationKernel ↔
-      ∀ i j : Index,
-        Polynomial.X ∣
-          g i j - if i = j then (1 : IntegralPolynomial) else 0 := by
-  constructor
-  · intro hg i j
-    have he := congrArg
-      (fun A : IntegerSpecialLinearGroup => A i j) hg
-    rw [Polynomial.X_dvd_iff, Polynomial.coeff_zero_eq_eval_zero]
-    by_cases hij : i = j <;>
-      simpa [hij, suslinEvaluation, Matrix.one_apply, sub_eq_zero] using he
-  · intro hg
-    apply Matrix.SpecialLinearGroup.ext
-    intro i j
-    have hij := hg i j
-    rw [Polynomial.X_dvd_iff, Polynomial.coeff_zero_eq_eval_zero] at hij
-    by_cases h : i = j <;>
-      simpa [h, suslinEvaluation, Matrix.one_apply, sub_eq_zero] using hij
 
 theorem suslinEvaluation_map_elementary :
     integralElementarySubgroup.map suslinEvaluation =
@@ -3535,108 +1866,6 @@ theorem suslinElementaryGeneration_iff_base_and_relative :
     apply integralElementarySubgroup.mul_mem _ (hrelative hk)
     apply suslinConstantSection_map_elementary_le
     exact ⟨c, by rw [hbase]; trivial, rfl⟩
-
-theorem suslin_X_root_mem_augmentation
-    (i j : Index) (h : i ≠ j) (p : IntegralPolynomial) :
-    Matrix.SpecialLinearGroup.transvection h (Polynomial.X * p) ∈
-      suslinAugmentationKernel := by
-  change suslinEvaluation
-    (Matrix.SpecialLinearGroup.transvection h (Polynomial.X * p)) = 1
-  change
-    Matrix.SpecialLinearGroup.map (Polynomial.evalRingHom (0 : ℤ))
-      (Matrix.SpecialLinearGroup.transvection h (Polynomial.X * p)) = 1
-  rw [specialLinear_map_transvection_baseChange
-    (Polynomial.evalRingHom (0 : ℤ)) h (Polynomial.X * p)]
-  simp
-
-theorem suslin_integralPolynomial_unit_eq_one
-    (p : IntegralPolynomial) (hp : IsUnit p) (heval : p.eval 0 = 1) :
-    p = 1 := by
-  obtain ⟨a, _, ha⟩ := Polynomial.isUnit_iff.mp hp
-  have haone : a = 1 := by
-    have h := congrArg (fun q : IntegralPolynomial => q.eval 0) ha
-    simpa [heval] using h
-  simpa [haone] using ha.symm
-
-theorem suslin_upperTriangular_diag_one
-    (g : IntegralSpecialLinearGroup)
-    (hkernel : g ∈ suslinAugmentationKernel)
-    (htri : ∀ i j : Index, j < i → g i j = 0)
-    (i : Index) :
-    g i i = 1 := by
-  have hblock :
-      (g : Matrix Index Index IntegralPolynomial).BlockTriangular id := by
-    intro k l hkl
-    exact htri k l hkl
-  have hprod : (∏ j : Index, g j j) = 1 := by
-    calc
-      (∏ j : Index, g j j) =
-          (g : Matrix Index Index IntegralPolynomial).det :=
-        (Matrix.det_of_upperTriangular hblock).symm
-      _ = 1 := g.property
-  have hdvd : g i i ∣ (∏ j : Index, g j j) :=
-    Finset.dvd_prod_of_mem (fun j : Index => g j j) (Finset.mem_univ i)
-  rw [hprod] at hdvd
-  have hunit : IsUnit (g i i) := isUnit_of_dvd_one hdvd
-  have heval : (g i i).eval 0 = 1 := by
-    have h := congrArg
-      (fun A : IntegerSpecialLinearGroup => A i i) hkernel
-    simpa [suslinEvaluation, Matrix.one_apply] using h
-  exact suslin_integralPolynomial_unit_eq_one (g i i) hunit heval
-
-theorem suslin_upperUnitriangular_factorization
-    (g : IntegralSpecialLinearGroup)
-    (hu : ∀ i j : Index, j < i → g i j = 0)
-    (hd : ∀ i : Index, g i i = 1) :
-    g =
-      Matrix.SpecialLinearGroup.transvection (show (2 : Index) ≠ 3 by decide)
-        (g 2 3) *
-      Matrix.SpecialLinearGroup.transvection (show (1 : Index) ≠ 3 by decide)
-        (g 1 3) *
-      Matrix.SpecialLinearGroup.transvection (show (1 : Index) ≠ 2 by decide)
-        (g 1 2) *
-      Matrix.SpecialLinearGroup.transvection (show (0 : Index) ≠ 3 by decide)
-        (g 0 3) *
-      Matrix.SpecialLinearGroup.transvection (show (0 : Index) ≠ 2 by decide)
-        (g 0 2) *
-      Matrix.SpecialLinearGroup.transvection (show (0 : Index) ≠ 1 by decide)
-        (g 0 1) := by
-  have h00 := hd 0
-  have h11 := hd 1
-  have h22 := hd 2
-  have h33 := hd 3
-  have h10 := hu 1 0 (by decide)
-  have h20 := hu 2 0 (by decide)
-  have h21 := hu 2 1 (by decide)
-  have h30 := hu 3 0 (by decide)
-  have h31 := hu 3 1 (by decide)
-  have h32 := hu 3 2 (by decide)
-  apply Matrix.SpecialLinearGroup.ext
-  intro i j
-  fin_cases i <;> fin_cases j <;>
-    simp [Matrix.SpecialLinearGroup.transvection_coe,
-      Matrix.mul_apply, Fin.sum_univ_succ,
-      Matrix.single_apply, Matrix.one_apply,
-      h00, h11, h22, h33, h10, h20, h21, h30, h31, h32]
-
-theorem suslin_upperTriangular_mem_elementary
-    (g : IntegralSpecialLinearGroup)
-    (hkernel : g ∈ suslinAugmentationKernel)
-    (htri : ∀ i j : Index, j < i → g i j = 0) :
-    g ∈ integralElementarySubgroup := by
-  rw [suslin_upperUnitriangular_factorization g htri
-    (suslin_upperTriangular_diag_one g hkernel htri)]
-  apply integralElementarySubgroup.mul_mem
-  · apply integralElementarySubgroup.mul_mem
-    · apply integralElementarySubgroup.mul_mem
-      · apply integralElementarySubgroup.mul_mem
-        · apply integralElementarySubgroup.mul_mem
-          · exact Subgroup.subset_closure ⟨2, 3, by decide, g 2 3, rfl⟩
-          · exact Subgroup.subset_closure ⟨1, 3, by decide, g 1 3, rfl⟩
-        · exact Subgroup.subset_closure ⟨1, 2, by decide, g 1 2, rfl⟩
-      · exact Subgroup.subset_closure ⟨0, 3, by decide, g 0 3, rfl⟩
-    · exact Subgroup.subset_closure ⟨0, 2, by decide, g 0 2, rfl⟩
-  · exact Subgroup.subset_closure ⟨0, 1, by decide, g 0 1, rfl⟩
 
 end ConnesRigidity
 
@@ -3744,26 +1973,6 @@ theorem exists_localization_dilated_polynomial_lift
   apply localization_comp_commonDenom_mul_X_mem_lifts M p
   rw [hp]
   exact ⟨0, map_zero _⟩
-
-theorem exists_localization_dilated_transvection_lift
-    (M : Submonoid A) [IsLocalization M B]
-    (i j : Index) (hij : i ≠ j)
-    (p : Polynomial B) (hp : p.coeff 0 = 0) :
-    ∃ (d : M)
-      (g : Matrix.SpecialLinearGroup Index (Polynomial A)),
-      g ∈ localGlobalElementarySubgroup (Polynomial A) ∧
-      Matrix.SpecialLinearGroup.map
-          (Polynomial.mapRingHom (algebraMap A B)) g =
-        Matrix.SpecialLinearGroup.transvection hij
-          (p.comp
-            (Polynomial.C (algebraMap A B (d : A)) * Polynomial.X)) := by
-  obtain ⟨d, q, hq⟩ :=
-    exists_localization_dilated_polynomial_lift M p hp
-  refine ⟨d, Matrix.SpecialLinearGroup.transvection hij q,
-    localGlobal_transvection_mem i j hij q, ?_⟩
-  rw [specialLinear_map_transvection_baseChange
-    (Polynomial.mapRingHom (algebraMap A B)) hij q]
-  exact congrArg (Matrix.SpecialLinearGroup.transvection hij) hq
 
 end ConnesRigidity
 
@@ -4064,19 +2273,6 @@ theorem suslin_transvection_mem
       suslinElementarySubgroup ι A :=
   Subgroup.subset_closure ⟨i, j, h, a, rfl⟩
 
-theorem suslin_transvection_conj_same
-    {ι A : Type*} [Fintype ι] [DecidableEq ι] [CommRing A]
-    {i j : ι} (hij : i ≠ j) (a b : A) :
-    Matrix.SpecialLinearGroup.transvection hij a *
-      Matrix.SpecialLinearGroup.transvection hij b *
-      (Matrix.SpecialLinearGroup.transvection hij a)⁻¹ =
-      Matrix.SpecialLinearGroup.transvection hij b := by
-  rw [Matrix.SpecialLinearGroup.transvection_inv,
-    ← Matrix.SpecialLinearGroup.transvection_add,
-    ← Matrix.SpecialLinearGroup.transvection_add]
-  congr 1
-  ring
-
 theorem suslin_transvection_conj_noncomposable
     {ι A : Type*} [Fintype ι] [DecidableEq ι] [CommRing A]
     {i j k l : ι} (hij : i ≠ j) (hkl : k ≠ l)
@@ -4248,58 +2444,6 @@ theorem exists_suslin_opposite_conjugate_elementary_lift
     i j k hij hjk hik a (f (d * p)) (f d)]
   simp [L, R, hcoeff', hreverse]
 
-theorem exists_localization_opposite_conjugate_polynomial_lift
-    {ι : Type u} {A : Type v} {B : Type w}
-    [Fintype ι] [DecidableEq ι] [CommRing A] [CommRing B]
-    [Algebra A B] (M : Submonoid A) [IsLocalization M B]
-    (i j k : ι) (hij : i ≠ j) (hjk : j ≠ k) (hik : i ≠ k)
-    (a : B) (p : Polynomial A) :
-    ∃ (d : M) (g : Matrix.SpecialLinearGroup ι (Polynomial A)),
-      g ∈ suslinElementarySubgroup ι (Polynomial A) ∧
-        Matrix.SpecialLinearGroup.map
-            (Polynomial.mapRingHom (algebraMap A B)) g =
-          Matrix.SpecialLinearGroup.transvection hij (Polynomial.C a) *
-            Matrix.SpecialLinearGroup.transvection hij.symm
-              (Polynomial.map (algebraMap A B)
-                (Polynomial.C (d : A) * Polynomial.C (d : A) *
-                  (Polynomial.X * p))) *
-            (Matrix.SpecialLinearGroup.transvection hij
-              (Polynomial.C a))⁻¹ := by
-  obtain ⟨⟨c, d⟩, hcd⟩ := IsLocalization.surj M a
-  have hpoly :
-      Polynomial.C a *
-        (Polynomial.mapRingHom (algebraMap A B))
-          (Polynomial.C (d : A)) =
-        (Polynomial.mapRingHom (algebraMap A B)) (Polynomial.C c) := by
-    simpa using congrArg (Polynomial.C : B → Polynomial B) hcd
-  obtain ⟨g, hg, hmap⟩ :=
-    exists_suslin_opposite_conjugate_elementary_lift
-      (Polynomial.mapRingHom (algebraMap A B))
-      i j k hij hjk hik (Polynomial.C a)
-      (Polynomial.C c) (Polynomial.C (d : A))
-      (Polynomial.X * p) hpoly
-  exact ⟨d, g, hg, hmap⟩
-
-theorem exists_localization_opposite_conjugate_polynomial_lift_four
-    {A : Type v} {B : Type w} [CommRing A] [CommRing B]
-    [Algebra A B] (M : Submonoid A) [IsLocalization M B]
-    (i j : Fin 4) (hij : i ≠ j) (a : B) (p : Polynomial A) :
-    ∃ (d : M) (g : Matrix.SpecialLinearGroup (Fin 4) (Polynomial A)),
-      g ∈ suslinElementarySubgroup (Fin 4) (Polynomial A) ∧
-        Matrix.SpecialLinearGroup.map
-            (Polynomial.mapRingHom (algebraMap A B)) g =
-          Matrix.SpecialLinearGroup.transvection hij (Polynomial.C a) *
-            Matrix.SpecialLinearGroup.transvection hij.symm
-              (Polynomial.map (algebraMap A B)
-                (Polynomial.C (d : A) * Polynomial.C (d : A) *
-                  (Polynomial.X * p))) *
-            (Matrix.SpecialLinearGroup.transvection hij
-              (Polynomial.C a))⁻¹ := by
-  obtain ⟨k, hki, hkj⟩ :=
-    Fin.exists_ne_and_ne_of_two_lt i j (by decide : 2 < 4)
-  exact exists_localization_opposite_conjugate_polynomial_lift
-    M i j k hij hkj.symm hki.symm a p
-
 theorem exists_localization_polynomial_common_denominator
     {A : Type v} {B : Type w} [CommRing A] [CommRing B]
     [Algebra A B] (M : Submonoid A) [IsLocalization M B]
@@ -4326,56 +2470,6 @@ theorem exists_localization_polynomial_common_denominator
   rw [mul_comm]
   exact hq.symm
 
-theorem exists_localization_polynomial_opposite_conjugate_lift
-    {ι : Type u} {A : Type v} {B : Type w}
-    [Fintype ι] [DecidableEq ι] [CommRing A] [CommRing B]
-    [Algebra A B] (M : Submonoid A) [IsLocalization M B]
-    (i j k : ι) (hij : i ≠ j) (hjk : j ≠ k) (hik : i ≠ k)
-    (a : Polynomial B) (p : Polynomial A) :
-    ∃ (d : M) (g : Matrix.SpecialLinearGroup ι (Polynomial A)),
-      g ∈ suslinElementarySubgroup ι (Polynomial A) ∧
-        Matrix.SpecialLinearGroup.map
-            (Polynomial.mapRingHom (algebraMap A B)) g =
-          Matrix.SpecialLinearGroup.transvection hij a *
-            Matrix.SpecialLinearGroup.transvection hij.symm
-              (Polynomial.map (algebraMap A B)
-                (Polynomial.C (d : A) * Polynomial.C (d : A) * p)) *
-            (Matrix.SpecialLinearGroup.transvection hij a)⁻¹ := by
-  obtain ⟨d, c, hc⟩ :=
-    exists_localization_polynomial_common_denominator M a
-  have hdenom :
-      a * (Polynomial.mapRingHom (algebraMap A B))
-        (Polynomial.C (d : A)) =
-      (Polynomial.mapRingHom (algebraMap A B)) c := by
-    simpa using hc
-  obtain ⟨g, hg, hmap⟩ :=
-    exists_suslin_opposite_conjugate_elementary_lift
-      (Polynomial.mapRingHom (algebraMap A B))
-      i j k hij hjk hik a c (Polynomial.C (d : A)) p hdenom
-  exact ⟨d, g, hg, hmap⟩
-
-theorem exists_localization_polynomial_opposite_conjugate_lift_four
-    {A : Type v} {B : Type w} [CommRing A] [CommRing B]
-    [Algebra A B] (M : Submonoid A) [IsLocalization M B]
-    (i j : Index) (hij : i ≠ j) (a : Polynomial B) (p : Polynomial A) :
-    ∃ (d : M)
-      (g : Matrix.SpecialLinearGroup Index (Polynomial A)),
-      g ∈ localGlobalElementarySubgroup (Polynomial A) ∧
-        Matrix.SpecialLinearGroup.map
-            (Polynomial.mapRingHom (algebraMap A B)) g =
-          Matrix.SpecialLinearGroup.transvection hij a *
-            Matrix.SpecialLinearGroup.transvection hij.symm
-              (Polynomial.map (algebraMap A B)
-                (Polynomial.C (d : A) * Polynomial.C (d : A) * p)) *
-            (Matrix.SpecialLinearGroup.transvection hij a)⁻¹ := by
-  obtain ⟨k, hki, hkj⟩ :=
-    Fin.exists_ne_and_ne_of_two_lt i j (by decide : 2 < 4)
-  obtain ⟨d, g, hg, hmap⟩ :=
-    exists_localization_polynomial_opposite_conjugate_lift
-      M i j k hij hkj.symm hki.symm a p
-  refine ⟨d, g, ?_, hmap⟩
-  exact hg
-
 end ConnesRigidity
 
 end
@@ -4395,101 +2489,6 @@ universe u v w
 variable {A : Type u} {B : Type v} [CommRing A] [CommRing B]
   [Algebra A B]
 
-theorem exists_localization_simultaneous_dilated_polynomial_lifts
-    (M : Submonoid A) [IsLocalization M B]
-    {ι : Type w} [Fintype ι]
-    (p : ι → Polynomial B) (hp : ∀ i, (p i).coeff 0 = 0) :
-    ∃ (d : M) (q : ι → Polynomial A),
-      ∀ i, Polynomial.map (algebraMap A B) (q i) =
-        (p i).comp
-          (Polynomial.C (algebraMap A B (d : A)) * Polynomial.X) := by
-  classical
-  let S : Finset (ι × ℕ) :=
-    Finset.univ.biUnion fun i =>
-      (p i).support.image fun n => (i, n)
-  let f : ι × ℕ → B := fun a => (p a.1).coeff a.2
-  let d : M := IsLocalization.commonDenom M S f
-  have hlifts (i : ι) :
-      (p i).comp
-          (Polynomial.C (algebraMap A B (d : A)) * Polynomial.X) ∈
-        Polynomial.lifts (algebraMap A B) := by
-    rw [Polynomial.lifts_iff_coeff_lifts]
-    intro n
-    rw [Polynomial.comp_C_mul_X_coeff]
-    by_cases hn : n = 0
-    · subst n
-      rw [hp i]
-      exact ⟨0, by simp⟩
-    by_cases hsupp : n ∈ (p i).support
-    · have hs : (i, n) ∈ S := by
-        apply Finset.mem_biUnion.mpr
-        refine ⟨i, Finset.mem_univ i, ?_⟩
-        exact Finset.mem_image.mpr ⟨n, hsupp, rfl⟩
-      have hpos : 0 < n := Nat.pos_of_ne_zero hn
-      let a : A := IsLocalization.integerMultiple M S f ⟨(i, n), hs⟩
-      refine ⟨a * (d : A) ^ (n - 1), ?_⟩
-      have ha : algebraMap A B a =
-          algebraMap A B (d : A) * (p i).coeff n := by
-        have h := IsLocalization.map_integerMultiple M S f ⟨(i, n), hs⟩
-        change algebraMap A B a = (d : A) • (p i).coeff n at h
-        simpa only [Algebra.smul_def] using h
-      rw [map_mul, map_pow, ha]
-      change
-        algebraMap A B (d : A) * (p i).coeff n *
-            algebraMap A B (d : A) ^ (n - 1) =
-          (p i).coeff n * algebraMap A B (d : A) ^ n
-      calc
-        _ = (p i).coeff n *
-              algebraMap A B (d : A) ^ ((n - 1) + 1) := by
-          rw [pow_succ]
-          ring
-        _ = _ := by rw [Nat.sub_add_cancel hpos]
-    · have hz : (p i).coeff n = 0 :=
-        Polynomial.notMem_support_iff.mp hsupp
-      rw [hz, zero_mul]
-      exact ⟨0, map_zero _⟩
-  choose q hq using fun i => (Polynomial.mem_lifts _).mp (hlifts i)
-  exact ⟨d, q, hq⟩
-
-theorem exists_localization_dilated_elementary_root_product_lift
-    (M : Submonoid A) [IsLocalization M B]
-    (n : ℕ) (i j : Fin n → Index) (hij : ∀ k, i k ≠ j k)
-    (p : Fin n → Polynomial B) (hp : ∀ k, (p k).coeff 0 = 0) :
-    ∃ (d : M) (g : Matrix.SpecialLinearGroup Index (Polynomial A)),
-      g ∈ localGlobalElementarySubgroup (Polynomial A) ∧
-        Matrix.SpecialLinearGroup.map
-          (Polynomial.mapRingHom (algebraMap A B)) g =
-          (List.ofFn fun k : Fin n =>
-            Matrix.SpecialLinearGroup.transvection (hij k)
-              ((p k).comp
-                (Polynomial.C (algebraMap A B (d : A)) * Polynomial.X))).prod := by
-  classical
-  obtain ⟨d, q, hq⟩ :=
-    exists_localization_simultaneous_dilated_polynomial_lifts M p hp
-  let L : List (Matrix.SpecialLinearGroup Index (Polynomial A)) :=
-    List.ofFn fun k : Fin n =>
-      Matrix.SpecialLinearGroup.transvection (hij k) (q k)
-  refine ⟨d, L.prod, ?_, ?_⟩
-  · apply (localGlobalElementarySubgroup (Polynomial A)).list_prod_mem
-    intro g hg
-    obtain ⟨k, hk⟩ := List.mem_ofFn.mp hg
-    subst g
-    exact Subgroup.subset_closure ⟨i k, j k, hij k, q k, rfl⟩
-  · rw [map_list_prod]
-    change
-      (L.map (Matrix.SpecialLinearGroup.map
-        (Polynomial.mapRingHom (algebraMap A B)))).prod = _
-    dsimp [L]
-    rw [← List.ofFn_comp']
-    congr 1
-    apply congrArg
-      (fun f : Fin n → Matrix.SpecialLinearGroup Index (Polynomial B) =>
-        List.ofFn f)
-    funext k
-    rw [specialLinear_map_transvection_baseChange]
-    congr 1
-    exact hq k
-
 abbrev SuslinPolynomialSL (R : Type*) [CommRing R] :=
   Matrix.SpecialLinearGroup Index (Polynomial R)
 
@@ -4502,11 +2501,6 @@ def suslinPolynomialBaseChange :
     SuslinPolynomialSL A →* SuslinPolynomialSL B :=
   Matrix.SpecialLinearGroup.map
     (Polynomial.mapRingHom (algebraMap A B))
-
-theorem suslinDilation_entry (a : A) (g : SuslinPolynomialSL A)
-    (i j : Index) :
-    suslinDilation A a g i j =
-      (g i j).comp (Polynomial.C a * Polynomial.X) := rfl
 
 theorem suslinDilation_mul (a b : A) (g : SuslinPolynomialSL A) :
     suslinDilation A b (suslinDilation A a g) =
@@ -4612,64 +2606,6 @@ def suslinEventuallyElementarySubgroup (M : Submonoid A) :
   mul_mem' := suslinEventuallyElementaryLift_mul M
   inv_mem' := suslinEventuallyElementaryLift_inv M
 
-theorem suslin_relative_transvection_mem_eventual
-    (M : Submonoid A) [IsLocalization M B]
-    (i j : Index) (hij : i ≠ j)
-    (p : Polynomial B) (hp : p.coeff 0 = 0) :
-    Matrix.SpecialLinearGroup.transvection hij p ∈
-      suslinEventuallyElementarySubgroup (A := A) (B := B) M := by
-  obtain ⟨d, q, hq⟩ := exists_localization_dilated_polynomial_lift M p hp
-  refine ⟨d, Matrix.SpecialLinearGroup.transvection hij q,
-    localGlobal_transvection_mem i j hij q, ?_⟩
-  change
-    Matrix.SpecialLinearGroup.map
-        (Polynomial.mapRingHom (algebraMap A B))
-        (Matrix.SpecialLinearGroup.transvection hij q) =
-      Matrix.SpecialLinearGroup.map
-        (Polynomial.compRingHom
-          (Polynomial.C (algebraMap A B (d : A)) * Polynomial.X))
-        (Matrix.SpecialLinearGroup.transvection hij p)
-  rw [specialLinear_map_transvection_baseChange,
-    specialLinear_map_transvection_baseChange]
-  exact congrArg (Matrix.SpecialLinearGroup.transvection hij) hq
-
-theorem suslin_constant_conjugate_nonopposite_mem_eventual
-    (M : Submonoid A) [IsLocalization M B]
-    (i j k l : Index) (hij : i ≠ j) (hkl : k ≠ l)
-    (a : B) (p : Polynomial B) (hp : p.coeff 0 = 0)
-    (hnopp : j ≠ k ∨ l ≠ i) :
-    Matrix.SpecialLinearGroup.transvection hij (Polynomial.C a) *
-        Matrix.SpecialLinearGroup.transvection hkl p *
-        (Matrix.SpecialLinearGroup.transvection hij (Polynomial.C a))⁻¹ ∈
-      suslinEventuallyElementarySubgroup (A := A) (B := B) M := by
-  by_cases hjk : j = k
-  · subst k
-    have hli : l ≠ i := by
-      rcases hnopp with h | h
-      · exact (h rfl).elim
-      · exact h
-    have hil : i ≠ l := hli.symm
-    rw [suslin_transvection_conj_adjacent
-      i j l hij hkl hil (Polynomial.C a) p]
-    apply (suslinEventuallyElementarySubgroup (A := A) (B := B) M).mul_mem
-    · apply suslin_relative_transvection_mem_eventual M i l hil
-      simp [Polynomial.mul_coeff_zero, hp]
-    · exact suslin_relative_transvection_mem_eventual M j l hkl p hp
-  · by_cases hli : l = i
-    · subst l
-      have hik : i ≠ k := hkl.symm
-      rw [suslin_transvection_conj_reverse_adjacent
-        i j k hij hjk hik (Polynomial.C a) p]
-      apply (suslinEventuallyElementarySubgroup (A := A) (B := B) M).mul_mem
-      · apply suslin_relative_transvection_mem_eventual M k j
-          (Ne.symm hjk)
-        simp [Polynomial.mul_coeff_zero, hp]
-      · exact suslin_relative_transvection_mem_eventual M k i
-          hkl p hp
-    · rw [suslin_transvection_conj_noncomposable
-        hij hkl hjk hli (Polynomial.C a) p]
-      exact suslin_relative_transvection_mem_eventual M k l hkl p hp
-
 theorem suslin_eventual_of_dilation
     (M : Submonoid A) (d : M) (g : SuslinPolynomialSL B)
     (hg : suslinDilation B (algebraMap A B (d : A)) g ∈
@@ -4683,114 +2619,6 @@ theorem suslin_eventual_of_dilation
       (algebraMap A B (d : A) * algebraMap A B (e : A)) g =
       suslinDilation B (algebraMap A B ((d : A) * (e : A))) g
   rw [map_mul]
-
-theorem suslin_constant_conjugate_opposite_mem_eventual_of_integral
-    (M : Submonoid A) [IsLocalization M B]
-    (i j : Index) (hij : i ≠ j) (a : B)
-    (p : Polynomial B) (hp : p.coeff 0 = 0)
-    (hintegral : ∀ q : Polynomial A,
-      Matrix.SpecialLinearGroup.transvection hij (Polynomial.C a) *
-          Matrix.SpecialLinearGroup.transvection hij.symm
-            (Polynomial.map (algebraMap A B) (Polynomial.X * q)) *
-          (Matrix.SpecialLinearGroup.transvection hij
-            (Polynomial.C a))⁻¹ ∈
-        suslinEventuallyElementarySubgroup (A := A) (B := B) M) :
-    Matrix.SpecialLinearGroup.transvection hij (Polynomial.C a) *
-        Matrix.SpecialLinearGroup.transvection hij.symm p *
-        (Matrix.SpecialLinearGroup.transvection hij (Polynomial.C a))⁻¹ ∈
-      suslinEventuallyElementarySubgroup (A := A) (B := B) M := by
-  obtain ⟨d, q, hq⟩ := exists_localization_dilated_polynomial_lift M p hp
-  have hzero : algebraMap A B (q.coeff 0) = 0 := by
-    have hz := congrArg (fun r : Polynomial B => r.coeff 0) hq
-    simpa [Polynomial.comp_C_mul_X_coeff, hp] using hz
-  have hremove :
-      Polynomial.map (algebraMap A B) (Polynomial.X * q.divX) =
-        Polynomial.map (algebraMap A B) q := by
-    calc
-      Polynomial.map (algebraMap A B) (Polynomial.X * q.divX) =
-          Polynomial.map (algebraMap A B)
-            (Polynomial.X * q.divX + Polynomial.C (q.coeff 0)) := by
-              simp only [Polynomial.map_add, Polynomial.map_C, hzero,
-                Polynomial.C_0, add_zero]
-      _ = Polynomial.map (algebraMap A B) q := by
-            rw [Polynomial.X_mul_divX_add]
-  apply suslin_eventual_of_dilation M d
-  have htarget := hintegral q.divX
-  rw [hremove, hq] at htarget
-  simpa [suslinDilation, map_mul, map_inv,
-    specialLinear_map_transvection_baseChange] using htarget
-
-theorem suslin_constant_conjugate_opposite_integral_mem_eventual
-    (M : Submonoid A) [IsLocalization M B]
-    (i j : Index) (hij : i ≠ j) (a : B) (p : Polynomial A) :
-    (Matrix.SpecialLinearGroup.transvection hij (Polynomial.C a) *
-      Matrix.SpecialLinearGroup.transvection hij.symm
-        (Polynomial.map (algebraMap A B) (Polynomial.X * p)) *
-      (Matrix.SpecialLinearGroup.transvection hij
-        (Polynomial.C a))⁻¹) ∈
-      suslinEventuallyElementarySubgroup (A := A) (B := B) M := by
-  obtain ⟨⟨c, d⟩, hcd⟩ := IsLocalization.surj M a
-  let r : Polynomial A :=
-    p.comp (Polynomial.C ((d : A) * (d : A)) * Polynomial.X)
-  have hpoly :
-      Polynomial.C a *
-        (Polynomial.mapRingHom (algebraMap A B))
-          (Polynomial.C (d : A)) =
-        (Polynomial.mapRingHom (algebraMap A B)) (Polynomial.C c) := by
-    simpa using congrArg (Polynomial.C : B → Polynomial B) hcd
-  obtain ⟨g, hg, hmap⟩ :=
-    exists_suslin_opposite_conjugate_elementary_lift
-      (Polynomial.mapRingHom (algebraMap A B))
-      i j (Classical.choose
-        (Fin.exists_ne_and_ne_of_two_lt i j (by decide : 2 < 4)))
-      hij
-      (Classical.choose_spec
-        (Fin.exists_ne_and_ne_of_two_lt i j (by decide : 2 < 4))).2.symm
-      (Classical.choose_spec
-        (Fin.exists_ne_and_ne_of_two_lt i j (by decide : 2 < 4))).1.symm
-      (Polynomial.C a) (Polynomial.C c) (Polynomial.C (d : A))
-      (Polynomial.X * r) hpoly
-  refine ⟨d * d, g, hg, ?_⟩
-  change
-    Matrix.SpecialLinearGroup.map
-        (Polynomial.mapRingHom (algebraMap A B)) g =
-      suslinDilation B (algebraMap A B ((d : A) * (d : A)))
-        (Matrix.SpecialLinearGroup.transvection hij (Polynomial.C a) *
-          Matrix.SpecialLinearGroup.transvection hij.symm
-            (Polynomial.map (algebraMap A B) (Polynomial.X * p)) *
-          (Matrix.SpecialLinearGroup.transvection hij
-            (Polynomial.C a))⁻¹)
-  rw [hmap]
-  simp only [suslinDilation, map_mul, map_inv,
-    specialLinear_map_transvection_baseChange]
-  congr 2
-  · simp [Polynomial.coe_compRingHom_apply]
-  · apply congrArg (Matrix.SpecialLinearGroup.transvection hij.symm)
-    dsimp [r]
-    simp [Polynomial.map_comp, Polynomial.mul_comp,
-      Polynomial.C_mul, mul_assoc]
-  · simp [Polynomial.coe_compRingHom_apply]
-
-theorem suslin_constant_conjugate_relative_root_mem_eventual
-    (M : Submonoid A) [IsLocalization M B]
-    (i j k l : Index) (hij : i ≠ j) (hkl : k ≠ l)
-    (a : B) (p : Polynomial B) (hp : p.coeff 0 = 0) :
-    Matrix.SpecialLinearGroup.transvection hij (Polynomial.C a) *
-        Matrix.SpecialLinearGroup.transvection hkl p *
-        (Matrix.SpecialLinearGroup.transvection hij (Polynomial.C a))⁻¹ ∈
-      suslinEventuallyElementarySubgroup (A := A) (B := B) M := by
-  by_cases hjk : j = k
-  · by_cases hli : l = i
-    · subst k
-      subst l
-      exact suslin_constant_conjugate_opposite_mem_eventual_of_integral
-        M i j hij a p hp
-        (suslin_constant_conjugate_opposite_integral_mem_eventual
-          M i j hij a)
-    · exact suslin_constant_conjugate_nonopposite_mem_eventual
-        M i j k l hij hkl a p hp (Or.inr hli)
-  · exact suslin_constant_conjugate_nonopposite_mem_eventual
-      M i j k l hij hkl a p hp (Or.inl hjk)
 
 theorem suslin_polynomial_conjugate_opposite_integral_mem_eventual
     (M : Submonoid A) [IsLocalization M B]
@@ -4885,44 +2713,6 @@ theorem suslin_polynomial_relative_z_mem_eventual
   exact suslin_polynomial_conjugate_opposite_mem_eventual
     M j i hij.symm a p hp
 
-theorem suslin_polynomial_conjugate_relative_root_mem_eventual
-    (M : Submonoid A) [IsLocalization M B]
-    (i j k l : Index) (hij : i ≠ j) (hkl : k ≠ l)
-    (a p : Polynomial B) (hp : p.coeff 0 = 0) :
-    Matrix.SpecialLinearGroup.transvection hij a *
-        Matrix.SpecialLinearGroup.transvection hkl p *
-        (Matrix.SpecialLinearGroup.transvection hij a)⁻¹ ∈
-      suslinEventuallyElementarySubgroup (A := A) (B := B) M := by
-  by_cases hjk : j = k
-  · subst k
-    by_cases hli : l = i
-    · subst l
-      exact suslin_polynomial_conjugate_opposite_mem_eventual
-        M i j hij a p hp
-    · have hil : i ≠ l := Ne.symm hli
-      rw [suslin_transvection_conj_adjacent i j l hij hkl hil a p]
-      apply (suslinEventuallyElementarySubgroup
-        (A := A) (B := B) M).mul_mem
-      · apply suslin_relative_transvection_mem_eventual
-          M i l hil
-        simp [Polynomial.mul_coeff_zero, hp]
-      · exact suslin_relative_transvection_mem_eventual
-          M j l hkl p hp
-  · by_cases hli : l = i
-    · subst l
-      have hik : i ≠ k := hkl.symm
-      rw [suslin_transvection_conj_reverse_adjacent i j k hij hjk hik a p]
-      apply (suslinEventuallyElementarySubgroup
-        (A := A) (B := B) M).mul_mem
-      · apply suslin_relative_transvection_mem_eventual
-          M k j (Ne.symm hjk)
-        simp [Polynomial.mul_coeff_zero, hp]
-      · exact suslin_relative_transvection_mem_eventual
-          M k i hkl p hp
-    · rw [suslin_transvection_conj_noncomposable hij hkl hjk hli a p]
-      exact suslin_relative_transvection_mem_eventual
-        M k l hkl p hp
-
 end ConnesRigidity
 
 end
@@ -4999,50 +2789,6 @@ def quotientFractionLift
 section FractionQuotientCompatibility
 
 variable {K : Type*} [CommRing K] [Algebra A K]
-
-def quotientScalarTower (f : Polynomial A)
-    (kmap : K →+* Polynomial A ⧸ Ideal.span ({f} : Set (Polynomial A)))
-    (hcomp : kmap.comp (algebraMap A K) = quotientCoefficientMap f) :
-    letI : Algebra K
-      (Polynomial A ⧸ Ideal.span ({f} : Set (Polynomial A))) := kmap.toAlgebra
-    IsScalarTower A K
-      (Polynomial A ⧸ Ideal.span ({f} : Set (Polynomial A))) := by
-  letI : Algebra K
-    (Polynomial A ⧸ Ideal.span ({f} : Set (Polynomial A))) := kmap.toAlgebra
-  apply IsScalarTower.of_algebraMap_eq
-  intro a
-  change quotientCoefficientMap f a = kmap (algebraMap A K a)
-  exact (RingHom.congr_fun hcomp a).symm
-
-theorem quotient_aeval_map
-    (f : Polynomial A)
-    (kmap : K →+* Polynomial A ⧸ Ideal.span ({f} : Set (Polynomial A)))
-    (hcomp : kmap.comp (algebraMap A K) = quotientCoefficientMap f)
-    (p : Polynomial A) :
-    letI : Algebra K
-      (Polynomial A ⧸ Ideal.span ({f} : Set (Polynomial A))) := kmap.toAlgebra
-    Polynomial.aeval
-      (Ideal.Quotient.mk (Ideal.span ({f} : Set (Polynomial A)))
-        Polynomial.X)
-      (Polynomial.map (algebraMap A K) p) =
-      Ideal.Quotient.mk (Ideal.span ({f} : Set (Polynomial A))) p := by
-  letI : Algebra K
-    (Polynomial A ⧸ Ideal.span ({f} : Set (Polynomial A))) := kmap.toAlgebra
-  letI : IsScalarTower A K
-      (Polynomial A ⧸ Ideal.span ({f} : Set (Polynomial A))) :=
-    quotientScalarTower f kmap hcomp
-  rw [Polynomial.aeval_map_algebraMap]
-  rw [Polynomial.aeval_def]
-  let ρ := Ideal.Quotient.mk (Ideal.span ({f} : Set (Polynomial A)))
-  change Polynomial.eval₂ (quotientCoefficientMap f) (ρ Polynomial.X) p = ρ p
-  have heval :
-      Polynomial.eval₂RingHom (quotientCoefficientMap f)
-        (ρ Polynomial.X) = ρ := by
-    apply Polynomial.ringHom_ext
-    · intro a
-      simp [quotientCoefficientMap, ρ]
-    · simp
-  exact RingHom.congr_fun heval p
 
 end FractionQuotientCompatibility
 
@@ -5231,32 +2977,6 @@ theorem integralPolynomial_ringKrullDim :
   rw [Polynomial.ringKrullDim_of_isNoetherianRing, integer_ringKrullDim]
   norm_num
 
-theorem integer_isRegularRing : IsRegularRing ℤ := inferInstance
-
-theorem integralPolynomial_isRegularRing : IsRegularRing IntegralPolynomial :=
-  inferInstance
-
-theorem integralPolynomial_isNoetherianRing :
-    IsNoetherianRing IntegralPolynomial := inferInstance
-
-theorem integralPolynomial_not_isPrincipalIdealRing :
-    ¬ IsPrincipalIdealRing IntegralPolynomial := by
-  intro h
-  letI : IsPrincipalIdealRing IntegralPolynomial := h
-  exact Int.not_isField Ideal.IsField.of_isPrincipalIdealRing_polynomial
-
-theorem integralPolynomial_not_isBezout : ¬ IsBezout IntegralPolynomial := by
-  intro h
-  letI : IsBezout IntegralPolynomial := h
-  exact integralPolynomial_not_isPrincipalIdealRing inferInstance
-
-theorem integralPolynomial_stableRangeThree_of_bassDimensionTheorem
-    (hBass : ∀ (A : Type) (_ : CommRing A) (_ : IsNoetherianRing A),
-      ringKrullDim A ≤ 2 → BassStableRangeAtMost A 3) :
-    IntegralPolynomialStableRangeThree := by
-  apply hBass IntegralPolynomial inferInstance inferInstance
-  rw [integralPolynomial_ringKrullDim]
-
 theorem specialLinear_column_unimodular
     {A : Type*} [CommRing A] {n : ℕ}
     (g : Matrix.SpecialLinearGroup (Fin n) A) (j : Fin n) :
@@ -5268,17 +2988,6 @@ theorem specialLinear_column_unimodular
   change ((g⁻¹).val * g.val) j j = (1 : Matrix (Fin n) (Fin n) A) j j at h
   simpa [Matrix.mul_apply, Matrix.one_apply] using h
 
-theorem specialLinear_row_unimodular
-    {A : Type*} [CommRing A] {n : ℕ}
-    (g : Matrix.SpecialLinearGroup (Fin n) A) (i : Fin n) :
-    UnimodularRow (fun j : Fin n => g i j) := by
-  refine ⟨fun j => (g⁻¹) j i, ?_⟩
-  have h := congrArg
-    (fun x : Matrix.SpecialLinearGroup (Fin n) A => x i i)
-    (mul_inv_cancel g)
-  change (g.val * (g⁻¹).val) i i = (1 : Matrix (Fin n) (Fin n) A) i i at h
-  simpa [Matrix.mul_apply, Matrix.one_apply, mul_comm] using h
-
 theorem integralSpecialLinear_lastColumn_stableRange_shorten
     (hstable : IntegralPolynomialStableRangeThree)
     (g : IntegralSpecialLinearGroup) :
@@ -5287,15 +2996,6 @@ theorem integralSpecialLinear_lastColumn_stableRange_shorten
         g i.castSucc 3 + c i * g 3 3 := by
   exact hstable (fun i : Index => g i 3)
     (specialLinear_column_unimodular g 3)
-
-theorem integralSpecialLinear_lastRow_stableRange_shorten
-    (hstable : IntegralPolynomialStableRangeThree)
-    (g : IntegralSpecialLinearGroup) :
-    ∃ c : Fin 3 → IntegralPolynomial,
-      UnimodularRow fun j : Fin 3 =>
-        g 3 j.castSucc + c j * g 3 3 := by
-  exact hstable (fun j : Index => g 3 j)
-    (specialLinear_row_unimodular g 3)
 
 end ConnesRigidity
 
@@ -5628,46 +3328,6 @@ noncomputable section
 
 namespace ConnesRigidity
 
-theorem exists_add_two_mul_isUnit_of_finite_maximalIdeals
-    {A : Type*} [CommRing A]
-    (hfinite : {p : Ideal A | p.IsMaximal}.Finite)
-    {x y z : A}
-    (hrow : ∃ a b c : A, a * x + b * y + c * z = 1) :
-    ∃ u v : A, IsUnit (x + u * y + v * z) := by
-  let S : Set (Ideal A) := {p | p.IsMaximal}
-  let J : Ideal A :=
-    Ideal.span ({y} : Set A) ⊔ Ideal.span ({z} : Set A)
-  obtain ⟨w, hw, havoid⟩ :=
-    exists_add_mem_avoiding_finite_prime_antichain S hfinite
-      (fun p hp => hp.isPrime)
-      (fun p q hp hq hpq => hp.eq_of_le hq.ne_top hpq)
-      J x (by
-        intro p hp hxp hJ
-        obtain ⟨a, b, c, hcomb⟩ := hrow
-        have hyp : y ∈ p :=
-          hJ ((show Ideal.span ({y} : Set A) ≤ J from le_sup_left)
-            (Ideal.mem_span_singleton_self y))
-        have hzp : z ∈ p :=
-          hJ ((show Ideal.span ({z} : Set A) ≤ J from le_sup_right)
-            (Ideal.mem_span_singleton_self z))
-        have hone : (1 : A) ∈ p := hcomb ▸
-          p.add_mem (p.add_mem
-            (p.mul_mem_left a hxp) (p.mul_mem_left b hyp))
-            (p.mul_mem_left c hzp)
-        exact hp.ne_top (p.eq_top_of_isUnit_mem hone isUnit_one))
-  obtain ⟨wy, hwy, wz, hwz, heq⟩ := Submodule.mem_sup.mp hw
-  obtain ⟨u, hu⟩ := Ideal.mem_span_singleton'.mp hwy
-  obtain ⟨v, hv⟩ := Ideal.mem_span_singleton'.mp hwz
-  refine ⟨u, v, ?_⟩
-  have hrearrange : x + u * y + v * z = x + w := by
-    rw [← heq, ← hu, ← hv]
-    ring
-  rw [hrearrange]
-  by_contra hunit
-  obtain ⟨p, hp, hmem⟩ :=
-    exists_max_ideal_of_mem_nonunits (mem_nonunits_iff.mpr hunit)
-  exact havoid p hp hmem
-
 theorem isUnit_quotient_span_singleton_iff_isCoprime
     {A : Type*} [CommRing A] (f g : A) :
     IsUnit ((Ideal.Quotient.mk (Ideal.span ({f} : Set A))) g) ↔
@@ -5690,70 +3350,6 @@ theorem isUnit_quotient_span_singleton_iff_isCoprime
     refine isUnit_iff_exists_inv'.mpr ⟨q b, ?_⟩
     have hmap := congrArg q hab
     simpa [map_add, map_mul, hfzero] using hmap
-
-theorem monic_local_quotient_maximalIdeals_finite
-    {A : Type*} [CommRing A] [IsLocalRing A]
-    (f : Polynomial A) (hf : f.Monic) :
-    {p : Ideal (Polynomial A ⧸ Ideal.span ({f} : Set (Polynomial A))) |
-      p.IsMaximal}.Finite := by
-  let B := Polynomial A ⧸ Ideal.span ({f} : Set (Polynomial A))
-  letI : Module.Finite A B := hf.finite_quotient
-  letI : Algebra.IsIntegral A B := inferInstance
-  let P : PrimeSpectrum A :=
-    ⟨IsLocalRing.maximalIdeal A,
-      (IsLocalRing.maximalIdeal.isMaximal A).isPrime⟩
-  have hfiber :=
-    Algebra.QuasiFinite.finite_comap_preimage_singleton (R := A) (S := B) P
-  refine (hfiber.image PrimeSpectrum.asIdeal).subset ?_
-  intro I hI
-  letI : I.IsMaximal := hI
-  let p : PrimeSpectrum B := ⟨I, hI.isPrime⟩
-  refine ⟨p, ?_, rfl⟩
-  change PrimeSpectrum.comap (algebraMap A B) p = P
-  apply PrimeSpectrum.ext
-  exact IsLocalRing.eq_maximalIdeal
-    (Ideal.isMaximal_comap_of_isIntegral_of_isMaximal I)
-
-theorem monic_local_quotient_exists_add_mul_isUnit
-    {A : Type*} [CommRing A] [IsLocalRing A]
-    (f : Polynomial A) (hf : f.Monic)
-    {x z : Polynomial A ⧸ Ideal.span ({f} : Set (Polynomial A))}
-    (hcoprime : IsCoprime x z) :
-    ∃ t, IsUnit (x + t * z) :=
-  exists_add_mul_isUnit_of_finite_maximalIdeals
-    (monic_local_quotient_maximalIdeals_finite f hf) hcoprime
-
-theorem monic_local_quotient_exists_add_two_mul_isUnit
-    {A : Type*} [CommRing A] [IsLocalRing A]
-    (f : Polynomial A) (hf : f.Monic)
-    {x y z : Polynomial A ⧸ Ideal.span ({f} : Set (Polynomial A))}
-    (hrow : ∃ a b c, a * x + b * y + c * z = 1) :
-    ∃ u v, IsUnit (x + u * y + v * z) :=
-  exists_add_two_mul_isUnit_of_finite_maximalIdeals
-    (monic_local_quotient_maximalIdeals_finite f hf) hrow
-
-theorem monic_local_exists_add_two_mul_isCoprime
-    {A : Type*} [CommRing A] [IsLocalRing A]
-    {f g h k : Polynomial A} (hf : f.Monic)
-    (hrow : ∃ a b c d : Polynomial A,
-      a * f + b * g + c * h + d * k = 1) :
-    ∃ u v : Polynomial A, IsCoprime f (g + u * h + v * k) := by
-  let q := Ideal.Quotient.mk (Ideal.span ({f} : Set (Polynomial A)))
-  have hfzero : q f = 0 := Ideal.Quotient.eq_zero_iff_mem.mpr
-    (Ideal.mem_span_singleton_self f)
-  have hqrow : ∃ a b c, a * q g + b * q h + c * q k = 1 := by
-    obtain ⟨a, b, c, d, hcomb⟩ := hrow
-    refine ⟨q b, q c, q d, ?_⟩
-    have hmap := congrArg q hcomb
-    simpa [map_add, map_mul, hfzero] using hmap
-  obtain ⟨u, v, huv⟩ :=
-    monic_local_quotient_exists_add_two_mul_isUnit f hf hqrow
-  obtain ⟨u', rfl⟩ := Ideal.Quotient.mk_surjective u
-  obtain ⟨v', rfl⟩ := Ideal.Quotient.mk_surjective v
-  refine ⟨u', v',
-    (isUnit_quotient_span_singleton_iff_isCoprime
-      f (g + u' * h + v' * k)).mp ?_⟩
-  simpa [map_add, map_mul] using huv
 
 end ConnesRigidity
 
@@ -5833,28 +3429,6 @@ theorem dvr_mod_uniformizer_one_quotient_maximalIdeals_finite
     (Polynomial.map (algebraMap A (FractionRing A)) f) hnonzero
     (dvrPolynomialQuotientFractionSurjection hπ f q hf)
     (dvrPolynomialQuotientFractionSurjection_surjective hπ f q hf)
-
-theorem dvr_mod_uniformizer_one_quotient_exists_add_mul_isUnit
-    {A : Type*} [CommRing A] [IsDomain A] [IsDiscreteValuationRing A]
-    (π : A) (hπ : Irreducible π) (f q : Polynomial A)
-    (hf : f = 1 + Polynomial.C π * q)
-    {x z : Polynomial A ⧸ Ideal.span ({f} : Set (Polynomial A))}
-    (hcoprime : IsCoprime x z) :
-    ∃ t, IsUnit (x + t * z) :=
-  exists_add_mul_isUnit_of_finite_maximalIdeals
-    (dvr_mod_uniformizer_one_quotient_maximalIdeals_finite π hπ f q hf)
-    hcoprime
-
-theorem dvr_mod_uniformizer_one_quotient_exists_add_two_mul_isUnit
-    {A : Type*} [CommRing A] [IsDomain A] [IsDiscreteValuationRing A]
-    (π : A) (hπ : Irreducible π) (f q : Polynomial A)
-    (hf : f = 1 + Polynomial.C π * q)
-    {x y z : Polynomial A ⧸ Ideal.span ({f} : Set (Polynomial A))}
-    (hrow : ∃ a b c, a * x + b * y + c * z = 1) :
-    ∃ u v, IsUnit (x + u * y + v * z) :=
-  exists_add_two_mul_isUnit_of_finite_maximalIdeals
-    (dvr_mod_uniformizer_one_quotient_maximalIdeals_finite π hπ f q hf)
-    hrow
 
 end ConnesRigidity
 
@@ -6020,18 +3594,6 @@ theorem dvr_polynomial_map_uniformizer_zero_iff_C_dvd
   rw [dvr_polynomial_map_uniformizer_zero_iff hπ,
     Polynomial.C_dvd_iff_dvd_coeff]
 
-theorem dvr_polynomial_uniformizer_factor_of_residue_zero
-    {π : A} (hπ : Irreducible π) {f : Polynomial A}
-    (hf : f ≠ 0)
-    (hzero : f.map
-      (Ideal.Quotient.mk (Ideal.span ({π} : Set A))) = 0) :
-    ∃ q : Polynomial A,
-      f = Polynomial.C π * q ∧ q.natDegree = f.natDegree := by
-  obtain ⟨q, hq⟩ :=
-    (dvr_polynomial_map_uniformizer_zero_iff_C_dvd hπ f).mp hzero
-  refine ⟨q, hq, ?_⟩
-  rw [hq, Polynomial.natDegree_C_mul hπ.ne_zero]
-
 theorem dvr_polynomial_eq_one_add_uniformizer_mul_of_residue_one
     {π : A} (hπ : Irreducible π) (f : Polynomial A)
     (hone : f.map (Ideal.Quotient.mk
@@ -6132,30 +3694,6 @@ theorem coordinateRotation_smul_other (i j k : Fin 4) (h : i ≠ j)
   rw [transvection_smul_other j i k h.symm hkj]
   rw [transvection_smul_other i j k h hki]
 
-theorem local_unimodular_has_unit [IsLocalRing A]
-    (v : Fin 4 → A) (hv : UnimodularRow v) :
-    ∃ i : Fin 4, IsUnit (v i) := by
-  obtain ⟨c, hc⟩ := hv
-  have hsum : IsUnit (∑ i : Fin 4, c i * v i) := by
-    rw [hc]
-    exact isUnit_one
-  obtain ⟨i, _, hi⟩ := IsLocalRing.exists_of_isUnit_sum
-    (s := Finset.univ) (f := fun i : Fin 4 => c i * v i) hsum
-  exact ⟨i, isUnit_of_mul_isUnit_right hi⟩
-
-theorem specialLinear_column_has_unit [IsLocalRing A]
-    (g : Matrix.SpecialLinearGroup (Fin 4) A) (j : Fin 4) :
-    ∃ i : Fin 4, IsUnit (g i j) := by
-  have hsum : (∑ i : Fin 4, (g⁻¹) j i * g i j) = 1 := by
-    have h := congrArg
-      (fun M : Matrix.SpecialLinearGroup (Fin 4) A => M j j)
-      (inv_mul_cancel g)
-    change (((g⁻¹).val * g.val : Matrix (Fin 4) (Fin 4) A) j j) =
-      (1 : Matrix (Fin 4) (Fin 4) A) j j at h
-    simpa only [Matrix.mul_apply, Matrix.one_apply, if_pos rfl, ite_true] using h
-  exact local_unimodular_has_unit (fun i => g i j)
-    ⟨fun i => (g⁻¹) j i, hsum⟩
-
 def unitPairNormalizer (i j : Fin 4) (h : i ≠ j)
     (v : Fin 4 → A) (hu : IsUnit (v i)) :
     Matrix.SpecialLinearGroup (Fin 4) A :=
@@ -6238,39 +3776,6 @@ theorem unitPairNormalizer_smul_other (i j k : Fin 4) (h : i ≠ j)
     transvection_smul_other i j k h hki,
     transvection_smul_other j i k h.symm hkj]
 
-theorem unitPairNormalizer_fix_of_pair_zero
-    (i j : Fin 4) (h : i ≠ j) (v : Fin 4 → A)
-    (hu : IsUnit (v i)) (w : Fin 4 → A)
-    (hwi : w i = 0) (hwj : w j = 0) :
-    unitPairNormalizer i j h v hu • w = w := by
-  funext k
-  by_cases hki : k = i
-  · subst k
-    unfold unitPairNormalizer
-    rw [mul_smul, mul_smul,
-      transvection_smul_other j i i h.symm h,
-      transvection_smul_same,
-      transvection_smul_other j i i h.symm h,
-      transvection_smul_same, hwi, hwj]
-    ring
-  · by_cases hkj : k = j
-    · subst k
-      unfold unitPairNormalizer
-      rw [mul_smul, mul_smul,
-        transvection_smul_same,
-        transvection_smul_other i j j h h.symm,
-        transvection_smul_same,
-        transvection_smul_same,
-        transvection_smul_other j i i h.symm h,
-        transvection_smul_same,
-        hwi, hwj]
-      ring
-    · unfold unitPairNormalizer
-      rw [mul_smul, mul_smul,
-        transvection_smul_other j i k h.symm hkj,
-        transvection_smul_other i j k h hki,
-        transvection_smul_other j i k h.symm hkj]
-
 theorem unit_first_elementary_reduce
     (v : Fin 4 → A) (hu : IsUnit (v 0)) :
     ∃ g : Matrix.SpecialLinearGroup (Fin 4) A,
@@ -6321,27 +3826,6 @@ theorem unit_first_elementary_reduce
         (by decide) (by decide),
       unitPairNormalizer_smul_pivot]
     simp [Pi.single_apply]
-
-theorem local_unimodular_elementary_transitive [IsLocalRing A]
-    (v : Fin 4 → A) (hv : UnimodularRow v) :
-    ∃ g : Matrix.SpecialLinearGroup (Fin 4) A,
-      g ∈ localElementarySubgroup A ∧
-        g • v = Pi.single 0 1 := by
-  obtain ⟨i, hi⟩ := local_unimodular_has_unit v hv
-  by_cases hzero : i = 0
-  · subst i
-    exact unit_first_elementary_reduce v hi
-  · let r : Matrix.SpecialLinearGroup (Fin 4) A :=
-      coordinateRotation 0 i (Ne.symm hzero)
-    have hr : r ∈ localElementarySubgroup A :=
-      coordinateRotation_mem 0 i (Ne.symm hzero)
-    have hunit : IsUnit ((r • v) 0) := by
-      rw [show (r • v) 0 = v i from
-        coordinateRotation_smul_left 0 i (Ne.symm hzero) v]
-      exact hi
-    obtain ⟨p, hp, hreduce⟩ := unit_first_elementary_reduce (r • v) hunit
-    exact ⟨p * r, (localElementarySubgroup A).mul_mem hp hr,
-      by simpa [mul_smul] using hreduce⟩
 
 end ConnesRigidity.LocalElementaryProof
 
@@ -7209,14 +4693,6 @@ theorem unimodularRow_ringHom_map
   have hmapped := congrArg φ hcoefficients
   simpa only [map_sum, map_mul, map_one] using hmapped
 
-theorem unimodularRow_polynomial_residue_map
-    {A : Type u} [CommRing A] [IsLocalRing A]
-    (row : Fin 3 → Polynomial A) (hrow : UnimodularRow row) :
-    UnimodularRow fun i : Fin 3 =>
-      Polynomial.map (IsLocalRing.residue A) (row i) :=
-  unimodularRow_ringHom_map
-    (Polynomial.mapRingHom (IsLocalRing.residue A)) row hrow
-
 theorem unimodularRow_polynomial_uniformizer_map
     {A : Type u} [CommRing A] [IsDomain A] [IsDiscreteValuationRing A]
     (π : A) (row : Fin 3 → Polynomial A)
@@ -7252,28 +4728,6 @@ theorem specialLinearThree_polynomial_baseChange_smul_apply
   specialLinearThree_baseChange_smul_apply
     (Polynomial.mapRingHom φ) g row i
 
-theorem exists_elementaryThree_polynomial_residue_normal_form
-    {A : Type u} [CommRing A] [IsLocalRing A]
-    (row : Fin 3 → Polynomial A)
-    (e : Matrix.SpecialLinearGroup (Fin 3)
-      (Polynomial (IsLocalRing.ResidueField A)))
-    (he : e ∈ elementaryThreeSubgroup
-      (Polynomial (IsLocalRing.ResidueField A)))
-    (hreduced : e • (fun i =>
-      Polynomial.map (IsLocalRing.residue A) (row i)) = Pi.single 0 1) :
-    ∃ p : Matrix.SpecialLinearGroup (Fin 3) (Polynomial A),
-      p ∈ elementaryThreeSubgroup (Polynomial A) ∧
-        ∀ i : Fin 3,
-          Polynomial.map (IsLocalRing.residue A) ((p • row) i) =
-            (Pi.single 0 1 : Fin 3 →
-              Polynomial (IsLocalRing.ResidueField A)) i := by
-  obtain ⟨p, hp, hmap⟩ :=
-    exists_elementaryThree_polynomial_lift_of_surjective
-      (IsLocalRing.residue A) IsLocalRing.residue_surjective e he
-  refine ⟨p, hp, fun i => ?_⟩
-  rw [← specialLinearThree_polynomial_baseChange_smul_apply,
-    hmap, hreduced]
-
 theorem exists_elementaryThree_polynomial_uniformizer_normal_form
     {A : Type u} [CommRing A] (π : A)
     (row : Fin 3 → Polynomial A)
@@ -7300,23 +4754,6 @@ theorem exists_elementaryThree_polynomial_uniformizer_normal_form
   refine ⟨p, hp, fun i => ?_⟩
   rw [← specialLinearThree_polynomial_baseChange_smul_apply,
     hmap, hreduced]
-
-theorem exists_elementaryThree_polynomial_residue_reduction
-    {A : Type u} [CommRing A] [IsLocalRing A]
-    (row : Fin 3 → Polynomial A) (hrow : UnimodularRow row) :
-    ∃ p : Matrix.SpecialLinearGroup (Fin 3) (Polynomial A),
-      p ∈ elementaryThreeSubgroup (Polynomial A) ∧
-        ∀ i : Fin 3,
-          Polynomial.map (IsLocalRing.residue A) ((p • row) i) =
-            (Pi.single 0 1 : Fin 3 →
-              Polynomial (IsLocalRing.ResidueField A)) i := by
-  obtain ⟨e, he, hreduced⟩ :=
-    fieldPolynomialElementaryThree_unimodular_reduce
-      (fun i : Fin 3 => Polynomial.map
-        (IsLocalRing.residue A) (row i))
-      (unimodularRow_polynomial_residue_map row hrow)
-  exact exists_elementaryThree_polynomial_residue_normal_form
-    row e he hreduced
 
 theorem exists_elementaryThree_polynomial_uniformizer_reduction
     {A : Type u} [CommRing A] [IsDomain A] [IsDiscreteValuationRing A]
@@ -7379,33 +4816,6 @@ theorem suslin_exists_finset_denominators_of_maximal
       (suslin_span_denominators_eq_top_of_maximal P hlocal)
   exact ⟨s, fun d hd => hs hd, hspan⟩
 
-theorem suslin_exists_denominator_not_mem_of_span_eq_top
-    (s : Finset A) (hs : Ideal.span (s : Set A) = ⊤)
-    (I : Ideal A) (hI : I ≠ ⊤) :
-    ∃ d ∈ s, d ∉ I := by
-  by_contra h
-  push Not at h
-  apply hI
-  apply top_unique
-  rw [← hs]
-  exact Ideal.span_le.mpr fun d hd => h d hd
-
-theorem suslin_exists_finset_partition_of_unity_of_maximal
-    (P : A → Prop)
-    (hlocal : ∀ m : Ideal A, m.IsMaximal →
-      ∃ d : A, d ∉ m ∧ P d) :
-    ∃ (s : Finset A) (c : s → A),
-      (∀ d : s, P (d : A)) ∧ ∑ d : s, c d * (d : A) = 1 := by
-  obtain ⟨s, hs, hspan⟩ :=
-    suslin_exists_finset_denominators_of_maximal P hlocal
-  have hrange : Set.range (fun d : s => (d : A)) = (s : Set A) := by
-    ext d
-    simp
-  rw [← hrange, Ideal.eq_top_iff_one,
-    Ideal.mem_span_range_iff_exists_fun] at hspan
-  obtain ⟨c, hc⟩ := hspan
-  exact ⟨s, c, fun d => hs d d.property, hc⟩
-
 theorem suslin_exists_finset_denominators_of_primeCompl
     (P : A → Prop)
     (hlocal : ∀ (m : Ideal A) [m.IsMaximal],
@@ -7413,18 +4823,6 @@ theorem suslin_exists_finset_denominators_of_primeCompl
     ∃ s : Finset A,
       (∀ d ∈ s, P d) ∧ Ideal.span (s : Set A) = ⊤ := by
   apply suslin_exists_finset_denominators_of_maximal P
-  intro m hm
-  letI : m.IsMaximal := hm
-  obtain ⟨d, hd⟩ := hlocal m
-  exact ⟨d, Ideal.mem_primeCompl_iff.mp d.property, hd⟩
-
-theorem suslin_exists_finset_partition_of_unity_of_primeCompl
-    (P : A → Prop)
-    (hlocal : ∀ (m : Ideal A) [m.IsMaximal],
-      ∃ d : m.primeCompl, P (d : A)) :
-    ∃ (s : Finset A) (c : s → A),
-      (∀ d : s, P (d : A)) ∧ ∑ d : s, c d * (d : A) = 1 := by
-  apply suslin_exists_finset_partition_of_unity_of_maximal P
   intro m hm
   letI : m.IsMaximal := hm
   obtain ⟨d, hd⟩ := hlocal m
@@ -7546,26 +4944,6 @@ def suslinAwayElementary
   Matrix.SpecialLinearGroup.map
       (Polynomial.mapRingHom (algebraMap A (Localization.Away d))) g ∈
     localGlobalElementarySubgroup (Polynomial (Localization.Away d))
-
-theorem suslin_exists_finite_away_elementary_cover
-    (g : Matrix.SpecialLinearGroup Index (Polynomial A))
-    (hlocal : ∀ m : Ideal A, m.IsMaximal →
-      ∃ d : A, d ∉ m ∧ suslinAwayElementary g d) :
-    ∃ s : Finset A,
-      (∀ d ∈ s, suslinAwayElementary g d) ∧
-        Ideal.span (s : Set A) = ⊤ :=
-  suslin_exists_finset_denominators_of_maximal
-    (suslinAwayElementary g) hlocal
-
-theorem suslin_exists_finite_away_elementary_partition
-    (g : Matrix.SpecialLinearGroup Index (Polynomial A))
-    (hlocal : ∀ m : Ideal A, m.IsMaximal →
-      ∃ d : A, d ∉ m ∧ suslinAwayElementary g d) :
-    ∃ (s : Finset A) (c : s → A),
-      (∀ d : s, suslinAwayElementary g (d : A)) ∧
-        ∑ d : s, c d * (d : A) = 1 :=
-  suslin_exists_finset_partition_of_unity_of_maximal
-    (suslinAwayElementary g) hlocal
 
 end ConnesRigidity
 
@@ -7808,174 +5186,6 @@ noncomputable section
 
 namespace ConnesRigidity.MonicPolynomialReduction
 
-open Matrix Polynomial
-open scoped BigOperators
-
-universe u
-
-variable {A : Type u} [CommRing A]
-
-def remainderAt (k j : Fin 4) (v : Fin 4 → Polynomial A) :
-    Matrix.SpecialLinearGroup (Fin 4) (Polynomial A) :=
-  if h : j = k then 1
-  else Matrix.SpecialLinearGroup.transvection h (-(v j /ₘ v k))
-
-theorem remainderAt_mem (k j : Fin 4) (v : Fin 4 → Polynomial A) :
-    remainderAt k j v ∈ localGlobalElementarySubgroup (Polynomial A) := by
-  unfold remainderAt
-  split_ifs with h
-  · exact (localGlobalElementarySubgroup (Polynomial A)).one_mem
-  · exact localGlobal_transvection_mem j k h (-(v j /ₘ v k))
-
-theorem remainderAt_smul_apply (k j : Fin 4)
-    (v w : Fin 4 → Polynomial A) (i : Fin 4) :
-    (remainderAt k j v • w) i =
-      if j ≠ k ∧ i = j then w j - (v j /ₘ v k) * w k else w i := by
-  by_cases hjk : j = k
-  · subst j
-    simp [remainderAt]
-  · simp only [remainderAt, dif_neg hjk]
-    by_cases hij : i = j
-    · subst i
-      rw [LocalElementaryProof.transvection_smul_same]
-      simp [hjk, sub_eq_add_neg]
-    · rw [LocalElementaryProof.transvection_smul_other j k i hjk hij]
-      simp [hij]
-
-theorem remainderAt_smul_pivot (k j : Fin 4)
-    (v w : Fin 4 → Polynomial A) :
-    (remainderAt k j v • w) k = w k := by
-  rw [remainderAt_smul_apply]
-  split_ifs with h
-  · exact (h.1 h.2.symm).elim
-  · rfl
-
-def remainderMatrix (k : Fin 4) (v : Fin 4 → Polynomial A) :
-    Matrix.SpecialLinearGroup (Fin 4) (Polynomial A) :=
-  remainderAt k 3 v * remainderAt k 2 v *
-    remainderAt k 1 v * remainderAt k 0 v
-
-theorem remainderMatrix_mem (k : Fin 4) (v : Fin 4 → Polynomial A) :
-    remainderMatrix k v ∈ localGlobalElementarySubgroup (Polynomial A) := by
-  unfold remainderMatrix
-  exact (localGlobalElementarySubgroup (Polynomial A)).mul_mem
-    ((localGlobalElementarySubgroup (Polynomial A)).mul_mem
-      ((localGlobalElementarySubgroup (Polynomial A)).mul_mem
-        (remainderAt_mem k 3 v) (remainderAt_mem k 2 v))
-      (remainderAt_mem k 1 v))
-    (remainderAt_mem k 0 v)
-
-theorem remainderMatrix_smul_apply (k : Fin 4)
-    (v : Fin 4 → Polynomial A) (i : Fin 4) :
-    (remainderMatrix k v • v) i =
-      if i = k then v k else v i %ₘ v k := by
-  simp only [remainderMatrix, mul_smul, remainderAt_smul_apply]
-  fin_cases k <;> fin_cases i <;>
-    simp [Polynomial.modByMonic_eq_sub_mul_div] <;> ring
-
-theorem remainderMatrix_smul_pivot (k : Fin 4)
-    (v : Fin 4 → Polynomial A) :
-    (remainderMatrix k v • v) k = v k := by
-  simp [remainderMatrix_smul_apply]
-
-theorem remainderMatrix_degree_lt [Nontrivial A]
-    (k i : Fin 4) (v : Fin 4 → Polynomial A)
-    (hmonic : (v k).Monic) (hik : i ≠ k) :
-    ((remainderMatrix k v • v) i).degree < (v k).degree := by
-  rw [remainderMatrix_smul_apply, if_neg hik]
-  exact Polynomial.degree_modByMonic_lt (v i) hmonic
-
-theorem remainderMatrix_natDegree_lt
-    (k i : Fin 4) (v : Fin 4 → Polynomial A)
-    (hmonic : (v k).Monic) (hone : v k ≠ 1) (hik : i ≠ k) :
-    ((remainderMatrix k v • v) i).natDegree < (v k).natDegree := by
-  rw [remainderMatrix_smul_apply, if_neg hik]
-  exact Polynomial.natDegree_modByMonic_lt (v i) hmonic hone
-
-theorem exists_elementary_monic_remainder_reduction [Nontrivial A]
-    (k : Fin 4) (v : Fin 4 → Polynomial A)
-    (hmonic : (v k).Monic) :
-    ∃ e : Matrix.SpecialLinearGroup (Fin 4) (Polynomial A),
-      e ∈ localGlobalElementarySubgroup (Polynomial A) ∧
-      (e • v) k = v k ∧
-      ∀ i : Fin 4, i ≠ k →
-        (e • v) i = v i %ₘ v k ∧
-          ((e • v) i).degree < (v k).degree := by
-  refine ⟨remainderMatrix k v, remainderMatrix_mem k v,
-    remainderMatrix_smul_pivot k v, ?_⟩
-  intro i hik
-  exact ⟨by simp [remainderMatrix_smul_apply, hik],
-    remainderMatrix_degree_lt k i v hmonic hik⟩
-
-theorem monic_resultant_isUnit_iff_isCoprime
-    (f g : Polynomial A) (hf : f.Monic) :
-    IsUnit (Polynomial.resultant f g) ↔ IsCoprime f g :=
-  Polynomial.isUnit_resultant_iff_isCoprime hf
-
-theorem map_elementarySubgroup_eq_of_surjective
-    {B : Type*} [CommRing B] (f : A →+* B)
-    (hf : Function.Surjective f) :
-    (localGlobalElementarySubgroup A).map
-        (Matrix.SpecialLinearGroup.map f) =
-      localGlobalElementarySubgroup B := by
-  apply le_antisymm (map_localGlobalElementarySubgroup_le f)
-  change Subgroup.closure _ ≤ _
-  rw [Subgroup.closure_le]
-  rintro e ⟨i, j, hij, b, rfl⟩
-  obtain ⟨a, rfl⟩ := hf b
-  refine ⟨Matrix.SpecialLinearGroup.transvection hij a,
-    localGlobal_transvection_mem i j hij a, ?_⟩
-  exact specialLinear_map_transvection_baseChange f hij a
-
-theorem exists_elementary_polynomial_lift_of_surjective
-    {B : Type*} [CommRing B] (f : A →+* B)
-    (hf : Function.Surjective f)
-    (e : Matrix.SpecialLinearGroup (Fin 4) (Polynomial B))
-    (he : e ∈ localGlobalElementarySubgroup (Polynomial B)) :
-    ∃ p : Matrix.SpecialLinearGroup (Fin 4) (Polynomial A),
-      p ∈ localGlobalElementarySubgroup (Polynomial A) ∧
-      Matrix.SpecialLinearGroup.map (Polynomial.mapRingHom f) p = e := by
-  have hmap := map_elementarySubgroup_eq_of_surjective
-    (Polynomial.mapRingHom f) (Polynomial.map_surjective f hf)
-  have hmem : e ∈ (localGlobalElementarySubgroup (Polynomial A)).map
-      (Matrix.SpecialLinearGroup.map (Polynomial.mapRingHom f)) := by
-    rw [hmap]
-    exact he
-  exact hmem
-
-theorem polynomial_baseChange_smul_apply
-    {B : Type*} [CommRing B] (f : A →+* B)
-    (g : Matrix.SpecialLinearGroup (Fin 4) (Polynomial A))
-    (v : Fin 4 → Polynomial A) (i : Fin 4) :
-    (Matrix.SpecialLinearGroup.map (Polynomial.mapRingHom f) g •
-      (fun j => Polynomial.map f (v j))) i =
-        Polynomial.map f ((g • v) i) := by
-  change
-    (∑ j, (Polynomial.mapRingHom f) (g.val i j) *
-      (Polynomial.mapRingHom f) (v j)) =
-      (Polynomial.mapRingHom f) (∑ j, g.val i j * v j)
-  simp only [map_sum, map_mul]
-
-theorem exists_elementary_residue_normal_form
-    [IsLocalRing A]
-    (v : Fin 4 → Polynomial A)
-    (e : Matrix.SpecialLinearGroup (Fin 4)
-      (Polynomial (IsLocalRing.ResidueField A)))
-    (he : e ∈ localGlobalElementarySubgroup
-      (Polynomial (IsLocalRing.ResidueField A)))
-    (hreduce : e • (fun i => Polynomial.map
-      (IsLocalRing.residue A) (v i)) = Pi.single 0 1) :
-    ∃ p : Matrix.SpecialLinearGroup (Fin 4) (Polynomial A),
-      p ∈ localGlobalElementarySubgroup (Polynomial A) ∧
-        ∀ i : Fin 4,
-          Polynomial.map (IsLocalRing.residue A) ((p • v) i) =
-            (Pi.single 0 1 : Fin 4 →
-              Polynomial (IsLocalRing.ResidueField A)) i := by
-  obtain ⟨p, hp, hmap⟩ := exists_elementary_polynomial_lift_of_surjective
-    (IsLocalRing.residue A) IsLocalRing.residue_surjective e he
-  refine ⟨p, hp, fun i => ?_⟩
-  rw [← polynomial_baseChange_smul_apply, hmap, hreduce]
-
 end ConnesRigidity.MonicPolynomialReduction
 
 end
@@ -7985,551 +5195,6 @@ section
 noncomputable section
 
 namespace ConnesRigidity.LocalSpecialLinearGeneration
-
-open Matrix
-open scoped BigOperators
-
-universe u
-
-variable {A : Type u} [CommRing A]
-
-abbrev elementarySubgroup (A : Type u) [CommRing A] :
-    Subgroup (Matrix.SpecialLinearGroup (Fin 4) A) :=
-  LocalElementaryProof.localElementarySubgroup A
-
-theorem transvection_mem (i j : Fin 4) (h : i ≠ j) (a : A) :
-    Matrix.SpecialLinearGroup.transvection h a ∈ elementarySubgroup A :=
-  LocalElementaryProof.transvection_mem i j h a
-
-private theorem transvection_smul_apply (i j : Fin 4) (h : i ≠ j) (a : A)
-    (v : Fin 4 → A) (k : Fin 4) :
-    (Matrix.SpecialLinearGroup.transvection h a • v) k =
-      if k = i then v i + a * v j else v k := by
-  split_ifs with hk
-  · subst k
-    exact LocalElementaryProof.transvection_smul_same i j h a v
-  · exact LocalElementaryProof.transvection_smul_other i j k h hk a v
-
-def diagonalUnitPair (i j : Fin 4) (h : i ≠ j) (a : Aˣ) :
-    Matrix.SpecialLinearGroup (Fin 4) A :=
-  Matrix.SpecialLinearGroup.transvection h (a : A) *
-    Matrix.SpecialLinearGroup.transvection h.symm (-(↑a⁻¹ : A)) *
-    Matrix.SpecialLinearGroup.transvection h (a : A) *
-    Matrix.SpecialLinearGroup.transvection h (-1) *
-    Matrix.SpecialLinearGroup.transvection h.symm 1 *
-    Matrix.SpecialLinearGroup.transvection h (-1)
-
-theorem diagonalUnitPair_mem (i j : Fin 4) (h : i ≠ j) (a : Aˣ) :
-    diagonalUnitPair i j h a ∈ elementarySubgroup A := by
-  unfold diagonalUnitPair
-  exact (elementarySubgroup A).mul_mem
-    ((elementarySubgroup A).mul_mem
-      ((elementarySubgroup A).mul_mem
-        ((elementarySubgroup A).mul_mem
-          ((elementarySubgroup A).mul_mem
-            (transvection_mem i j h (a : A))
-            (transvection_mem j i h.symm (-(↑a⁻¹ : A))))
-          (transvection_mem i j h (a : A)))
-        (transvection_mem i j h (-1)))
-      (transvection_mem j i h.symm 1))
-    (transvection_mem i j h (-1))
-
-theorem diagonalUnitPair_smul_apply (i j : Fin 4) (h : i ≠ j) (a : Aˣ)
-    (v : Fin 4 → A) (k : Fin 4) :
-    (diagonalUnitPair i j h a • v) k =
-      if k = i then (a : A) * v i
-      else if k = j then (↑a⁻¹ : A) * v j
-      else v k := by
-  simp only [diagonalUnitPair, mul_smul, transvection_smul_apply]
-  by_cases hki : k = i
-  · subst k
-    simp [h, h.symm]
-    linear_combination (v j - (a : A) * v i) * a.mul_inv
-  · by_cases hkj : k = j
-    · subst k
-      simp [h, h.symm]
-      linear_combination -v i * a.inv_mul
-    · simp [hki, hkj]
-
-theorem diagonalUnitPair_apply (i j : Fin 4) (h : i ≠ j) (a : Aˣ)
-    (p q : Fin 4) :
-    (diagonalUnitPair i j h a) p q =
-      if p = q then
-        if p = i then (a : A) else if p = j then (↑a⁻¹ : A) else 1
-      else 0 := by
-  have hvec := diagonalUnitPair_smul_apply i j h a
-    (Pi.single q (1 : A)) p
-  change ((diagonalUnitPair i j h a).val *ᵥ Pi.single q 1) p = _ at hvec
-  by_cases hpi : p = i <;> by_cases hpj : p = j <;>
-    by_cases hpq : p = q <;>
-    simp_all [Matrix.mulVec_single, Pi.single_apply]
-
-def clearAt (i k : Fin 4) (a : A) :
-    Matrix.SpecialLinearGroup (Fin 4) A :=
-  if h : i = k then 1
-  else Matrix.SpecialLinearGroup.transvection h (-a)
-
-theorem clearAt_mem (i k : Fin 4) (a : A) :
-    clearAt i k a ∈ elementarySubgroup A := by
-  unfold clearAt
-  split_ifs with h
-  · exact (elementarySubgroup A).one_mem
-  · exact transvection_mem i k h (-a)
-
-theorem clearAt_smul_apply (i k : Fin 4) (a : A)
-    (v : Fin 4 → A) (r : Fin 4) :
-    (clearAt i k a • v) r =
-      if i ≠ k ∧ r = i then v i - a * v k else v r := by
-  by_cases hik : i = k
-  · subst i
-    simp [clearAt]
-  · simp only [clearAt, dif_neg hik]
-    rw [transvection_smul_apply]
-    by_cases hri : r = i <;> simp [hik, hri, sub_eq_add_neg]
-
-theorem clearAt_fix_of_zero (i k : Fin 4) (a : A)
-    (v : Fin 4 → A) (hv : v k = 0) :
-    clearAt i k a • v = v := by
-  funext r
-  rw [clearAt_smul_apply]
-  by_cases hri : r = i
-  · subst r
-    simp [hv]
-  · simp [hri]
-
-def clearColumn (k : Fin 4) (v : Fin 4 → A) :
-    Matrix.SpecialLinearGroup (Fin 4) A :=
-  clearAt 3 k (v 3) * clearAt 2 k (v 2) *
-    clearAt 1 k (v 1) * clearAt 0 k (v 0)
-
-theorem clearColumn_mem (k : Fin 4) (v : Fin 4 → A) :
-    clearColumn k v ∈ elementarySubgroup A := by
-  unfold clearColumn
-  exact (elementarySubgroup A).mul_mem
-    ((elementarySubgroup A).mul_mem
-      ((elementarySubgroup A).mul_mem (clearAt_mem 3 k (v 3))
-        (clearAt_mem 2 k (v 2)))
-      (clearAt_mem 1 k (v 1)))
-    (clearAt_mem 0 k (v 0))
-
-theorem clearColumn_smul (k : Fin 4) (v : Fin 4 → A)
-    (hv : v k = 1) :
-    clearColumn k v • v = Pi.single k 1 := by
-  funext r
-  simp only [clearColumn, mul_smul, clearAt_smul_apply]
-  fin_cases k <;> fin_cases r <;>
-    simp_all [Pi.single_apply]
-
-theorem clearColumn_fix_of_zero (k : Fin 4) (v w : Fin 4 → A)
-    (hw : w k = 0) :
-    clearColumn k v • w = w := by
-  simp only [clearColumn, mul_smul]
-  rw [clearAt_fix_of_zero 0 k (v 0) w hw,
-    clearAt_fix_of_zero 1 k (v 1) w hw,
-    clearAt_fix_of_zero 2 k (v 2) w hw,
-    clearAt_fix_of_zero 3 k (v 3) w hw]
-
-def movePivot (k i : Fin 4) : Matrix.SpecialLinearGroup (Fin 4) A :=
-  if h : k = i then 1
-  else LocalElementaryProof.coordinateRotation (A := A) k i h
-
-theorem movePivot_mem (k i : Fin 4) :
-    movePivot (A := A) k i ∈ elementarySubgroup A := by
-  unfold movePivot
-  split_ifs with h
-  · exact (elementarySubgroup A).one_mem
-  · exact LocalElementaryProof.coordinateRotation_mem k i h
-
-theorem movePivot_smul_target (k i : Fin 4) (v : Fin 4 → A) :
-    (movePivot (A := A) k i • v) k = v i := by
-  unfold movePivot
-  split_ifs with h
-  · subst i
-    simp
-  · exact LocalElementaryProof.coordinateRotation_smul_left k i h v
-
-theorem movePivot_fix_of_pair_zero (k i : Fin 4) (v : Fin 4 → A)
-    (hk : v k = 0) (hi : v i = 0) :
-    movePivot (A := A) k i • v = v := by
-  unfold movePivot
-  split_ifs with h
-  · simp
-  · funext r
-    by_cases hrk : r = k
-    · subst r
-      rw [LocalElementaryProof.coordinateRotation_smul_left, hi, hk]
-    · by_cases hri : r = i
-      · subst r
-        rw [LocalElementaryProof.coordinateRotation_smul_right, hk, neg_zero, hi]
-      · exact LocalElementaryProof.coordinateRotation_smul_other
-          k i r h hrk hri v
-
-theorem diagonalUnitPair_fix_of_pair_zero (i j : Fin 4) (h : i ≠ j)
-    (a : Aˣ) (v : Fin 4 → A) (hi : v i = 0) (hj : v j = 0) :
-    diagonalUnitPair i j h a • v = v := by
-  funext r
-  rw [diagonalUnitPair_smul_apply]
-  by_cases hri : r = i
-  · subst r
-    simp [hi]
-  · by_cases hrj : r = j
-    · subst r
-      simp [hri, hj]
-    · simp [hri, hrj]
-
-theorem reduce_column
-    (g : Matrix.SpecialLinearGroup (Fin 4) A) (k i : Fin 4)
-    (hk : k ≠ 3) (hki : k ≤ i) (hi : IsUnit (g i k))
-    (hprevious : ∀ j : Fin 4, j < k →
-      ∀ r : Fin 4, g r j = if r = j then 1 else 0) :
-    ∃ p : Matrix.SpecialLinearGroup (Fin 4) A,
-      p ∈ elementarySubgroup A ∧
-        ∀ j : Fin 4, j ≤ k →
-          ∀ r : Fin 4, (p * g) r j = if r = j then 1 else 0 := by
-  let v : Fin 4 → A := fun r => g r k
-  let m : Matrix.SpecialLinearGroup (Fin 4) A := movePivot k i
-  let v₁ : Fin 4 → A := m • v
-  have hv₁ : IsUnit (v₁ k) := by
-    dsimp [v₁, m, v]
-    rw [movePivot_smul_target]
-    exact hi
-  let d : Matrix.SpecialLinearGroup (Fin 4) A :=
-    diagonalUnitPair k 3 hk hv₁.unit⁻¹
-  let v₂ : Fin 4 → A := d • v₁
-  have hv₂ : v₂ k = 1 := by
-    dsimp [v₂, d]
-    rw [diagonalUnitPair_smul_apply]
-    simp only [ite_true]
-    exact hv₁.val_inv_mul
-  let c : Matrix.SpecialLinearGroup (Fin 4) A := clearColumn k v₂
-  let p : Matrix.SpecialLinearGroup (Fin 4) A := c * d * m
-  have hp : p ∈ elementarySubgroup A := by
-    dsimp [p, c, d, m]
-    exact (elementarySubgroup A).mul_mem
-      ((elementarySubgroup A).mul_mem
-        (clearColumn_mem k v₂)
-        (diagonalUnitPair_mem k 3 hk hv₁.unit⁻¹))
-      (movePivot_mem k i)
-  have hcolumn : p • v = Pi.single k 1 := by
-    dsimp [p]
-    rw [mul_smul, mul_smul]
-    change c • (d • v₁) = _
-    change clearColumn k v₂ • v₂ = _
-    exact clearColumn_smul k v₂ hv₂
-  refine ⟨p, hp, ?_⟩
-  intro j hj r
-  rcases lt_or_eq_of_le hj with hj | rfl
-  · let w : Fin 4 → A := fun s => g s j
-    have hwk : w k = 0 := by
-      dsimp [w]
-      rw [hprevious j hj k]
-      simp [ne_of_gt hj]
-    have hwi : w i = 0 := by
-      dsimp [w]
-      rw [hprevious j hj i]
-      have hij : i ≠ j := by omega
-      simp [hij]
-    have hwthree : w 3 = 0 := by
-      dsimp [w]
-      rw [hprevious j hj 3]
-      have hjthree : (3 : Fin 4) ≠ j := by omega
-      simp [hjthree]
-    have hm : m • w = w :=
-      movePivot_fix_of_pair_zero k i w hwk hwi
-    have hd : d • w = w :=
-      diagonalUnitPair_fix_of_pair_zero k 3 hk hv₁.unit⁻¹ w hwk hwthree
-    have hc : c • w = w :=
-      clearColumn_fix_of_zero k v₂ w hwk
-    change (p • w) r = _
-    dsimp [p]
-    rw [mul_smul, mul_smul, hm, hd, hc]
-    exact hprevious j hj r
-  · change (p • v) r = _
-    rw [hcolumn]
-    simp [Pi.single_apply, eq_comm]
-
-theorem second_column_has_unit_below [IsLocalRing A]
-    (g : Matrix.SpecialLinearGroup (Fin 4) A)
-    (h00 : g 0 0 = 1) (h10 : g 1 0 = 0)
-    (h20 : g 2 0 = 0) (h30 : g 3 0 = 0) :
-    ∃ i : Fin 4, i ≠ 0 ∧ IsUnit (g i 1) := by
-  have hinv10 : (g⁻¹) 1 0 = 0 := by
-    have h := congrArg
-      (fun M : Matrix.SpecialLinearGroup (Fin 4) A => M 1 0)
-      (inv_mul_cancel g)
-    change (((g⁻¹).val * g.val : Matrix (Fin 4) (Fin 4) A) 1 0) =
-      (1 : Matrix (Fin 4) (Fin 4) A) 1 0 at h
-    simpa [Matrix.mul_apply, Fin.sum_univ_succ, h00, h10, h20, h30] using h
-  let v : Fin 4 → A := fun i => if i = 0 then 0 else g i 1
-  have hv : UnimodularRow v := by
-    refine ⟨fun i => (g⁻¹) 1 i, ?_⟩
-    have h := congrArg
-      (fun M : Matrix.SpecialLinearGroup (Fin 4) A => M 1 1)
-      (inv_mul_cancel g)
-    change (((g⁻¹).val * g.val : Matrix (Fin 4) (Fin 4) A) 1 1) =
-      (1 : Matrix (Fin 4) (Fin 4) A) 1 1 at h
-    rw [Matrix.mul_apply] at h
-    simp only [Fin.sum_univ_succ] at h
-    rw [hinv10] at h
-    simpa [v, Fin.sum_univ_succ] using h
-  obtain ⟨i, hi⟩ := LocalElementaryProof.local_unimodular_has_unit v hv
-  by_cases hz : i = 0
-  · subst i
-    exact (not_isUnit_zero (M₀ := A) (by simpa [v] using hi)).elim
-  · exact ⟨i, hz, by simpa [v, hz] using hi⟩
-
-theorem third_column_has_unit_below [IsLocalRing A]
-    (g : Matrix.SpecialLinearGroup (Fin 4) A)
-    (h00 : g 0 0 = 1) (h10 : g 1 0 = 0)
-    (h20 : g 2 0 = 0) (h30 : g 3 0 = 0)
-    (h01 : g 0 1 = 0) (h11 : g 1 1 = 1)
-    (h21 : g 2 1 = 0) (h31 : g 3 1 = 0) :
-    ∃ i : Fin 4, i ≠ 0 ∧ i ≠ 1 ∧ IsUnit (g i 2) := by
-  have hinv20 : (g⁻¹) 2 0 = 0 := by
-    have h := congrArg
-      (fun M : Matrix.SpecialLinearGroup (Fin 4) A => M 2 0)
-      (inv_mul_cancel g)
-    change (((g⁻¹).val * g.val : Matrix (Fin 4) (Fin 4) A) 2 0) =
-      (1 : Matrix (Fin 4) (Fin 4) A) 2 0 at h
-    simpa [Matrix.mul_apply, Fin.sum_univ_succ, h00, h10, h20, h30] using h
-  have hinv21 : (g⁻¹) 2 1 = 0 := by
-    have h := congrArg
-      (fun M : Matrix.SpecialLinearGroup (Fin 4) A => M 2 1)
-      (inv_mul_cancel g)
-    change (((g⁻¹).val * g.val : Matrix (Fin 4) (Fin 4) A) 2 1) =
-      (1 : Matrix (Fin 4) (Fin 4) A) 2 1 at h
-    simpa [Matrix.mul_apply, Fin.sum_univ_succ, h01, h11, h21, h31] using h
-  let v : Fin 4 → A := fun i => if i = 0 ∨ i = 1 then 0 else g i 2
-  have hv : UnimodularRow v := by
-    refine ⟨fun i => (g⁻¹) 2 i, ?_⟩
-    have h := congrArg
-      (fun M : Matrix.SpecialLinearGroup (Fin 4) A => M 2 2)
-      (inv_mul_cancel g)
-    change (((g⁻¹).val * g.val : Matrix (Fin 4) (Fin 4) A) 2 2) =
-      (1 : Matrix (Fin 4) (Fin 4) A) 2 2 at h
-    rw [Matrix.mul_apply] at h
-    simp only [Fin.sum_univ_succ] at h
-    have hinv21' : (g⁻¹) 2 (Fin.succ (0 : Fin 3)) = 0 := by
-      simpa using hinv21
-    rw [hinv20, hinv21'] at h
-    simpa [v, Fin.sum_univ_succ] using h
-  obtain ⟨i, hi⟩ := LocalElementaryProof.local_unimodular_has_unit v hv
-  have hzero : i ≠ 0 := by
-    intro h
-    subst i
-    exact not_isUnit_zero (M₀ := A) (by simpa [v] using hi)
-  have hone : i ≠ 1 := by
-    intro h
-    subst i
-    exact not_isUnit_zero (M₀ := A) (by simpa [v] using hi)
-  exact ⟨i, hzero, hone, by simpa [v, hzero, hone] using hi⟩
-
-theorem first_column_reduce [IsLocalRing A]
-    (g : Matrix.SpecialLinearGroup (Fin 4) A) :
-    ∃ p : Matrix.SpecialLinearGroup (Fin 4) A,
-      p ∈ elementarySubgroup A ∧
-        ∀ r : Fin 4, (p * g) r 0 = if r = 0 then 1 else 0 := by
-  obtain ⟨p, hp, hcolumn⟩ :=
-    LocalElementaryProof.local_unimodular_elementary_transitive
-      (fun r : Fin 4 => g r 0)
-      (specialLinear_column_unimodular g 0)
-  refine ⟨p, hp, ?_⟩
-  intro r
-  change (p • (fun s : Fin 4 => g s 0)) r = _
-  rw [hcolumn]
-  simp [Pi.single_apply, eq_comm]
-
-theorem last_diagonal_eq_one_of_first_three_standard
-    (g : Matrix.SpecialLinearGroup (Fin 4) A)
-    (hprevious : ∀ j : Fin 4, j < 3 →
-      ∀ r : Fin 4, g r j = if r = j then 1 else 0) :
-    g 3 3 = 1 := by
-  have htri : (g : Matrix (Fin 4) (Fin 4) A).BlockTriangular id := by
-    intro i j hji
-    change j < i at hji
-    have hj : j < (3 : Fin 4) := by omega
-    rw [hprevious j hj i]
-    simp [ne_of_gt hji]
-  have hprod : (∏ i : Fin 4, g i i) = 1 := by
-    calc
-      (∏ i : Fin 4, g i i) = (g : Matrix (Fin 4) (Fin 4) A).det :=
-        (Matrix.det_of_upperTriangular htri).symm
-      _ = 1 := g.property
-  have h0 : g 0 0 = 1 := by
-    simpa using hprevious 0 (by decide) 0
-  have h1 : g 1 1 = 1 := by
-    simpa using hprevious 1 (by decide) 1
-  have h2 : g 2 2 = 1 := by
-    simpa using hprevious 2 (by decide) 2
-  simpa [Fin.prod_univ_succ, h0, h1, h2] using hprod
-
-theorem finish_last_column
-    (g : Matrix.SpecialLinearGroup (Fin 4) A)
-    (hprevious : ∀ j : Fin 4, j < 3 →
-      ∀ r : Fin 4, g r j = if r = j then 1 else 0) :
-    ∃ p : Matrix.SpecialLinearGroup (Fin 4) A,
-      p ∈ elementarySubgroup A ∧ p * g = 1 := by
-  let v : Fin 4 → A := fun r => g r 3
-  have hv : v 3 = 1 :=
-    last_diagonal_eq_one_of_first_three_standard g hprevious
-  let p : Matrix.SpecialLinearGroup (Fin 4) A := clearColumn 3 v
-  have hp : p ∈ elementarySubgroup A := clearColumn_mem 3 v
-  refine ⟨p, hp, ?_⟩
-  apply Matrix.SpecialLinearGroup.ext
-  intro r j
-  by_cases hj : j = 3
-  · subst j
-    change (p • v) r = (1 : Matrix (Fin 4) (Fin 4) A) r 3
-    change (clearColumn 3 v • v) r = _
-    rw [clearColumn_smul 3 v hv]
-    simp [Pi.single_apply, Matrix.one_apply, eq_comm]
-  · have hjlt : j < (3 : Fin 4) := by omega
-    let w : Fin 4 → A := fun s => g s j
-    have hw : w 3 = 0 := by
-      dsimp [w]
-      rw [hprevious j hjlt 3]
-      simp [Ne.symm hj]
-    change (p • w) r = (1 : Matrix (Fin 4) (Fin 4) A) r j
-    change (clearColumn 3 v • w) r = _
-    rw [clearColumn_fix_of_zero 3 v w hw]
-    simpa [w, Matrix.one_apply] using hprevious j hjlt r
-
-theorem upperUnitriangular_factorization
-    (g : Matrix.SpecialLinearGroup (Fin 4) A)
-    (hu : ∀ i j : Fin 4, j < i → g i j = 0)
-    (hd : ∀ i : Fin 4, g i i = 1) :
-    g =
-      Matrix.SpecialLinearGroup.transvection (show (2 : Fin 4) ≠ 3 by decide)
-        (g 2 3) *
-      Matrix.SpecialLinearGroup.transvection (show (1 : Fin 4) ≠ 3 by decide)
-        (g 1 3) *
-      Matrix.SpecialLinearGroup.transvection (show (1 : Fin 4) ≠ 2 by decide)
-        (g 1 2) *
-      Matrix.SpecialLinearGroup.transvection (show (0 : Fin 4) ≠ 3 by decide)
-        (g 0 3) *
-      Matrix.SpecialLinearGroup.transvection (show (0 : Fin 4) ≠ 2 by decide)
-        (g 0 2) *
-      Matrix.SpecialLinearGroup.transvection (show (0 : Fin 4) ≠ 1 by decide)
-        (g 0 1) := by
-  have h00 := hd 0
-  have h11 := hd 1
-  have h22 := hd 2
-  have h33 := hd 3
-  have h10 := hu 1 0 (by decide)
-  have h20 := hu 2 0 (by decide)
-  have h21 := hu 2 1 (by decide)
-  have h30 := hu 3 0 (by decide)
-  have h31 := hu 3 1 (by decide)
-  have h32 := hu 3 2 (by decide)
-  apply Matrix.SpecialLinearGroup.ext
-  intro i j
-  fin_cases i <;> fin_cases j <;>
-    simp [Matrix.SpecialLinearGroup.transvection_coe,
-      Matrix.mul_apply, Fin.sum_univ_succ,
-      Matrix.single_apply, Matrix.one_apply,
-      h00, h11, h22, h33, h10, h20, h21, h30, h31, h32]
-
-theorem upperUnitriangular_mem
-    (g : Matrix.SpecialLinearGroup (Fin 4) A)
-    (hu : ∀ i j : Fin 4, j < i → g i j = 0)
-    (hd : ∀ i : Fin 4, g i i = 1) :
-    g ∈ elementarySubgroup A := by
-  rw [upperUnitriangular_factorization g hu hd]
-  exact (elementarySubgroup A).mul_mem
-    ((elementarySubgroup A).mul_mem
-      ((elementarySubgroup A).mul_mem
-        ((elementarySubgroup A).mul_mem
-          ((elementarySubgroup A).mul_mem
-            (transvection_mem 2 3 (by decide) (g 2 3))
-            (transvection_mem 1 3 (by decide) (g 1 3)))
-          (transvection_mem 1 2 (by decide) (g 1 2)))
-        (transvection_mem 0 3 (by decide) (g 0 3)))
-      (transvection_mem 0 2 (by decide) (g 0 2)))
-    (transvection_mem 0 1 (by decide) (g 0 1))
-
-theorem elementary_eq_top [IsLocalRing A] :
-    elementarySubgroup A = ⊤ := by
-  apply top_unique
-  intro g _
-  obtain ⟨p₀, hp₀, hzero⟩ := first_column_reduce g
-  let g₀ : Matrix.SpecialLinearGroup (Fin 4) A := p₀ * g
-  have h₀₀ : g₀ 0 0 = 1 := by
-    simpa [g₀] using hzero 0
-  have h₁₀ : g₀ 1 0 = 0 := by
-    simpa [g₀] using hzero 1
-  have h₂₀ : g₀ 2 0 = 0 := by
-    simpa [g₀] using hzero 2
-  have h₃₀ : g₀ 3 0 = 0 := by
-    simpa [g₀] using hzero 3
-  obtain ⟨i₁, hi₁, hu₁⟩ :=
-    second_column_has_unit_below g₀ h₀₀ h₁₀ h₂₀ h₃₀
-  have honele : (1 : Fin 4) ≤ i₁ := by omega
-  have hprevious₀ : ∀ j : Fin 4, j < (1 : Fin 4) →
-      ∀ r : Fin 4, g₀ r j = if r = j then 1 else 0 := by
-    intro j hj r
-    have hjzero : j = 0 := by omega
-    subst j
-    exact hzero r
-  obtain ⟨p₁, hp₁, hfirst⟩ :=
-    reduce_column g₀ 1 i₁ (by decide) honele hu₁ hprevious₀
-  let g₁ : Matrix.SpecialLinearGroup (Fin 4) A := p₁ * g₀
-  have h₀₀' : g₁ 0 0 = 1 := by
-    simpa [g₁] using hfirst 0 (by decide) 0
-  have h₁₀' : g₁ 1 0 = 0 := by
-    simpa [g₁] using hfirst 0 (by decide) 1
-  have h₂₀' : g₁ 2 0 = 0 := by
-    simpa [g₁] using hfirst 0 (by decide) 2
-  have h₃₀' : g₁ 3 0 = 0 := by
-    simpa [g₁] using hfirst 0 (by decide) 3
-  have h₀₁ : g₁ 0 1 = 0 := by
-    simpa [g₁] using hfirst 1 (by decide) 0
-  have h₁₁ : g₁ 1 1 = 1 := by
-    simpa [g₁] using hfirst 1 (by decide) 1
-  have h₂₁ : g₁ 2 1 = 0 := by
-    simpa [g₁] using hfirst 1 (by decide) 2
-  have h₃₁ : g₁ 3 1 = 0 := by
-    simpa [g₁] using hfirst 1 (by decide) 3
-  obtain ⟨i₂, hi₂zero, hi₂one, hu₂⟩ :=
-    third_column_has_unit_below g₁ h₀₀' h₁₀' h₂₀' h₃₀'
-      h₀₁ h₁₁ h₂₁ h₃₁
-  have htwole : (2 : Fin 4) ≤ i₂ := by omega
-  have hprevious₁ : ∀ j : Fin 4, j < (2 : Fin 4) →
-      ∀ r : Fin 4, g₁ r j = if r = j then 1 else 0 := by
-    intro j hj r
-    have hjle : j ≤ (1 : Fin 4) := by omega
-    exact hfirst j hjle r
-  obtain ⟨p₂, hp₂, hsecond⟩ :=
-    reduce_column g₁ 2 i₂ (by decide) htwole hu₂ hprevious₁
-  let g₂ : Matrix.SpecialLinearGroup (Fin 4) A := p₂ * g₁
-  have hprevious₂ : ∀ j : Fin 4, j < (3 : Fin 4) →
-      ∀ r : Fin 4, g₂ r j = if r = j then 1 else 0 := by
-    intro j hj r
-    have hjle : j ≤ (2 : Fin 4) := by omega
-    exact hsecond j hjle r
-  obtain ⟨p₃, hp₃, hlast⟩ := finish_last_column g₂ hprevious₂
-  let p : Matrix.SpecialLinearGroup (Fin 4) A := p₃ * p₂ * p₁ * p₀
-  have hp : p ∈ elementarySubgroup A :=
-    (elementarySubgroup A).mul_mem
-      ((elementarySubgroup A).mul_mem
-        ((elementarySubgroup A).mul_mem hp₃ hp₂) hp₁)
-      hp₀
-  have hpg : p * g = 1 := by
-    simpa [p, g₂, g₁, g₀, mul_assoc] using hlast
-  have hmem := (elementarySubgroup A).mul_mem
-    ((elementarySubgroup A).inv_mem hp)
-    ((elementarySubgroup A).one_mem)
-  rw [← hpg] at hmem
-  simpa [mul_assoc] using hmem
-
-theorem localElementarySubgroup_eq_top [IsLocalRing A] :
-    LocalElementaryProof.localElementarySubgroup A = ⊤ :=
-  elementary_eq_top
-
-theorem specialLinear_mem_localElementary [IsLocalRing A]
-    (g : Matrix.SpecialLinearGroup (Fin 4) A) :
-    g ∈ LocalElementaryProof.localElementarySubgroup A := by
-  rw [localElementarySubgroup_eq_top]
-  trivial
 
 end ConnesRigidity.LocalSpecialLinearGeneration
 
@@ -8546,123 +5211,6 @@ open Polynomial
 universe u
 
 variable {R : Type u} [CommRing R]
-
-theorem suslin_coprime_pair_elementary_reduce
-    (v : Fin 4 → R) (hcoprime : IsCoprime (v 0) (v 1)) :
-    ∃ g : Matrix.SpecialLinearGroup (Fin 4) R,
-      g ∈ localGlobalElementarySubgroup R ∧
-        g • v = Pi.single 0 1 := by
-  obtain ⟨u, w, huw⟩ := hcoprime
-  let t₀ : Matrix.SpecialLinearGroup (Fin 4) R :=
-    Matrix.SpecialLinearGroup.transvection
-      (show (2 : Fin 4) ≠ 0 by decide) ((1 - v 2) * u)
-  let t₁ : Matrix.SpecialLinearGroup (Fin 4) R :=
-    Matrix.SpecialLinearGroup.transvection
-      (show (2 : Fin 4) ≠ 1 by decide) ((1 - v 2) * w)
-  let t : Matrix.SpecialLinearGroup (Fin 4) R := t₁ * t₀
-  have ht : t ∈ localGlobalElementarySubgroup R :=
-    (localGlobalElementarySubgroup R).mul_mem
-      (localGlobal_transvection_mem 2 1 (by decide) ((1 - v 2) * w))
-      (localGlobal_transvection_mem 2 0 (by decide) ((1 - v 2) * u))
-  have ht₂ : (t • v) 2 = 1 := by
-    dsimp [t, t₀, t₁]
-    rw [mul_smul,
-      LocalElementaryProof.transvection_smul_same,
-      LocalElementaryProof.transvection_smul_same,
-      LocalElementaryProof.transvection_smul_other 2 0 1
-        (by decide) (by decide)]
-    calc
-      v 2 + ((1 - v 2) * u) * v 0 +
-          ((1 - v 2) * w) * v 1 =
-        v 2 + (1 - v 2) * (u * v 0 + w * v 1) := by ring
-      _ = 1 := by rw [huw]; ring
-  let rotation : Matrix.SpecialLinearGroup (Fin 4) R :=
-    LocalElementaryProof.coordinateRotation 0 2 (by decide)
-  have hrotation : rotation ∈ localGlobalElementarySubgroup R := by
-    change rotation ∈ LocalElementaryProof.localElementarySubgroup R
-    exact LocalElementaryProof.coordinateRotation_mem 0 2 (by decide)
-  have hpivot : (rotation • (t • v)) 0 = 1 := by
-    dsimp [rotation]
-    rw [LocalElementaryProof.coordinateRotation_smul_left, ht₂]
-  obtain ⟨p, hp, hreduce⟩ :=
-    LocalElementaryProof.unit_first_elementary_reduce
-      (rotation • (t • v)) (by rw [hpivot]; exact isUnit_one)
-  refine ⟨p * rotation * t, ?_, ?_⟩
-  · exact (localGlobalElementarySubgroup R).mul_mem
-      ((localGlobalElementarySubgroup R).mul_mem hp hrotation) ht
-  · simpa [mul_smul] using hreduce
-
-theorem suslin_monic_resultant_elementary_reduce
-    {A : Type u} [CommRing A]
-    (v : Fin 4 → Polynomial A)
-    (hmonic : (v 0).Monic)
-    (hresultant : IsUnit ((v 0).resultant (v 1))) :
-    ∃ g : Matrix.SpecialLinearGroup (Fin 4) (Polynomial A),
-      g ∈ localGlobalElementarySubgroup (Polynomial A) ∧
-        g • v = Pi.single 0 1 := by
-  exact suslin_coprime_pair_elementary_reduce v
-    ((Polynomial.isUnit_resultant_iff_isCoprime hmonic).mp hresultant)
-
-theorem suslin_monic_coprime_elementary_reduce
-    {A : Type u} [CommRing A]
-    (v : Fin 4 → Polynomial A)
-    (_hmonic : (v 0).Monic)
-    (hcoprime : IsCoprime (v 0) (v 1)) :
-    ∃ g : Matrix.SpecialLinearGroup (Fin 4) (Polynomial A),
-      g ∈ localGlobalElementarySubgroup (Polynomial A) ∧
-        g • v = Pi.single 0 1 :=
-  suslin_coprime_pair_elementary_reduce v hcoprime
-
-theorem suslin_unit_leadingCoeff_elementary_monic
-    {A : Type u} [CommRing A]
-    (v : Fin 4 → Polynomial A) (i : Fin 4)
-    (hunit : IsUnit (v i).leadingCoeff) :
-    ∃ g : Matrix.SpecialLinearGroup (Fin 4) (Polynomial A),
-      g ∈ localGlobalElementarySubgroup (Polynomial A) ∧
-        ((g • v) 0).Monic := by
-  let pivot : Matrix.SpecialLinearGroup (Fin 4) (Polynomial A) :=
-    LocalSpecialLinearGeneration.movePivot 0 i
-  let inverseLeading : (Polynomial A)ˣ :=
-    Units.map (Polynomial.C : A →+* Polynomial A).toMonoidHom
-      hunit.unit⁻¹
-  let scale : Matrix.SpecialLinearGroup (Fin 4) (Polynomial A) :=
-    LocalSpecialLinearGeneration.diagonalUnitPair
-      0 1 (by decide) inverseLeading
-  refine ⟨scale * pivot, ?_, ?_⟩
-  · apply (localGlobalElementarySubgroup (Polynomial A)).mul_mem
-    · change scale ∈
-        LocalElementaryProof.localElementarySubgroup (Polynomial A)
-      exact LocalSpecialLinearGeneration.diagonalUnitPair_mem
-        0 1 (by decide) inverseLeading
-    · change pivot ∈
-        LocalElementaryProof.localElementarySubgroup (Polynomial A)
-      exact LocalSpecialLinearGeneration.movePivot_mem 0 i
-  · rw [mul_smul,
-      LocalSpecialLinearGeneration.diagonalUnitPair_smul_apply,
-      if_pos rfl,
-      LocalSpecialLinearGeneration.movePivot_smul_target]
-    change
-      (Polynomial.C (↑hunit.unit⁻¹ : A) * v i).Monic
-    exact Polynomial.monic_C_mul_of_mul_leadingCoeff_eq_one
-      hunit.val_inv_mul
-
-theorem suslin_monic_unimodularRow_unit_resultant
-    {A : Type u} [CommRing A] [IsLocalRing A]
-    (v : Fin 4 → Polynomial A)
-    (hmonic : (v 0).Monic)
-    (hrow : UnimodularRow v) :
-    ∃ u w : Polynomial A,
-      IsCoprime (v 0) (v 1 + u * v 2 + w * v 3) ∧
-        IsUnit ((v 0).resultant (v 1 + u * v 2 + w * v 3)) := by
-  obtain ⟨c, hc⟩ := hrow
-  have hcomb : ∃ a b d e : Polynomial A,
-      a * v 0 + b * v 1 + d * v 2 + e * v 3 = 1 := by
-    exact ⟨c 0, c 1, c 2, c 3, by
-      simpa [Fin.sum_univ_succ, add_assoc] using hc⟩
-  obtain ⟨u, w, hcoprime⟩ :=
-    monic_local_exists_add_two_mul_isCoprime hmonic hcomb
-  exact ⟨u, w, hcoprime,
-    (Polynomial.isUnit_resultant_iff_isCoprime hmonic).mpr hcoprime⟩
 
 theorem suslin_stableRangeThree_elementary_row_transitive
     (hstable : BassStableRangeAtMost R 3)
@@ -8813,98 +5361,6 @@ section
 noncomputable section
 
 namespace ConnesRigidity
-
-open Polynomial
-
-universe u
-
-theorem suslin_monic_first_unimodular_elementary_reduce
-    {A : Type u} [CommRing A] [IsLocalRing A]
-    (v : Fin 4 → Polynomial A)
-    (hv : UnimodularRow v) (hmonic : (v 0).Monic) :
-    ∃ e : Matrix.SpecialLinearGroup (Fin 4) (Polynomial A),
-      e ∈ localGlobalElementarySubgroup (Polynomial A) ∧
-        e • v = Pi.single 0 1 := by
-  obtain ⟨r, hr⟩ := hv
-  have hcomb : r 0 * v 0 + r 1 * v 1 + r 2 * v 2 + r 3 * v 3 = 1 := by
-    simpa [Fin.sum_univ_succ, add_assoc] using hr
-  obtain ⟨u, w, hcoprime⟩ := monic_local_exists_add_two_mul_isCoprime
-    hmonic ⟨r 0, r 1, r 2, r 3, hcomb⟩
-  let e₂ : Matrix.SpecialLinearGroup (Fin 4) (Polynomial A) :=
-    Matrix.SpecialLinearGroup.transvection
-      (show (1 : Fin 4) ≠ 2 by decide) u
-  let e₃ : Matrix.SpecialLinearGroup (Fin 4) (Polynomial A) :=
-    Matrix.SpecialLinearGroup.transvection
-      (show (1 : Fin 4) ≠ 3 by decide) w
-  let e := e₃ * e₂
-  have he : e ∈ localGlobalElementarySubgroup (Polynomial A) :=
-    (localGlobalElementarySubgroup (Polynomial A)).mul_mem
-      (localGlobal_transvection_mem 1 3 (by decide) w)
-      (localGlobal_transvection_mem 1 2 (by decide) u)
-  have hezero : (e • v) 0 = v 0 := by
-    dsimp [e, e₂, e₃]
-    rw [mul_smul,
-      LocalElementaryProof.transvection_smul_other 1 3 0
-        (by decide) (by decide),
-      LocalElementaryProof.transvection_smul_other 1 2 0
-        (by decide) (by decide)]
-  have heone : (e • v) 1 = v 1 + u * v 2 + w * v 3 := by
-    dsimp [e, e₂, e₃]
-    rw [mul_smul,
-      LocalElementaryProof.transvection_smul_same,
-      LocalElementaryProof.transvection_smul_same,
-      LocalElementaryProof.transvection_smul_other 1 2 3
-        (by decide) (by decide)]
-  have hcoprime' : IsCoprime ((e • v) 0) ((e • v) 1) := by
-    rw [hezero, heone]
-    exact hcoprime
-  obtain ⟨p, hp, hreduce⟩ :=
-    suslin_coprime_pair_elementary_reduce (e • v) hcoprime'
-  exact ⟨p * e,
-    (localGlobalElementarySubgroup (Polynomial A)).mul_mem hp he,
-    by simpa [mul_smul] using hreduce⟩
-
-theorem unimodularRow_smul_specialLinear
-    {R : Type*} [CommRing R]
-    (e : Matrix.SpecialLinearGroup (Fin 4) R)
-    (v : Fin 4 → R) (hv : UnimodularRow v) :
-    UnimodularRow (e • v) := by
-  rw [unimodularRow_iff_avoids_maximalIdeals] at hv ⊢
-  intro M hM
-  obtain ⟨j, hj⟩ := hv M hM
-  by_contra hnone
-  push Not at hnone
-  apply hj
-  have hback : v j = (e⁻¹ • (e • v)) j := by simp
-  rw [hback]
-  change ∑ k : Fin 4, (e⁻¹) j k * (e • v) k ∈ M
-  exact M.sum_mem fun k _ => M.mul_mem_left _ (hnone k)
-
-theorem suslin_monic_coordinate_unimodular_elementary_reduce
-    {A : Type u} [CommRing A] [IsLocalRing A]
-    (v : Fin 4 → Polynomial A) (hv : UnimodularRow v)
-    (i : Fin 4) (hmonic : (v i).Monic) :
-    ∃ e : Matrix.SpecialLinearGroup (Fin 4) (Polynomial A),
-      e ∈ localGlobalElementarySubgroup (Polynomial A) ∧
-        e • v = Pi.single 0 1 := by
-  by_cases hi : i = 0
-  · subst i
-    exact suslin_monic_first_unimodular_elementary_reduce v hv hmonic
-  let rotation : Matrix.SpecialLinearGroup (Fin 4) (Polynomial A) :=
-    LocalElementaryProof.coordinateRotation 0 i (Ne.symm hi)
-  have hrotation : rotation ∈
-      localGlobalElementarySubgroup (Polynomial A) := by
-    change rotation ∈ LocalElementaryProof.localElementarySubgroup (Polynomial A)
-    exact LocalElementaryProof.coordinateRotation_mem 0 i (Ne.symm hi)
-  have hfirst : (rotation • v) 0 = v i := by
-    exact LocalElementaryProof.coordinateRotation_smul_left 0 i (Ne.symm hi) v
-  obtain ⟨e, he, hreduce⟩ :=
-    suslin_monic_first_unimodular_elementary_reduce
-      (rotation • v) (unimodularRow_smul_specialLinear rotation v hv)
-      (hfirst.symm ▸ hmonic)
-  exact ⟨e * rotation,
-    (localGlobalElementarySubgroup (Polynomial A)).mul_mem he hrotation,
-    by simpa [mul_smul] using hreduce⟩
 
 end ConnesRigidity
 
@@ -9190,22 +5646,6 @@ theorem suslin_horrocks_truncated_remainder_aux
       rw [hstep, hrepr, pow_succ]
       ring
 
-theorem suslin_horrocks_truncated_remainder
-    {A : Type*} [CommRing A]
-    (e f : Polynomial A)
-    (he0 : IsUnit (e.coeff 0))
-    (hn : 0 < e.natDegree)
-    (k : ℕ)
-    (hk : f.natDegree + 1 ≤ k + e.natDegree) :
-    ∃ h : Polynomial A,
-      h.natDegree < e.natDegree ∧
-        f - X ^ k * h ∈ Ideal.span ({e} : Set (Polynomial A)) := by
-  obtain ⟨h, q, hdeg, hrepr⟩ :=
-    suslin_horrocks_truncated_remainder_aux e he0 hn k f hk
-  refine ⟨h, hdeg, Ideal.mem_span_singleton'.mpr ⟨q, ?_⟩⟩
-  rw [hrepr]
-  ring
-
 end ConnesRigidity
 
 end
@@ -9216,155 +5656,6 @@ noncomputable section
 
 namespace ConnesRigidity.HorrocksMonicBlock
 
-open Matrix Polynomial
-open ConnesRigidity.StabilizedBlockReduction
-open ConnesRigidity.MennickeIdentity
-
-universe u
-
-variable {A : Type u} [CommRing A]
-
-theorem elementaryThree_transvection_mem
-    (i j : Fin 3) (hij : i ≠ j) (a : A) :
-    Matrix.SpecialLinearGroup.transvection hij a ∈
-      elementaryThreeSubgroup A :=
-  Subgroup.subset_closure ⟨i, j, hij, a, rfl⟩
-
-theorem elementaryThree_contains_roots :
-    ContainsElementaryRoots (elementaryThreeSubgroup A) :=
-  elementaryThree_transvection_mem
-
-theorem specialLinearTwo_det
-    (b : Matrix.SpecialLinearGroup (Fin 2) A) :
-    b 0 0 * b 1 1 - b 0 1 * b 1 0 = 1 := by
-  have h := b.property
-  rw [Matrix.det_fin_two] at h
-  exact h
-
-theorem stabilizedTwoHom_eq_mennickeBlock
-    (b : Matrix.SpecialLinearGroup (Fin 2) A) :
-    stabilizedTwoHom b =
-      mennickeBlock (b 0 0) (b 0 1) (b 1 0) (b 1 1)
-        (specialLinearTwo_det b) := by
-  apply Matrix.SpecialLinearGroup.ext
-  intro i j
-  cases i using Fin.lastCases <;> cases j using Fin.lastCases
-  · simp [mennickeBlock]
-  · rename_i j
-    rw [stabilizedTwoHom_last_castSucc]
-    fin_cases j <;> simp [mennickeBlock]
-  · rename_i i
-    rw [stabilizedTwoHom_castSucc_last]
-    fin_cases i <;> simp [mennickeBlock]
-  · rename_i i j
-    rw [stabilizedTwoHom_castSucc_castSucc]
-    fin_cases i <;> fin_cases j <;> simp [mennickeBlock]
-
-theorem joint_remainder_determinant
-    (p q r s : Polynomial A) :
-    p * (s - (q /ₘ p) * r - (r /ₘ p) * (q %ₘ p)) -
-        (q %ₘ p) * (r %ₘ p) = p * s - q * r := by
-  simp only [Polynomial.modByMonic_eq_sub_mul_div]
-  ring
-
-theorem exists_joint_monic_remainders [Nontrivial A]
-    (p q r s : Polynomial A)
-    (hp : p.Monic) (hdet : p * s - q * r = 1) :
-    ∃ s' : Polynomial A,
-      p * s' - (q %ₘ p) * (r %ₘ p) = 1 ∧
-        (q %ₘ p).degree < p.degree ∧
-          (r %ₘ p).degree < p.degree := by
-  refine ⟨s - (q /ₘ p) * r - (r /ₘ p) * (q %ₘ p), ?_,
-    Polynomial.degree_modByMonic_lt q hp,
-    Polynomial.degree_modByMonic_lt r hp⟩
-  rw [joint_remainder_determinant]
-  exact hdet
-
-theorem monic_zero_constant_factor_X [Nontrivial A]
-    (p : Polynomial A) (hp : p.Monic) (hpzero : p.coeff 0 = 0) :
-    ∃ p' : Polynomial A,
-      p = X * p' ∧ p'.Monic ∧ p'.natDegree + 1 = p.natDegree := by
-  have hdiv : (X : Polynomial A) ∣ p := Polynomial.X_dvd_iff.mpr hpzero
-  have hmod : p %ₘ (X : Polynomial A) = 0 :=
-    (Polynomial.modByMonic_eq_zero_iff_dvd Polynomial.monic_X).mpr hdiv
-  have hfactor : p = X * (p /ₘ X) := by
-    simpa [hmod] using (Polynomial.modByMonic_add_div p X).symm
-  have hmonic : (p /ₘ X).Monic := by
-    apply Polynomial.monic_X.of_mul_monic_left
-    rw [← hfactor]
-    exact hp
-  refine ⟨p /ₘ X, hfactor, hmonic, ?_⟩
-  calc
-    (p /ₘ X).natDegree + 1 = (X * (p /ₘ X)).natDegree :=
-      (Polynomial.natDegree_X_mul hmonic.ne_zero).symm
-    _ = p.natDegree := by rw [← hfactor]
-
-theorem unit_constant_shear_monic_zero [Nontrivial A]
-    (p q : Polynomial A) (hp : p.Monic)
-    (hdegree : q.natDegree < p.natDegree)
-    (hqzero : IsUnit (q.coeff 0)) :
-    let c : A := (↑hqzero.unit⁻¹ : A) * p.coeff 0
-    let p' : Polynomial A := p - C c * q
-    p'.Monic ∧ p'.natDegree = p.natDegree ∧ p'.coeff 0 = 0 := by
-  dsimp
-  let c : A := (↑hqzero.unit⁻¹ : A) * p.coeff 0
-  have hnatcorrection : (C c * q).natDegree < p.natDegree :=
-    lt_of_le_of_lt (Polynomial.natDegree_C_mul_le c q) hdegree
-  have hcorrection : (C c * q).degree < p.degree := by
-    by_cases hzero : C c * q = 0
-    · rw [hzero]
-      exact bot_lt_iff_ne_bot.mpr (Polynomial.degree_ne_bot.mpr hp.ne_zero)
-    · have hdeg := (Polynomial.natDegree_lt_iff_degree_lt hzero).mp
-        hnatcorrection
-      simpa [Polynomial.degree_eq_natDegree hp.ne_zero] using hdeg
-  have hmonic : (p - C c * q).Monic := hp.sub_of_left hcorrection
-  refine ⟨hmonic,
-    Polynomial.natDegree_sub_eq_left_of_natDegree_lt hnatcorrection, ?_⟩
-  rw [Polynomial.coeff_sub, Polynomial.coeff_C_mul]
-  have hinv : (↑hqzero.unit⁻¹ : A) * q.coeff 0 = 1 :=
-    hqzero.val_inv_mul
-  calc
-    p.coeff 0 - ((↑hqzero.unit⁻¹ : A) * p.coeff 0) * q.coeff 0 =
-        p.coeff 0 - ((↑hqzero.unit⁻¹ : A) * q.coeff 0) * p.coeff 0 := by ring
-    _ = 0 := by rw [hinv]; ring
-
-theorem local_isUnit_add_of_nonunit [IsLocalRing A]
-    {a b : A} (ha : ¬ IsUnit a) (hb : IsUnit b) :
-    IsUnit (a + b) := by
-  by_contra hab
-  have hnega : ¬ IsUnit (-a) := by simpa using ha
-  have hsum : ¬ IsUnit ((a + b) + (-a)) :=
-    IsLocalRing.nonunits_add hab hnega
-  apply hsum
-  simpa [add_assoc, add_comm, add_left_comm] using hb
-
-theorem nonunit_constant_branch [IsLocalRing A]
-    (p q r s : Polynomial A)
-    (hp : p.Monic)
-    (hr : r.degree < p.degree)
-    (hdet : p * s - q * r = 1)
-    (hq : ¬ IsUnit (q.coeff 0)) :
-    IsUnit (s.coeff 0) ∧
-      IsUnit (p.coeff 0) ∧
-      IsUnit ((q + s).coeff 0) ∧
-      (p + r).Monic ∧
-      (p + r).natDegree = p.natDegree := by
-  have hconstant :
-      s.coeff 0 * p.coeff 0 + -(r.coeff 0 * q.coeff 0) = 1 := by
-    have h := congrArg (fun f : Polynomial A => f.coeff 0) hdet
-    simpa [sub_eq_add_neg, mul_comm] using h
-  have hrq : ¬ IsUnit (r.coeff 0 * q.coeff 0) := by
-    intro hunit
-    exact hq (IsUnit.mul_iff.mp hunit).2
-  have hnegrq : ¬ IsUnit (-(r.coeff 0 * q.coeff 0)) := by
-    simpa using hrq
-  obtain ⟨hs, hpzero⟩ := IsUnit.mul_iff.mp
-    ((IsLocalRing.isUnit_or_isUnit_of_add_one hconstant).resolve_right hnegrq)
-  exact ⟨hs, hpzero, by
-      simpa using local_isUnit_add_of_nonunit hq hs,
-    hp.add_of_left hr,
-    Polynomial.natDegree_add_eq_left_of_degree_lt hr⟩
-
 end ConnesRigidity.HorrocksMonicBlock
 
 end
@@ -9373,330 +5664,11 @@ noncomputable section
 
 namespace ConnesRigidity
 
-open Matrix
-open scoped BigOperators
-
-private theorem prototype_e3_root_mem
-    {R : Type*} [CommRing R]
-    (i j : Fin 3) (h : i ≠ j) (r : R) :
-    Matrix.SpecialLinearGroup.transvection h r ∈
-      StabilizedBlockReduction.elementaryThreeSubgroup R := by
-  exact Subgroup.subset_closure ⟨i, j, h, r, rfl⟩
-
-private def prototype_e3_diagonalUnitPair
-    {R : Type*} [CommRing R] (a : Rˣ) :
-    Matrix.SpecialLinearGroup (Fin 3) R :=
-  Matrix.SpecialLinearGroup.transvection
-      (show (0 : Fin 3) ≠ 1 by decide) (a : R) *
-    Matrix.SpecialLinearGroup.transvection
-      (show (1 : Fin 3) ≠ 0 by decide) (-(↑a⁻¹ : R)) *
-    Matrix.SpecialLinearGroup.transvection
-      (show (0 : Fin 3) ≠ 1 by decide) (a : R) *
-    Matrix.SpecialLinearGroup.transvection
-      (show (0 : Fin 3) ≠ 1 by decide) (-1) *
-    Matrix.SpecialLinearGroup.transvection
-      (show (1 : Fin 3) ≠ 0 by decide) 1 *
-    Matrix.SpecialLinearGroup.transvection
-      (show (0 : Fin 3) ≠ 1 by decide) (-1)
-
-private theorem prototype_e3_diagonalUnitPair_mem
-    {R : Type*} [CommRing R] (a : Rˣ) :
-    prototype_e3_diagonalUnitPair a ∈
-      StabilizedBlockReduction.elementaryThreeSubgroup R := by
-  unfold prototype_e3_diagonalUnitPair
-  exact (StabilizedBlockReduction.elementaryThreeSubgroup R).mul_mem
-    ((StabilizedBlockReduction.elementaryThreeSubgroup R).mul_mem
-      ((StabilizedBlockReduction.elementaryThreeSubgroup R).mul_mem
-        ((StabilizedBlockReduction.elementaryThreeSubgroup R).mul_mem
-          ((StabilizedBlockReduction.elementaryThreeSubgroup R).mul_mem
-            (prototype_e3_root_mem 0 1 (by decide) (a : R))
-            (prototype_e3_root_mem 1 0 (by decide) (-(↑a⁻¹ : R))))
-          (prototype_e3_root_mem 0 1 (by decide) (a : R)))
-        (prototype_e3_root_mem 0 1 (by decide) (-1)))
-      (prototype_e3_root_mem 1 0 (by decide) 1))
-    (prototype_e3_root_mem 0 1 (by decide) (-1))
-
-private theorem prototype_e3_diagonalUnitPair_apply
-    {R : Type*} [CommRing R] (a : Rˣ) (i j : Fin 3) :
-    (prototype_e3_diagonalUnitPair a) i j =
-      if i = j then
-        if i = 0 then (a : R) else if i = 1 then (↑a⁻¹ : R) else 1
-      else 0 := by
-  fin_cases i <;> fin_cases j <;>
-    simp [prototype_e3_diagonalUnitPair,
-      Matrix.SpecialLinearGroup.transvection_coe,
-      Matrix.mul_apply, Fin.sum_univ_succ,
-      Matrix.single_apply, Matrix.one_apply]
-
-theorem prototype_stabilized_twoByTwo_e3_of_topLeft_unit
-    {R : Type*} [CommRing R]
-    (b : Matrix.SpecialLinearGroup (Fin 3) R)
-    (hrow : ∀ j : Fin 3, b 2 j = if j = 2 then 1 else 0)
-    (hcolumn : ∀ i : Fin 3, b i 2 = if i = 2 then 1 else 0)
-    (hu : IsUnit (b 0 0)) :
-    b ∈ StabilizedBlockReduction.elementaryThreeSubgroup R := by
-  let a : Rˣ := hu.unit
-  let l : Matrix.SpecialLinearGroup (Fin 3) R :=
-    Matrix.SpecialLinearGroup.transvection
-      (show (1 : Fin 3) ≠ 0 by decide)
-      (b 1 0 * (↑a⁻¹ : R))
-  let d : Matrix.SpecialLinearGroup (Fin 3) R :=
-    prototype_e3_diagonalUnitPair a
-  let u : Matrix.SpecialLinearGroup (Fin 3) R :=
-    Matrix.SpecialLinearGroup.transvection
-      (show (0 : Fin 3) ≠ 1 by decide)
-      ((↑a⁻¹ : R) * b 0 1)
-  have hl : l ∈ StabilizedBlockReduction.elementaryThreeSubgroup R :=
-    prototype_e3_root_mem 1 0 (by decide) _
-  have hd : d ∈ StabilizedBlockReduction.elementaryThreeSubgroup R :=
-    prototype_e3_diagonalUnitPair_mem a
-  have hu' : u ∈ StabilizedBlockReduction.elementaryThreeSubgroup R :=
-    prototype_e3_root_mem 0 1 (by decide) _
-  have hdet : b 0 0 * b 1 1 - b 0 1 * b 1 0 = 1 := by
-    have hb := b.property
-    rw [Matrix.det_fin_three] at hb
-    simpa [hrow, hcolumn] using hb
-  have hleft : (↑hu.unit⁻¹ : R) * b 0 0 = 1 := hu.val_inv_mul
-  have hright : b 0 0 * (↑hu.unit⁻¹ : R) = 1 := by
-    simpa [mul_comm] using hleft
-  have hb : b = l * d * u := by
-    apply Matrix.SpecialLinearGroup.ext
-    intro i j
-    fin_cases i <;> fin_cases j <;>
-      simp [l, d, u, prototype_e3_diagonalUnitPair_apply,
-        Matrix.SpecialLinearGroup.transvection_coe,
-        Matrix.mul_apply, Fin.sum_univ_succ,
-        Matrix.single_apply, Matrix.one_apply,
-        hrow, hcolumn, a]
-    · linear_combination -(b 0 1) * hright
-    · linear_combination -(b 1 0) * hleft
-    · linear_combination
-        (↑hu.unit⁻¹ : R) * hdet -
-          (b 1 1 + (↑hu.unit⁻¹ : R) * b 0 1 * b 1 0) * hright
-  rw [hb]
-  exact (StabilizedBlockReduction.elementaryThreeSubgroup R).mul_mem
-    ((StabilizedBlockReduction.elementaryThreeSubgroup R).mul_mem hl hd) hu'
-
-theorem scratch_stabilizedTwoHom_mem_of_topLeft_unit
-    {R : Type*} [CommRing R]
-    (b : Matrix.SpecialLinearGroup (Fin 2) R)
-    (hu : IsUnit (b 0 0)) :
-    StabilizedBlockReduction.stabilizedTwoHom b ∈
-      StabilizedBlockReduction.elementaryThreeSubgroup R := by
-  apply prototype_stabilized_twoByTwo_e3_of_topLeft_unit
-    (StabilizedBlockReduction.stabilizedTwoHom b)
-  · intro j
-    fin_cases j
-    · simpa using
-        (StabilizedBlockReduction.stabilizedTwoHom_two_castSucc b 0)
-    · simpa using
-        (StabilizedBlockReduction.stabilizedTwoHom_two_castSucc b 1)
-    · exact StabilizedBlockReduction.stabilizedTwoHom_two_two b
-  · intro i
-    fin_cases i
-    · simpa using
-        (StabilizedBlockReduction.stabilizedTwoHom_castSucc_two b 0)
-    · simpa using
-        (StabilizedBlockReduction.stabilizedTwoHom_castSucc_two b 1)
-    · exact StabilizedBlockReduction.stabilizedTwoHom_two_two b
-  · change IsUnit (b 0 0)
-    exact hu
-
-theorem scratch_mennickeBlock_mem_of_topLeft_unit
-    {R : Type*} [CommRing R]
-    (E : Subgroup (Matrix.SpecialLinearGroup (Fin 3) R))
-    (hroot : MennickeIdentity.ContainsElementaryRoots E)
-    (p q r s : R) (hdet : p * s - q * r = 1)
-    (hp : IsUnit p) :
-    MennickeIdentity.mennickeBlock p q r s hdet ∈ E := by
-  have hle : StabilizedBlockReduction.elementaryThreeSubgroup R ≤ E := by
-    change Subgroup.closure _ ≤ E
-    rw [Subgroup.closure_le]
-    rintro _ ⟨i, j, hij, x, rfl⟩
-    exact hroot i j hij x
-  apply hle
-  apply prototype_stabilized_twoByTwo_e3_of_topLeft_unit
-    (MennickeIdentity.mennickeBlock p q r s hdet)
-  · intro j
-    fin_cases j <;> simp [MennickeIdentity.mennickeBlock]
-  · intro i
-    fin_cases i <;> simp [MennickeIdentity.mennickeBlock]
-  · simpa [MennickeIdentity.mennickeBlock] using hp
-
 end ConnesRigidity
 
 noncomputable section
 
 namespace ConnesRigidity
-
-open Matrix Polynomial StabilizedBlockReduction
-
-theorem scratch_horrocks_monic_natDegree_zero
-    {A : Type*} [CommRing A]
-    {p : Polynomial A} (hp : p.Monic) (hdegree : p.natDegree = 0) :
-    p = 1 :=
-  Polynomial.eq_one_of_monic_natDegree_zero hp hdegree
-
-def scratch_horrocks_signedSwap
-    {R : Type*} [CommRing R] : Matrix.SpecialLinearGroup (Fin 2) R :=
-  Matrix.SpecialLinearGroup.transvection
-      (show (0 : Fin 2) ≠ 1 by decide) 1 *
-    Matrix.SpecialLinearGroup.transvection
-      (show (1 : Fin 2) ≠ 0 by decide) (-1) *
-    Matrix.SpecialLinearGroup.transvection
-      (show (0 : Fin 2) ≠ 1 by decide) 1
-
-theorem scratch_horrocks_signedSwap_mem
-    {R : Type*} [CommRing R] :
-    stabilizedTwoHom (scratch_horrocks_signedSwap (R := R)) ∈
-      elementaryThreeSubgroup R := by
-  unfold scratch_horrocks_signedSwap
-  rw [map_mul, map_mul]
-  exact (elementaryThreeSubgroup R).mul_mem
-    ((elementaryThreeSubgroup R).mul_mem
-      (stabilizedTwoHom_transvection_mem 0 1 (by decide) 1)
-      (stabilizedTwoHom_transvection_mem 1 0 (by decide) (-1)))
-    (stabilizedTwoHom_transvection_mem 0 1 (by decide) 1)
-
-theorem scratch_horrocks_signedSwap_topLeft
-    {R : Type*} [CommRing R]
-    (b : Matrix.SpecialLinearGroup (Fin 2) R) :
-    (b * scratch_horrocks_signedSwap (R := R)) 0 0 = -(b 0 1) := by
-  change (b.val * (scratch_horrocks_signedSwap (R := R)).val) 0 0 = _
-  simp [scratch_horrocks_signedSwap,
-    Matrix.SpecialLinearGroup.transvection_coe,
-    Matrix.mul_apply, Fin.sum_univ_succ,
-    Matrix.single_apply, Matrix.one_apply]
-
-theorem scratch_horrocks_stabilized_mem_of_topRight_unit
-    {R : Type*} [CommRing R]
-    (hpivot : ∀ c : Matrix.SpecialLinearGroup (Fin 2) R,
-      IsUnit (c 0 0) →
-        stabilizedTwoHom c ∈ elementaryThreeSubgroup R)
-    (b : Matrix.SpecialLinearGroup (Fin 2) R)
-    (hq : IsUnit (b 0 1)) :
-    stabilizedTwoHom b ∈ elementaryThreeSubgroup R := by
-  have hunit : IsUnit
-      ((b * scratch_horrocks_signedSwap (R := R)) 0 0) := by
-    rw [scratch_horrocks_signedSwap_topLeft]
-    exact hq.neg
-  have hprod := hpivot
-    (b * scratch_horrocks_signedSwap (R := R)) hunit
-  have hswap := scratch_horrocks_signedSwap_mem (R := R)
-  have h := (elementaryThreeSubgroup R).mul_mem hprod
-    ((elementaryThreeSubgroup R).inv_mem hswap)
-  simpa [map_mul, mul_assoc] using h
-
-theorem scratch_horrocks_stabilized_topLeft_pivot_of_three
-    {R : Type*} [CommRing R]
-    (hpivot : ∀ c : Matrix.SpecialLinearGroup (Fin 3) R,
-      (∀ j : Fin 3, c 2 j = if j = 2 then 1 else 0) →
-      (∀ i : Fin 3, c i 2 = if i = 2 then 1 else 0) →
-      IsUnit (c 0 0) → c ∈ elementaryThreeSubgroup R)
-    (b : Matrix.SpecialLinearGroup (Fin 2) R)
-    (hunit : IsUnit (b 0 0)) :
-    stabilizedTwoHom b ∈ elementaryThreeSubgroup R := by
-  apply hpivot (stabilizedTwoHom b)
-  · intro j
-    fin_cases j
-    · simpa using stabilizedTwoHom_last_castSucc b (0 : Fin 2)
-    · simpa using stabilizedTwoHom_last_castSucc b (1 : Fin 2)
-    · simpa using stabilizedTwoHom_last_last b
-  · intro i
-    fin_cases i
-    · simpa using stabilizedTwoHom_castSucc_last b (0 : Fin 2)
-    · simpa using stabilizedTwoHom_castSucc_last b (1 : Fin 2)
-    · simpa using stabilizedTwoHom_last_last b
-  · simpa using
-      (show IsUnit
-        (stabilizedTwoHom b (0 : Fin 2).castSucc
-          (0 : Fin 2).castSucc) from by
-          simpa only [stabilizedTwoHom_castSucc_castSucc] using hunit)
-
-theorem scratch_horrocks_X_rightShear_topRight
-    {A : Type*} [CommRing A]
-    (b : Matrix.SpecialLinearGroup (Fin 2) (Polynomial A))
-    (hX : b 0 0 = (X : Polynomial A)) :
-    (b * Matrix.SpecialLinearGroup.transvection
-      (show (0 : Fin 2) ≠ 1 by decide)
-      (-(b 0 1 /ₘ (X : Polynomial A)))) 0 1 =
-      C ((b 0 1).coeff 0) := by
-  have hdiv := Polynomial.modByMonic_add_div (b 0 1)
-    (X : Polynomial A)
-  rw [Polynomial.modByMonic_X] at hdiv
-  change
-    (b.val * Matrix.transvection (0 : Fin 2) 1
-      (-(b 0 1 /ₘ (X : Polynomial A)))) 0 1 = _
-  rw [Matrix.mul_transvection_apply_same]
-  rw [hX]
-  have hconstant : (b 0 1).eval 0 = (b 0 1).coeff 0 :=
-    (b 0 1).coeff_zero_eq_eval_zero.symm
-  rw [← hconstant]
-  linear_combination -hdiv
-
-theorem scratch_horrocks_stabilized_X_mem
-    {A : Type*} [CommRing A]
-    (hpivot : ∀ c : Matrix.SpecialLinearGroup (Fin 2) (Polynomial A),
-      IsUnit (c 0 0) →
-        stabilizedTwoHom c ∈ elementaryThreeSubgroup (Polynomial A))
-    (b : Matrix.SpecialLinearGroup (Fin 2) (Polynomial A))
-    (hX : b 0 0 = (X : Polynomial A))
-    (hq : IsUnit ((b 0 1).coeff 0)) :
-    stabilizedTwoHom b ∈ elementaryThreeSubgroup (Polynomial A) := by
-  let e : Matrix.SpecialLinearGroup (Fin 2) (Polynomial A) :=
-    Matrix.SpecialLinearGroup.transvection
-      (show (0 : Fin 2) ≠ 1 by decide)
-      (-(b 0 1 /ₘ (X : Polynomial A)))
-  have he : stabilizedTwoHom e ∈
-      elementaryThreeSubgroup (Polynomial A) := by
-    exact stabilizedTwoHom_transvection_mem 0 1 (by decide) _
-  have hright : IsUnit ((b * e) 0 1) := by
-    change IsUnit ((b * Matrix.SpecialLinearGroup.transvection
-      (show (0 : Fin 2) ≠ 1 by decide)
-      (-(b 0 1 /ₘ (X : Polynomial A)))) 0 1)
-    rw [scratch_horrocks_X_rightShear_topRight b hX]
-    exact Polynomial.isUnit_C.mpr hq
-  have hbe := scratch_horrocks_stabilized_mem_of_topRight_unit
-    hpivot (b * e) hright
-  have h := (elementaryThreeSubgroup (Polynomial A)).mul_mem hbe
-    ((elementaryThreeSubgroup (Polynomial A)).inv_mem he)
-  simpa [map_mul, mul_assoc] using h
-
-theorem scratch_horrocks_mennicke_X_mem
-    {A : Type*} [CommRing A]
-    (hpivot : ∀ b : Matrix.SpecialLinearGroup (Fin 2) (Polynomial A),
-      IsUnit (b 0 0) →
-        stabilizedTwoHom b ∈ elementaryThreeSubgroup (Polynomial A))
-    (q c d : Polynomial A)
-    (hdet : (X : Polynomial A) * d - q * c = 1)
-    (hq : IsUnit (q.coeff 0)) :
-    MennickeIdentity.mennickeBlock X q c d hdet ∈
-      elementaryThreeSubgroup (Polynomial A) := by
-  let b : Matrix.SpecialLinearGroup (Fin 2) (Polynomial A) :=
-    ⟨!![X, q; c, d], by
-      simpa [Matrix.det_fin_two] using hdet⟩
-  have hmem := scratch_horrocks_stabilized_X_mem hpivot b
-    (by simp [b]) (by simpa [b] using hq)
-  rw [HorrocksMonicBlock.stabilizedTwoHom_eq_mennickeBlock b] at hmem
-  simpa [b] using hmem
-
-theorem scratch_horrocks_mennicke_X_mem_of_roots
-    {A : Type*} [CommRing A]
-    (hpivot : ∀ b : Matrix.SpecialLinearGroup (Fin 2) (Polynomial A),
-      IsUnit (b 0 0) →
-        stabilizedTwoHom b ∈ elementaryThreeSubgroup (Polynomial A))
-    (E : Subgroup (Matrix.SpecialLinearGroup (Fin 3) (Polynomial A)))
-    (hroot : MennickeIdentity.ContainsElementaryRoots E)
-    (q c d : Polynomial A)
-    (hdet : (X : Polynomial A) * d - q * c = 1)
-    (hq : IsUnit (q.coeff 0)) :
-    MennickeIdentity.mennickeBlock X q c d hdet ∈ E := by
-  have hle : elementaryThreeSubgroup (Polynomial A) ≤ E := by
-    change Subgroup.closure _ ≤ E
-    rw [Subgroup.closure_le]
-    rintro _ ⟨i, j, hij, t, rfl⟩
-    exact hroot i j hij t
-  exact hle (scratch_horrocks_mennicke_X_mem hpivot q c d hdet hq)
 
 end ConnesRigidity
 
@@ -9704,320 +5676,11 @@ noncomputable section
 
 namespace ConnesRigidity.MennickeIdentity
 
-open Matrix Polynomial
-
-universe u
-
-variable {A : Type u} [CommRing A]
-
-theorem scratch_monic_remainder_det
-    (p q r s : Polynomial A) (hdet : p * s - q * r = 1) :
-    p * (s - (q /ₘ p) * r - (r /ₘ p) * (q %ₘ p)) -
-        (q %ₘ p) * (r %ₘ p) = 1 := by
-  calc
-    _ = p * s - q * r := by
-      simp only [Polynomial.modByMonic_eq_sub_mul_div]
-      ring
-    _ = 1 := hdet
-
-private theorem scratch_right_det
-    (p q r s a : Polynomial A) (hdet : p * s - q * r = 1) :
-    p * (s + a * r) - (q + a * p) * r = 1 := by
-  linear_combination hdet
-
-private theorem scratch_left_det
-    (p q r s a : Polynomial A) (hdet : p * s - q * r = 1) :
-    p * (s + a * q) - q * (r + a * p) = 1 := by
-  linear_combination hdet
-
-private theorem scratch_mennickeBlock_mul_transvection_zero_one
-    (p q r s a : Polynomial A) (hdet : p * s - q * r = 1) :
-    mennickeBlock p q r s hdet *
-      Matrix.SpecialLinearGroup.transvection
-        (show (0 : Fin 3) ≠ 1 by decide) a =
-      mennickeBlock p (q + a * p) r (s + a * r)
-        (scratch_right_det p q r s a hdet) := by
-  apply Subtype.ext
-  ext i j
-  fin_cases i <;> fin_cases j <;>
-    simp [mennickeBlock, Matrix.SpecialLinearGroup.transvection_coe,
-      Matrix.mul_apply, Fin.sum_univ_succ, Matrix.one_apply,
-      Matrix.single_apply] <;> ring
-
-private theorem scratch_transvection_one_zero_mul_mennickeBlock
-    (p q r s a : Polynomial A) (hdet : p * s - q * r = 1) :
-    Matrix.SpecialLinearGroup.transvection
-        (show (1 : Fin 3) ≠ 0 by decide) a *
-      mennickeBlock p q r s hdet =
-      mennickeBlock p q (r + a * p) (s + a * q)
-        (scratch_left_det p q r s a hdet) := by
-  apply Subtype.ext
-  ext i j
-  fin_cases i <;> fin_cases j <;>
-    simp [mennickeBlock, Matrix.SpecialLinearGroup.transvection_coe,
-      Matrix.mul_apply, Fin.sum_univ_succ, Matrix.one_apply,
-      Matrix.single_apply] <;> ring
-
-theorem scratch_monic_remainder_elementary_word
-    (p q r s : Polynomial A) (hdet : p * s - q * r = 1) :
-    Matrix.SpecialLinearGroup.transvection
-        (show (1 : Fin 3) ≠ 0 by decide) (-(r /ₘ p)) *
-      (mennickeBlock p q r s hdet *
-        Matrix.SpecialLinearGroup.transvection
-          (show (0 : Fin 3) ≠ 1 by decide) (-(q /ₘ p))) =
-      mennickeBlock p (q %ₘ p) (r %ₘ p)
-        (s - (q /ₘ p) * r - (r /ₘ p) * (q %ₘ p))
-        (scratch_monic_remainder_det p q r s hdet) := by
-  rw [scratch_mennickeBlock_mul_transvection_zero_one,
-    scratch_transvection_one_zero_mul_mennickeBlock]
-  apply Subtype.ext
-  ext i j
-  fin_cases i <;> fin_cases j <;>
-    simp [mennickeBlock, Polynomial.modByMonic_eq_sub_mul_div] <;> ring
-
-theorem scratch_monic_remainder_mem_iff
-    (E : Subgroup (Matrix.SpecialLinearGroup (Fin 3) (Polynomial A)))
-    (hE : ContainsElementaryRoots E)
-    (p q r s : Polynomial A) (hdet : p * s - q * r = 1) :
-    mennickeBlock p (q %ₘ p) (r %ₘ p)
-        (s - (q /ₘ p) * r - (r /ₘ p) * (q %ₘ p))
-        (scratch_monic_remainder_det p q r s hdet) ∈ E ↔
-      mennickeBlock p q r s hdet ∈ E := by
-  rw [← scratch_monic_remainder_elementary_word p q r s hdet]
-  exact (E.mul_mem_cancel_left
-    (hE 1 0 (by decide) (-(r /ₘ p)))).trans
-      (E.mul_mem_cancel_right
-        (hE 0 1 (by decide) (-(q /ₘ p))))
-
-theorem scratch_monic_remainder_natDegree
-    (p q r : Polynomial A) (hp : p.Monic) (hpone : p ≠ 1) :
-    (q %ₘ p).natDegree < p.natDegree ∧
-      (r %ₘ p).natDegree < p.natDegree :=
-  ⟨Polynomial.natDegree_modByMonic_lt q hp hpone,
-    Polynomial.natDegree_modByMonic_lt r hp hpone⟩
-
-theorem horrocks_exists_normalized_mennickeBlock_scratch
-    (E : Subgroup (Matrix.SpecialLinearGroup (Fin 3) (Polynomial A)))
-    (hE : ContainsElementaryRoots E)
-    (p q r s : Polynomial A) (hp : p.Monic) (hpone : p ≠ 1)
-    (hdet : p * s - q * r = 1) :
-    ∃ (q' r' s' : Polynomial A) (hdet' : p * s' - q' * r' = 1),
-      (mennickeBlock p q r s hdet ∈ E ↔
-        mennickeBlock p q' r' s' hdet' ∈ E) ∧
-      q'.natDegree < p.natDegree ∧ r'.natDegree < p.natDegree := by
-  refine ⟨q %ₘ p, r %ₘ p,
-    s - (q /ₘ p) * r - (r /ₘ p) * (q %ₘ p),
-    scratch_monic_remainder_det p q r s hdet,
-    (scratch_monic_remainder_mem_iff E hE p q r s hdet).symm,
-    Polynomial.natDegree_modByMonic_lt q hp hpone,
-    Polynomial.natDegree_modByMonic_lt r hp hpone⟩
-
-theorem horrocks_hnormalize_adapter_scratch
-    (E : Subgroup (Matrix.SpecialLinearGroup (Fin 3) (Polynomial A)))
-    (hE : ContainsElementaryRoots E) :
-    ∀ p q r s : Polynomial A,
-      ∀ (_ : p.Monic) (_ : 0 < p.natDegree)
-        (hdet : p * s - q * r = 1),
-      ∃ (q' r' s' : Polynomial A)
-        (hdet' : p * s' - q' * r' = 1),
-          (mennickeBlock p q r s hdet ∈ E ↔
-            mennickeBlock p q' r' s' hdet' ∈ E) ∧
-          q'.natDegree < p.natDegree ∧
-          r'.natDegree < p.natDegree := by
-  intro p q r s hp hpositive hdet
-  have hpone : p ≠ 1 := by
-    intro hone
-    subst p
-    simpa using hpositive
-  exact horrocks_exists_normalized_mennickeBlock_scratch
-    E hE p q r s hp hpone hdet
-
 end ConnesRigidity.MennickeIdentity
 
 noncomputable section
 
 namespace ConnesRigidity
-
-open Matrix Polynomial StabilizedBlockReduction
-
-theorem scratch_stabilizedTwoHom_left_root_mem_iff
-    {R : Type*} [CommRing R]
-    (b : Matrix.SpecialLinearGroup (Fin 2) R)
-    (i j : Fin 2) (hij : i ≠ j) (a : R) :
-    stabilizedTwoHom
-        (Matrix.SpecialLinearGroup.transvection hij a * b) ∈
-        elementaryThreeSubgroup R ↔
-      stabilizedTwoHom b ∈ elementaryThreeSubgroup R := by
-  have he := stabilizedTwoHom_transvection_mem i j hij a
-  rw [map_mul]
-  constructor
-  · intro h
-    have h' := (elementaryThreeSubgroup R).mul_mem
-      ((elementaryThreeSubgroup R).inv_mem he) h
-    simpa [← mul_assoc] using h'
-  · exact (elementaryThreeSubgroup R).mul_mem he
-
-theorem scratch_stabilizedTwoHom_right_root_mem_iff
-    {R : Type*} [CommRing R]
-    (b : Matrix.SpecialLinearGroup (Fin 2) R)
-    (i j : Fin 2) (hij : i ≠ j) (a : R) :
-    stabilizedTwoHom
-        (b * Matrix.SpecialLinearGroup.transvection hij a) ∈
-        elementaryThreeSubgroup R ↔
-      stabilizedTwoHom b ∈ elementaryThreeSubgroup R := by
-  have he := stabilizedTwoHom_transvection_mem i j hij a
-  rw [map_mul]
-  constructor
-  · intro h
-    have h' := (elementaryThreeSubgroup R).mul_mem h
-      ((elementaryThreeSubgroup R).inv_mem he)
-    simpa [mul_assoc] using h'
-  · exact fun hb => (elementaryThreeSubgroup R).mul_mem hb he
-
-theorem scratch_horrocks_caseTwo_left_root_zero_zero
-    {R : Type*} [CommRing R]
-    (b : Matrix.SpecialLinearGroup (Fin 2) R) :
-    (Matrix.SpecialLinearGroup.transvection
-      (show (0 : Fin 2) ≠ 1 by decide) (1 : R) * b) 0 0 =
-        b 0 0 + b 1 0 := by
-  change (Matrix.transvection (0 : Fin 2) 1 (1 : R) * b.val) 0 0 = _
-  rw [Matrix.transvection_mul_apply_same]
-  simp
-
-theorem scratch_horrocks_caseTwo_left_root_zero_one
-    {R : Type*} [CommRing R]
-    (b : Matrix.SpecialLinearGroup (Fin 2) R) :
-    (Matrix.SpecialLinearGroup.transvection
-      (show (0 : Fin 2) ≠ 1 by decide) (1 : R) * b) 0 1 =
-        b 0 1 + b 1 1 := by
-  change (Matrix.transvection (0 : Fin 2) 1 (1 : R) * b.val) 0 1 = _
-  rw [Matrix.transvection_mul_apply_same]
-  simp
-
-theorem scratch_horrocks_caseTwo_left_root_one_zero
-    {R : Type*} [CommRing R]
-    (b : Matrix.SpecialLinearGroup (Fin 2) R) :
-    (Matrix.SpecialLinearGroup.transvection
-      (show (0 : Fin 2) ≠ 1 by decide) (1 : R) * b) 1 0 = b 1 0 := by
-  change (Matrix.transvection (0 : Fin 2) 1 (1 : R) * b.val) 1 0 = _
-  simpa [Matrix.transvection, Matrix.mul_apply, Fin.sum_univ_succ,
-    Matrix.single_apply, Matrix.one_apply]
-
-theorem scratch_horrocks_caseTwo_left_root_one_one
-    {R : Type*} [CommRing R]
-    (b : Matrix.SpecialLinearGroup (Fin 2) R) :
-    (Matrix.SpecialLinearGroup.transvection
-      (show (0 : Fin 2) ≠ 1 by decide) (1 : R) * b) 1 1 = b 1 1 := by
-  change (Matrix.transvection (0 : Fin 2) 1 (1 : R) * b.val) 1 1 = _
-  simpa [Matrix.transvection, Matrix.mul_apply, Fin.sum_univ_succ,
-    Matrix.single_apply, Matrix.one_apply]
-
-theorem scratch_horrocks_caseTwo_stabilized_nonunit_step
-    {A : Type*} [CommRing A] [IsLocalRing A]
-    (b : Matrix.SpecialLinearGroup (Fin 2) (Polynomial A))
-    (hp : (b 0 0).Monic)
-    (hqdeg : (b 0 1).natDegree < (b 0 0).natDegree)
-    (hrdeg : (b 1 0).natDegree < (b 0 0).natDegree)
-    (hqnonunit : ¬ IsUnit ((b 0 1).coeff 0)) :
-    let b' : Matrix.SpecialLinearGroup (Fin 2) (Polynomial A) :=
-      Matrix.SpecialLinearGroup.transvection
-        (show (0 : Fin 2) ≠ 1 by decide) (1 : Polynomial A) * b
-    (b' 0 0).Monic ∧
-      (b' 0 0).natDegree = (b 0 0).natDegree ∧
-      (b' 0 1).natDegree < (b' 0 0).natDegree ∧
-      (b' 1 0).natDegree < (b' 0 0).natDegree ∧
-      IsUnit ((b' 0 1).coeff 0) ∧
-      b' 0 0 * b' 1 1 - b' 0 1 * b' 1 0 = 1 ∧
-      (stabilizedTwoHom b' ∈ elementaryThreeSubgroup (Polynomial A) ↔
-        stabilizedTwoHom b ∈ elementaryThreeSubgroup (Polynomial A)) := by
-  dsimp only
-  let p := b 0 0
-  let q := b 0 1
-  let r := b 1 0
-  let s := b 1 1
-  have hdet : p * s - q * r = 1 := by
-    have h : b.val.det = 1 := b.property
-    rw [Matrix.det_fin_two] at h
-    exact h
-  have hpdeg : 0 < p.natDegree := by
-    change 0 < (b 0 0).natDegree
-    omega
-  have hrdegree : r.degree < p.degree := by
-    by_cases hrzero : r = 0
-    · have hpne : p ≠ 0 := hp.ne_zero
-      simp [hrzero, Polynomial.degree_eq_natDegree hpne]
-    · rw [Polynomial.degree_eq_natDegree hrzero,
-        Polynomial.degree_eq_natDegree hp.ne_zero, Nat.cast_lt]
-      exact hrdeg
-  have hsdeg : s.natDegree < p.natDegree := by
-    by_cases hszero : s = 0
-    · simpa [hszero] using hpdeg
-    have hps : p * s = 1 + q * r := by
-      calc
-        p * s = (p * s - q * r) + q * r := by ring
-        _ = 1 + q * r := by rw [hdet]
-    have hbound : p.natDegree + s.natDegree ≤
-        q.natDegree + r.natDegree := by
-      calc
-        p.natDegree + s.natDegree = (p * s).natDegree :=
-          (hp.natDegree_mul' hszero).symm
-        _ = (1 + q * r).natDegree := congrArg Polynomial.natDegree hps
-        _ ≤ max (1 : Polynomial A).natDegree (q * r).natDegree :=
-          Polynomial.natDegree_add_le _ _
-        _ ≤ q.natDegree + r.natDegree :=
-          max_le (by simp) Polynomial.natDegree_mul_le
-    change p.natDegree + s.natDegree ≤ q.natDegree + r.natDegree at hbound
-    change q.natDegree < p.natDegree at hqdeg
-    change r.natDegree < p.natDegree at hrdeg
-    omega
-  have hconstant :
-      p.coeff 0 * s.coeff 0 + -(q.coeff 0 * r.coeff 0) = 1 := by
-    have h := congrArg (fun f : Polynomial A => f.coeff 0) hdet
-    simpa [sub_eq_add_neg] using h
-  have hqrnonunit : ¬ IsUnit (q.coeff 0 * r.coeff 0) := by
-    intro hunit
-    exact hqnonunit (IsUnit.mul_iff.mp hunit).1
-  have hnegqrnonunit : ¬ IsUnit (-(q.coeff 0 * r.coeff 0)) := by
-    simpa using hqrnonunit
-  have hpsunit : IsUnit (p.coeff 0 * s.coeff 0) :=
-    (IsLocalRing.isUnit_or_isUnit_of_add_one hconstant).resolve_right
-      hnegqrnonunit
-  have hsunit : IsUnit (s.coeff 0) := (IsUnit.mul_iff.mp hpsunit).2
-  have hqunit : IsUnit (q.coeff 0 + s.coeff 0) := by
-    by_contra hnonunit
-    have hnegq : ¬ IsUnit (-(q.coeff 0)) := by
-      simpa using hqnonunit
-    have hsum := IsLocalRing.nonunits_add hnonunit hnegq
-    apply hsum
-    simpa [add_assoc, add_comm, add_left_comm] using hsunit
-  have hmonic : (p + r).Monic := hp.add_of_left hrdegree
-  have hp'r : (p + r).natDegree = p.natDegree :=
-    Polynomial.natDegree_add_eq_left_of_degree_lt hrdegree
-  have hq's : (q + s).natDegree < p.natDegree :=
-    (Polynomial.natDegree_add_le q s).trans_lt (max_lt hqdeg hsdeg)
-  rw [scratch_horrocks_caseTwo_left_root_zero_zero,
-    scratch_horrocks_caseTwo_left_root_zero_one,
-    scratch_horrocks_caseTwo_left_root_one_zero,
-    scratch_horrocks_caseTwo_left_root_one_one]
-  change (p + r).Monic ∧
-    (p + r).natDegree = p.natDegree ∧
-    (q + s).natDegree < (p + r).natDegree ∧
-    r.natDegree < (p + r).natDegree ∧
-    IsUnit ((q + s).coeff 0) ∧
-    (p + r) * s - (q + s) * r = 1 ∧
-    (stabilizedTwoHom
-        (Matrix.SpecialLinearGroup.transvection
-          (show (0 : Fin 2) ≠ 1 by decide)
-          (1 : Polynomial A) * b) ∈
-          elementaryThreeSubgroup (Polynomial A) ↔
-      stabilizedTwoHom b ∈ elementaryThreeSubgroup (Polynomial A))
-  refine ⟨hmonic, hp'r, hp'r.symm ▸ hq's, hp'r.symm ▸ hrdeg, ?_, ?_, ?_⟩
-  · simpa using hqunit
-  · calc
-      (p + r) * s - (q + s) * r = p * s - q * r := by ring
-      _ = 1 := hdet
-  · exact scratch_stabilizedTwoHom_left_root_mem_iff
-      b 0 1 (by decide) (1 : Polynomial A)
 
 end ConnesRigidity
 
@@ -10025,333 +5688,17 @@ noncomputable section
 
 namespace ConnesRigidity.ScratchHorrocksInduction
 
-open Matrix Polynomial
-open ConnesRigidity.MennickeIdentity
-
-universe u
-
-variable {A : Type u} [CommRing A] [Nontrivial A]
-
-private theorem factor_det_left (a a' q c d : Polynomial A)
-    (h : (a * a') * d - q * c = 1) :
-    a * (a' * d) - q * c = 1 := by
-  linear_combination h
-
-private theorem factor_det_right (a a' q c d : Polynomial A)
-    (h : (a * a') * d - q * c = 1) :
-    a' * (a * d) - q * c = 1 := by
-  linear_combination h
-
-private theorem rightLower_det (p q r s t : Polynomial A)
-    (h : p * s - q * r = 1) :
-    (p + t * q) * s - q * (r + t * s) = 1 := by
-  linear_combination h
-
-private theorem block_rightLower
-    (p q r s t : Polynomial A)
-    (h : p * s - q * r = 1) :
-    mennickeBlock p q r s h *
-      Matrix.SpecialLinearGroup.transvection
-        (show (1 : Fin 3) ≠ 0 by decide) t =
-      mennickeBlock (p + t * q) q (r + t * s) s
-        (rightLower_det p q r s t h) := by
-  apply Matrix.SpecialLinearGroup.ext
-  intro i j
-  fin_cases i <;> fin_cases j <;>
-    simp [mennickeBlock, Matrix.SpecialLinearGroup.transvection_coe,
-      Matrix.mul_apply, Fin.sum_univ_succ,
-      Matrix.single_apply, Matrix.one_apply] <;> ring
-
-theorem horrocks_unit_constant_induction_step
-    (E : Subgroup (Matrix.SpecialLinearGroup (Fin 3) (Polynomial A)))
-    (hroot : ContainsElementaryRoots E)
-    (hlinear : ∀ q c d : Polynomial A,
-      ∀ hdet : (X : Polynomial A) * d - q * c = 1,
-        IsUnit (q.coeff 0) → mennickeBlock X q c d hdet ∈ E)
-    (hfactor : ∀ a a' q c d : Polynomial A,
-      ∀ hdet : (a * a') * d - q * c = 1,
-        mennickeBlock a q c (a' * d)
-          (factor_det_left a a' q c d hdet) ∈ E →
-        mennickeBlock a' q c (a * d)
-          (factor_det_right a a' q c d hdet) ∈ E →
-        mennickeBlock (a * a') q c d hdet ∈ E)
-    (p q r s : Polynomial A) (hp : p.Monic)
-    (hqdegree : q.natDegree < p.natDegree)
-    (hqzero : IsUnit (q.coeff 0))
-    (hdet : p * s - q * r = 1)
-    (hind : ∀ p' q' r' s' : Polynomial A,
-      ∀ hdet' : p' * s' - q' * r' = 1,
-        p'.Monic → p'.natDegree < p.natDegree →
-          mennickeBlock p' q' r' s' hdet' ∈ E) :
-    mennickeBlock p q r s hdet ∈ E := by
-  let k : A := (↑hqzero.unit⁻¹ : A) * p.coeff 0
-  let t : Polynomial A := -(C k)
-  let p₀ : Polynomial A := p + t * q
-  let r₀ : Polynomial A := r + t * s
-  have hpform : p₀ = p - C k * q := by
-    dsimp [p₀, t]
-    ring
-  have hpmonic : p₀.Monic := by
-    rw [hpform]
-    apply hp.sub_of_left
-    have hnat : (C k * q).natDegree < p.natDegree :=
-      lt_of_le_of_lt (Polynomial.natDegree_C_mul_le k q) hqdegree
-    by_cases hz : C k * q = 0
-    · rw [hz]
-      exact bot_lt_iff_ne_bot.mpr (Polynomial.degree_ne_bot.mpr hp.ne_zero)
-    · simpa [Polynomial.degree_eq_natDegree hp.ne_zero] using
-        (Polynomial.natDegree_lt_iff_degree_lt hz).mp hnat
-  have hpnat : p₀.natDegree = p.natDegree := by
-    rw [hpform]
-    exact Polynomial.natDegree_sub_eq_left_of_natDegree_lt
-      (lt_of_le_of_lt (Polynomial.natDegree_C_mul_le k q) hqdegree)
-  have hpzero : p₀.coeff 0 = 0 := by
-    rw [hpform, Polynomial.coeff_sub, Polynomial.coeff_C_mul]
-    have hu : (↑hqzero.unit⁻¹ : A) * q.coeff 0 = 1 :=
-      hqzero.val_inv_mul
-    dsimp [k]
-    calc
-      p.coeff 0 -
-          ((↑hqzero.unit⁻¹ : A) * p.coeff 0) * q.coeff 0 =
-            p.coeff 0 -
-              ((↑hqzero.unit⁻¹ : A) * q.coeff 0) * p.coeff 0 := by ring
-      _ = 0 := by rw [hu]; ring
-  have hdiv : (X : Polynomial A) ∣ p₀ := Polynomial.X_dvd_iff.mpr hpzero
-  obtain ⟨p₁, hp₁eq⟩ := hdiv
-  have hp₁monic : p₁.Monic := by
-    apply Polynomial.monic_X.of_mul_monic_left
-    rw [← hp₁eq]
-    exact hpmonic
-  have hp₁degree : p₁.natDegree < p.natDegree := by
-    have hdeg : p₁.natDegree + 1 = p₀.natDegree := by
-      rw [hp₁eq, Polynomial.natDegree_X_mul hp₁monic.ne_zero]
-    omega
-  have hdet₀ : p₀ * s - q * r₀ = 1 :=
-    rightLower_det p q r s t hdet
-  have hdet₁ : ((X : Polynomial A) * p₁) * s - q * r₀ = 1 := by
-    rw [← hp₁eq]
-    exact hdet₀
-  have hfirst :
-      mennickeBlock X q r₀ (p₁ * s)
-        (factor_det_left X p₁ q r₀ s hdet₁) ∈ E :=
-    hlinear q r₀ (p₁ * s)
-      (factor_det_left X p₁ q r₀ s hdet₁) hqzero
-  have hsecond :
-      mennickeBlock p₁ q r₀ (X * s)
-        (factor_det_right X p₁ q r₀ s hdet₁) ∈ E :=
-    hind p₁ q r₀ (X * s)
-      (factor_det_right X p₁ q r₀ s hdet₁)
-      hp₁monic hp₁degree
-  have hsheared : mennickeBlock p₀ q r₀ s hdet₀ ∈ E := by
-    have hsplit := hfactor X p₁ q r₀ s hdet₁ hfirst hsecond
-    have hblock : mennickeBlock p₀ q r₀ s hdet₀ =
-        mennickeBlock (X * p₁) q r₀ s hdet₁ := by
-      apply Matrix.SpecialLinearGroup.ext
-      intro i j
-      change
-        (!![p₀, q, 0; r₀, s, 0; 0, 0, 1] :
-          Matrix (Fin 3) (Fin 3) (Polynomial A)) i j =
-        (!![X * p₁, q, 0; r₀, s, 0; 0, 0, 1] :
-          Matrix (Fin 3) (Fin 3) (Polynomial A)) i j
-      rw [hp₁eq]
-    rw [hblock]
-    exact hsplit
-  have hroot' := hroot 1 0 (by decide) t
-  rw [← block_rightLower p q r s t hdet] at hsheared
-  exact (E.mul_mem_cancel_right hroot').mp hsheared
-
-theorem horrocks_monic_mem_of_constructive_steps
-    (E : Subgroup (Matrix.SpecialLinearGroup (Fin 3) (Polynomial A)))
-    (hroot : ContainsElementaryRoots E)
-    (hunit : ∀ p q r s : Polynomial A,
-      ∀ hdet : p * s - q * r = 1,
-        IsUnit p → mennickeBlock p q r s hdet ∈ E)
-    (hlinear : ∀ q c d : Polynomial A,
-      ∀ hdet : (X : Polynomial A) * d - q * c = 1,
-        IsUnit (q.coeff 0) → mennickeBlock X q c d hdet ∈ E)
-    (hfactor : ∀ a a' q c d : Polynomial A,
-      ∀ hdet : (a * a') * d - q * c = 1,
-        mennickeBlock a q c (a' * d)
-          (factor_det_left a a' q c d hdet) ∈ E →
-        mennickeBlock a' q c (a * d)
-          (factor_det_right a a' q c d hdet) ∈ E →
-        mennickeBlock (a * a') q c d hdet ∈ E)
-    (hnormalize : ∀ p q r s : Polynomial A,
-      ∀ (hp : p.Monic) (_ : 0 < p.natDegree)
-        (hdet : p * s - q * r = 1),
-      ∃ (q' r' s' : Polynomial A)
-        (hdet' : p * s' - q' * r' = 1),
-          (mennickeBlock p q r s hdet ∈ E ↔
-            mennickeBlock p q' r' s' hdet' ∈ E) ∧
-          q'.natDegree < p.natDegree ∧
-          r'.natDegree < p.natDegree)
-    (hnonunit : ∀ p q r s : Polynomial A,
-      ∀ (hp : p.Monic)
-        (_ : q.natDegree < p.natDegree)
-        (_ : r.natDegree < p.natDegree)
-        (hdet : p * s - q * r = 1),
-        ¬ IsUnit (q.coeff 0) →
-      ∃ (p' q' r' s' : Polynomial A)
-        (hdet' : p' * s' - q' * r' = 1),
-        p'.Monic ∧ p'.natDegree = p.natDegree ∧
-          q'.natDegree < p'.natDegree ∧
-          IsUnit (q'.coeff 0) ∧
-          (mennickeBlock p q r s hdet ∈ E ↔
-            mennickeBlock p' q' r' s' hdet' ∈ E))
-    (p q r s : Polynomial A) (hp : p.Monic)
-    (hdet : p * s - q * r = 1) :
-    mennickeBlock p q r s hdet ∈ E := by
-  have hall : ∀ n : ℕ, ∀ p q r s : Polynomial A,
-      ∀ (hp : p.Monic), p.natDegree = n →
-        ∀ hdet : p * s - q * r = 1,
-          mennickeBlock p q r s hdet ∈ E := by
-    intro n
-    induction n using Nat.strong_induction_on with
-    | h n ih =>
-      intro p q r s hp hpdegree hdet
-      by_cases hn : n = 0
-      · apply hunit p q r s hdet
-        have hpone : p = 1 :=
-          Polynomial.eq_one_of_monic_natDegree_zero hp (hpdegree.trans hn)
-        rw [hpone]
-        exact isUnit_one
-      · have hpositive : 0 < p.natDegree := by omega
-        obtain ⟨q₀, r₀, s₀, hdet₀, hequiv, hqdegree, hrdegree⟩ :=
-          hnormalize p q r s hp hpositive hdet
-        apply hequiv.mpr
-        by_cases hqzero : IsUnit (q₀.coeff 0)
-        · apply horrocks_unit_constant_induction_step E hroot hlinear hfactor
-            p q₀ r₀ s₀ hp hqdegree hqzero hdet₀
-          intro p' q' r' s' hdet' hp' hless
-          exact ih p'.natDegree (by omega) p' q' r' s' hp' rfl hdet'
-        · obtain ⟨p', q', r', s', hdet', hp', hpdegree',
-              hqdegree', hqzero', hequiv'⟩ :=
-            hnonunit p q₀ r₀ s₀ hp hqdegree hrdegree hdet₀ hqzero
-          apply hequiv'.mpr
-          apply horrocks_unit_constant_induction_step E hroot hlinear hfactor
-            p' q' r' s' hp' hqdegree' hqzero' hdet'
-          intro p'' q'' r'' s'' hdet'' hp'' hless
-          exact ih p''.natDegree (by omega)
-            p'' q'' r'' s'' hp'' rfl hdet''
-  exact hall p.natDegree p q r s hp rfl hdet
-
 end ConnesRigidity.ScratchHorrocksInduction
 
 noncomputable section
 
 namespace ConnesRigidity
 
-open Matrix Polynomial StabilizedBlockReduction
-open ConnesRigidity.MennickeIdentity
-
-theorem scratch_horrocks_hnonunit_mennicke_adapter
-    {A : Type*} [CommRing A] [IsLocalRing A]
-    (p q r s : Polynomial A)
-    (hp : p.Monic)
-    (hqdegree : q.natDegree < p.natDegree)
-    (hrdegree : r.natDegree < p.natDegree)
-    (hdet : p * s - q * r = 1)
-    (hqnonunit : ¬ IsUnit (q.coeff 0)) :
-    ∃ (p' q' r' s' : Polynomial A)
-      (hdet' : p' * s' - q' * r' = 1),
-      p'.Monic ∧ p'.natDegree = p.natDegree ∧
-        q'.natDegree < p'.natDegree ∧
-        IsUnit (q'.coeff 0) ∧
-        (mennickeBlock p q r s hdet ∈
-            elementaryThreeSubgroup (Polynomial A) ↔
-          mennickeBlock p' q' r' s' hdet' ∈
-            elementaryThreeSubgroup (Polynomial A)) := by
-  have hpdegree : 0 < p.natDegree := by omega
-  have hrWithBot : r.degree < p.degree := by
-    by_cases hrzero : r = 0
-    · simp [hrzero, Polynomial.degree_eq_natDegree hp.ne_zero]
-    · rw [Polynomial.degree_eq_natDegree hrzero,
-        Polynomial.degree_eq_natDegree hp.ne_zero, Nat.cast_lt]
-      exact hrdegree
-  obtain ⟨_, _, hqunit, hpmonic, hpdegree'⟩ :=
-    HorrocksMonicBlock.nonunit_constant_branch
-      p q r s hp hrWithBot hdet hqnonunit
-  have hsdegree : s.natDegree < p.natDegree := by
-    by_cases hszero : s = 0
-    · simpa [hszero] using hpdegree
-    have hps : p * s = 1 + q * r := by
-      calc
-        p * s = (p * s - q * r) + q * r := by ring
-        _ = 1 + q * r := by rw [hdet]
-    have hbound : p.natDegree + s.natDegree ≤
-        q.natDegree + r.natDegree := by
-      calc
-        p.natDegree + s.natDegree = (p * s).natDegree :=
-          (hp.natDegree_mul' hszero).symm
-        _ = (1 + q * r).natDegree := congrArg Polynomial.natDegree hps
-        _ ≤ max (1 : Polynomial A).natDegree (q * r).natDegree :=
-          Polynomial.natDegree_add_le _ _
-        _ ≤ q.natDegree + r.natDegree :=
-          max_le (by simp) Polynomial.natDegree_mul_le
-    omega
-  have hnewdegree : (q + s).natDegree < (p + r).natDegree := by
-    rw [hpdegree']
-    exact (Polynomial.natDegree_add_le q s).trans_lt
-      (max_lt hqdegree hsdegree)
-  have hdet' : (p + r) * s - (q + s) * r = 1 := by
-    linear_combination hdet
-  refine ⟨p + r, q + s, r, s, hdet', hpmonic, hpdegree',
-    hnewdegree, hqunit, ?_⟩
-  have hblock :
-      mennickeBlock (p + r) (q + s) r s hdet' =
-        Matrix.SpecialLinearGroup.transvection
-          (show (0 : Fin 3) ≠ 1 by decide) (1 : Polynomial A) *
-          mennickeBlock p q r s hdet := by
-    apply Matrix.SpecialLinearGroup.ext
-    intro i j
-    fin_cases i <;> fin_cases j <;>
-      simp [mennickeBlock, Matrix.SpecialLinearGroup.transvection_coe,
-        Matrix.mul_apply, Fin.sum_univ_succ,
-        Matrix.single_apply, Matrix.one_apply] <;> ring
-  rw [hblock]
-  have hroot := HorrocksMonicBlock.elementaryThree_transvection_mem
-    (A := Polynomial A) 0 1 (by decide) (1 : Polynomial A)
-  constructor
-  · exact (elementaryThreeSubgroup (Polynomial A)).mul_mem hroot
-  · intro h
-    have h' := (elementaryThreeSubgroup (Polynomial A)).mul_mem
-      ((elementaryThreeSubgroup (Polynomial A)).inv_mem hroot) h
-    simpa [← mul_assoc] using h'
-
 end ConnesRigidity
 
 noncomputable section
 
 namespace ConnesRigidity.HorrocksMonicBlock
-
-open Matrix Polynomial
-open StabilizedBlockReduction MennickeIdentity
-
-theorem suslin_horrocks_monic_stabilized_mem
-    {A : Type*} [CommRing A] [IsLocalRing A]
-    (b : Matrix.SpecialLinearGroup (Fin 2) (Polynomial A))
-    (hmonic : (b 0 0).Monic) :
-    stabilizedTwoHom b ∈ elementaryThreeSubgroup (Polynomial A) := by
-  let E := elementaryThreeSubgroup (Polynomial A)
-  have hroot : ContainsElementaryRoots E := elementaryThree_contains_roots
-  rw [stabilizedTwoHom_eq_mennickeBlock b]
-  apply ScratchHorrocksInduction.horrocks_monic_mem_of_constructive_steps
-    E hroot
-  · intro p q r s hdet hpunit
-    exact scratch_mennickeBlock_mem_of_topLeft_unit
-      E hroot p q r s hdet hpunit
-  · intro q c d hdet hq
-    exact scratch_horrocks_mennicke_X_mem
-      (fun z hz => scratch_stabilizedTwoHom_mem_of_topLeft_unit z hz)
-      q c d hdet hq
-  · intro a a' q c d hdet hleft hright
-    exact mennicke_block_mem_of_factors E hroot a a' q c d hdet
-      hleft hright
-  · exact horrocks_hnormalize_adapter_scratch E hroot
-  · intro p q r s hp hqdegree hrdegree hdet hqnonunit
-    exact scratch_horrocks_hnonunit_mennicke_adapter
-      p q r s hp hqdegree hrdegree hdet hqnonunit
-  · exact hmonic
 
 end ConnesRigidity.HorrocksMonicBlock
 
@@ -10374,34 +5721,12 @@ theorem valuation_dvd_total
     (a b : A) : a ∣ b ∨ b ∣ a :=
   ValuationRing.dvd_total a b
 
-theorem dvr_dvd_total
-    {A : Type u} [CommRing A] [IsDomain A] [IsDiscreteValuationRing A]
-    (a b : A) : a ∣ b ∨ b ∣ a :=
-  ValuationRing.dvd_total a b
-
 theorem valuation_leadingCoeff_dvd_total
     {A : Type u} [CommRing A] [IsDomain A] [ValuationRing A]
     (f g : A[X]) :
     f.leadingCoeff ∣ g.leadingCoeff ∨
       g.leadingCoeff ∣ f.leadingCoeff :=
   valuation_dvd_total f.leadingCoeff g.leadingCoeff
-
-theorem dvr_leadingCoeff_dvd_total
-    {A : Type u} [CommRing A] [IsDomain A] [IsDiscreteValuationRing A]
-    (f g : A[X]) :
-    f.leadingCoeff ∣ g.leadingCoeff ∨
-      g.leadingCoeff ∣ f.leadingCoeff :=
-  dvr_dvd_total f.leadingCoeff g.leadingCoeff
-
-theorem valuation_leadingCoeff_comparable_factor
-    {A : Type u} [CommRing A] [IsDomain A] [ValuationRing A]
-    (f g : A[X]) :
-    (∃ c : A, f.leadingCoeff * c = g.leadingCoeff) ∨
-      (∃ c : A, g.leadingCoeff * c = f.leadingCoeff) := by
-  rcases valuation_leadingCoeff_dvd_total f g with
-    ⟨c, hc⟩ | ⟨c, hc⟩
-  · exact Or.inl ⟨c, hc.symm⟩
-  · exact Or.inr ⟨c, hc.symm⟩
 
 section PolynomialCancellation
 
@@ -10478,42 +5803,6 @@ theorem natDegree_sub_shiftedLeadingCancellationQuotient_mul_lt
     rw [← Polynomial.degree_eq_natDegree hg]
     exact degree_sub_shiftedLeadingCancellationQuotient_mul_lt
       f g hf hg hdeg c hc
-
-theorem shiftedLeadingCancellationQuotient_remainder_zero_or_natDegree_lt
-    (f g : A[X]) (hf : f ≠ 0) (hg : g ≠ 0)
-    (hdeg : f.natDegree ≤ g.natDegree)
-    (c : A) (hc : g.leadingCoeff = f.leadingCoeff * c) :
-    g - shiftedLeadingCancellationQuotient f g c * f = 0 ∨
-      (g - shiftedLeadingCancellationQuotient f g c * f).natDegree <
-        g.natDegree := by
-  by_cases hrem : g - shiftedLeadingCancellationQuotient f g c * f = 0
-  · exact Or.inl hrem
-  · right
-    exact (Polynomial.natDegree_lt_natDegree_iff hrem).mpr
-      (degree_sub_shiftedLeadingCancellationQuotient_mul_lt
-        f g hf hg hdeg c hc)
-
-theorem exists_degree_sub_mul_lt_of_leadingCoeff_dvd
-    (f g : A[X]) (hf : f ≠ 0) (hg : g ≠ 0)
-    (hdeg : f.natDegree ≤ g.natDegree)
-    (hdvd : f.leadingCoeff ∣ g.leadingCoeff) :
-    ∃ q : A[X], (g - q * f).degree < g.degree := by
-  obtain ⟨c, hc⟩ := hdvd
-  refine ⟨shiftedLeadingCancellationQuotient f g c, ?_⟩
-  apply degree_sub_shiftedLeadingCancellationQuotient_mul_lt f g hf hg hdeg c
-  simpa [mul_comm] using hc
-
-theorem exists_natDegree_sub_mul_lt_of_leadingCoeff_dvd
-    (f g : A[X]) (hf : f ≠ 0) (hg : g ≠ 0)
-    (hdeg : f.natDegree ≤ g.natDegree)
-    (hgpos : 0 < g.natDegree)
-    (hdvd : f.leadingCoeff ∣ g.leadingCoeff) :
-    ∃ q : A[X], (g - q * f).natDegree < g.natDegree := by
-  obtain ⟨c, hc⟩ := hdvd
-  refine ⟨shiftedLeadingCancellationQuotient f g c, ?_⟩
-  apply natDegree_sub_shiftedLeadingCancellationQuotient_mul_lt
-    f g hf hg hdeg hgpos c
-  simpa [mul_comm] using hc
 
 end PolynomialCancellation
 
@@ -10783,20 +6072,6 @@ theorem mennickeBlock_mem_of_isUnit_topRight
     have h := E.mul_mem hBJ (E.inv_mem hJ)
     simpa using h
   exact hB
-
-theorem mennickeBlock_mem_of_topLeft_isUnit
-    {R : Type*} [CommRing R]
-    (a b c d : R) (hdet : a * d - b * c = 1) (ha : IsUnit a) :
-    MennickeIdentity.mennickeBlock a b c d hdet ∈
-      StabilizedBlockReduction.elementaryThreeSubgroup R :=
-  mennickeBlock_mem_of_isUnit_topLeft a b c d hdet ha
-
-theorem mennickeBlock_mem_of_topRight_isUnit
-    {R : Type*} [CommRing R]
-    (a b c d : R) (hdet : a * d - b * c = 1) (hb : IsUnit b) :
-    MennickeIdentity.mennickeBlock a b c d hdet ∈
-      StabilizedBlockReduction.elementaryThreeSubgroup R :=
-  mennickeBlock_mem_of_isUnit_topRight a b c d hdet hb
 
 end ConnesRigidity
 
@@ -11143,38 +6418,6 @@ theorem suslin_local_stabilizedTwo_unit_offdiag_normalization
   · exact ⟨b, 1, (elementaryThreeSubgroup (Polynomial A)).one_mem,
       by simp, hoff.1, hoff.2⟩
 
-theorem suslin_local_stabilizedTwo_unit_offdiag_degree_normalization
-    {A : Type u} [CommRing A] [IsLocalRing A]
-    (b : Matrix.SpecialLinearGroup (Fin 2) (Polynomial A)) :
-    ∃ (b' : Matrix.SpecialLinearGroup (Fin 2) (Polynomial A))
-      (eL eR : Matrix.SpecialLinearGroup (Fin 3) (Polynomial A)),
-      eL ∈ elementaryThreeSubgroup (Polynomial A) ∧
-        eR ∈ elementaryThreeSubgroup (Polynomial A) ∧
-        stabilizedTwoHom b = eL * stabilizedTwoHom b' * eR ∧
-        IsUnit ((b' 0 1).coeff 0) ∧
-        IsUnit ((b' 1 0).coeff 0) ∧
-        (b' 0 1).natDegree ≤ (b' 1 0).natDegree := by
-  obtain ⟨b₀, r, hr, hfactor, hg, hp⟩ :=
-    suslin_local_stabilizedTwo_unit_offdiag_normalization b
-  by_cases hle : (b₀ 0 1).natDegree ≤ (b₀ 1 0).natDegree
-  · exact ⟨b₀, 1, r,
-      (elementaryThreeSubgroup (Polynomial A)).one_mem,
-      hr, by simpa using hfactor, hg, hp, hle⟩
-  · let j : Matrix.SpecialLinearGroup (Fin 2) (Polynomial A) :=
-      suslinSignedSwap
-    have hj : stabilizedTwoHom j ∈
-        elementaryThreeSubgroup (Polynomial A) :=
-      suslin_stabilized_signedSwap_mem
-    refine ⟨j * b₀ * j⁻¹, (stabilizedTwoHom j)⁻¹,
-      stabilizedTwoHom j * r,
-      (elementaryThreeSubgroup (Polynomial A)).inv_mem hj,
-      (elementaryThreeSubgroup (Polynomial A)).mul_mem hj hr,
-      ?_, ?_, ?_, ?_⟩
-    · simpa [map_mul, map_inv, mul_assoc] using hfactor
-    · simpa [j] using hp.neg
-    · simpa [j] using hg.neg
-    · simpa [j] using Nat.le_of_lt (Nat.lt_of_not_ge hle)
-
 end ConnesRigidity
 
 end
@@ -11215,13 +6458,6 @@ theorem valuation_finset_exists_dvd_all
         subst s
         exact ⟨a, by simp, by simp⟩
 
-theorem valuation_polynomial_leadingCoeff_dvd_total
-    {R : Type u} [CommRing R] [PreValuationRing R]
-    (f g : Polynomial R) :
-    f.leadingCoeff ∣ g.leadingCoeff ∨
-      g.leadingCoeff ∣ f.leadingCoeff :=
-  ValuationRing.dvd_total f.leadingCoeff g.leadingCoeff
-
 theorem valuation_polynomial_exists_primitive_factor
     {R : Type u} [CommRing R] [IsDomain R] [PreValuationRing R]
     (f : Polynomial R) (hf : f ≠ 0) :
@@ -11259,15 +6495,6 @@ theorem valuation_polynomial_exists_primitive_factor
   refine ⟨c, g, i, hc, heq, hcoeff, hprimitive, ?_⟩
   rw [heq, Polynomial.natDegree_C_mul hc]
 
-theorem dvr_polynomial_exists_primitive_factor
-    {R : Type u} [CommRing R] [IsDomain R]
-    [IsDiscreteValuationRing R]
-    (f : Polynomial R) (hf : f ≠ 0) :
-    ∃ (c : R) (g : Polynomial R) (i : ℕ),
-      c ≠ 0 ∧ f = Polynomial.C c * g ∧
-        g.coeff i = 1 ∧ g.IsPrimitive ∧ g.natDegree = f.natDegree :=
-  valuation_polynomial_exists_primitive_factor f hf
-
 theorem dvr_uniformizer_factor_with_classification
     {R : Type u} [CommRing R] [IsDomain R]
     [IsDiscreteValuationRing R]
@@ -11286,31 +6513,6 @@ theorem dvr_uniformizer_factor_with_classification
     rw [Units.dvd_mul_left,
       pow_dvd_pow_iff hϖ.ne_zero hϖ.not_isUnit]
   · exact IsDiscreteValuationRing.addVal_def' u hϖ n
-
-theorem dvr_nonunit_uniformizer_positive_factor
-    {R : Type u} [CommRing R] [IsDomain R]
-    [IsDiscreteValuationRing R]
-    {ϖ : R} (hϖ : Irreducible ϖ)
-    {x : R} (hx : x ≠ 0) (hnonunit : ¬IsUnit x) :
-    ∃ (n : ℕ) (u : Rˣ),
-      0 < n ∧ x = (u : R) * ϖ ^ n ∧
-        IsDiscreteValuationRing.addVal R x = n := by
-  obtain ⟨n, u, heq, hunit, _, hval⟩ :=
-    dvr_uniformizer_factor_with_classification hϖ hx
-  exact ⟨n, u, Nat.pos_of_ne_zero (mt hunit.mpr hnonunit),
-    heq, hval⟩
-
-theorem atPrime_polynomial_exists_primitive_factor
-    {R : Type u} [CommRing R] [IsDedekindDomain R]
-    (p : Ideal R) [p.IsPrime] (hp : p ≠ ⊥)
-    (f : Polynomial (Localization.AtPrime p)) (hf : f ≠ 0) :
-    ∃ (c : Localization.AtPrime p)
-      (g : Polynomial (Localization.AtPrime p)) (i : ℕ),
-      c ≠ 0 ∧ f = Polynomial.C c * g ∧
-        g.coeff i = 1 ∧ g.IsPrimitive ∧ g.natDegree = f.natDegree := by
-  letI : IsDiscreteValuationRing (Localization.AtPrime p) :=
-    IsLocalization.AtPrime.isDiscreteValuationRing_of_dedekind_domain R hp _
-  exact dvr_polynomial_exists_primitive_factor f hf
 
 end ConnesRigidity
 
@@ -11643,30 +6845,6 @@ theorem polynomial_valuation_coefficient_ascent
         rw [degree_eq_natDegree hpzero, hpnat]
   exact ⟨hsmall, hunit', Nat.lt_add_of_pos_left hshift⟩
 
-theorem polynomial_exists_maximal_unit_coefficient
-    {A : Type*} [CommRing A] [Nontrivial A]
-    (f : Polynomial A)
-    (hunit : ∃ i : ℕ, IsUnit (f.coeff i)) :
-    ∃ m : ℕ, m ≤ f.natDegree ∧ IsUnit (f.coeff m) ∧
-      ∀ i : ℕ, IsUnit (f.coeff i) → i ≤ m := by
-  classical
-  let s : Finset ℕ :=
-    (Finset.range (f.natDegree + 1)).filter fun i => IsUnit (f.coeff i)
-  have hs : s.Nonempty := by
-    obtain ⟨i, hi⟩ := hunit
-    refine ⟨i, Finset.mem_filter.mpr ⟨?_, hi⟩⟩
-    exact Finset.mem_range.mpr
-      (Nat.lt_succ_of_le (le_natDegree_of_ne_zero hi.ne_zero))
-  let m : ℕ := s.max' hs
-  have hm : m ∈ s := Finset.max'_mem s hs
-  have hm' := Finset.mem_filter.mp hm
-  refine ⟨m, Nat.le_of_lt_succ (Finset.mem_range.mp hm'.1), hm'.2, ?_⟩
-  intro i hi
-  apply Finset.le_max' s i
-  exact Finset.mem_filter.mpr
-    ⟨Finset.mem_range.mpr
-      (Nat.lt_succ_of_le (le_natDegree_of_ne_zero hi.ne_zero)), hi⟩
-
 def valuationPrimitiveAscentStep
     {A : Type*} [CommRing A] (g f f' : Polynomial A) : Prop :=
   ∃ c : A, ¬ IsUnit c ∧
@@ -11758,11 +6936,6 @@ universe u
 
 variable {R : Type u} [CommRing R]
 
-theorem mennicke_rowFirst_sub_det
-    (a b c d q : R) (hdet : a * d - b * c = 1) :
-    (a - q * c) * d - (b - q * d) * c = 1 := by
-  linear_combination hdet
-
 theorem mennicke_rowSecond_sub_det
     (a b c d q : R) (hdet : a * d - b * c = 1) :
     a * (d - q * b) - b * (c - q * a) = 1 := by
@@ -11772,27 +6945,6 @@ theorem mennicke_columnFirst_sub_det
     (a b c d q : R) (hdet : a * d - b * c = 1) :
     (a - q * b) * d - b * (c - q * d) = 1 := by
   linear_combination hdet
-
-theorem mennicke_columnSecond_sub_det
-    (a b c d q : R) (hdet : a * d - b * c = 1) :
-    a * (d - q * c) - (b - q * a) * c = 1 := by
-  linear_combination hdet
-
-set_option maxRecDepth 2048 in
-set_option maxHeartbeats 400000 in
-theorem mennickeBlock_rowFirst_sub_mul
-    (a b c d q : R) (hdet : a * d - b * c = 1) :
-    mennickeBlock (a - q * c) (b - q * d) c d
-        (mennicke_rowFirst_sub_det a b c d q hdet) =
-      Matrix.SpecialLinearGroup.transvection
-        (show (0 : Fin 3) ≠ 1 by decide) (-q) *
-        mennickeBlock a b c d hdet := by
-  apply Matrix.SpecialLinearGroup.ext
-  intro i j
-  fin_cases i <;> fin_cases j <;>
-    simp [mennickeBlock, Matrix.SpecialLinearGroup.transvection_coe,
-      Matrix.mul_apply, Fin.sum_univ_succ, Matrix.one_apply,
-      Matrix.single_apply] <;> ring
 
 set_option maxRecDepth 2048 in
 set_option maxHeartbeats 400000 in
@@ -11826,36 +6978,10 @@ theorem mennickeBlock_columnFirst_sub_mul
       Matrix.mul_apply, Fin.sum_univ_succ, Matrix.one_apply,
       Matrix.single_apply] <;> ring
 
-set_option maxRecDepth 2048 in
-set_option maxHeartbeats 400000 in
-theorem mennickeBlock_columnSecond_sub_mul
-    (a b c d q : R) (hdet : a * d - b * c = 1) :
-    mennickeBlock a (b - q * a) c (d - q * c)
-        (mennicke_columnSecond_sub_det a b c d q hdet) =
-      mennickeBlock a b c d hdet *
-        Matrix.SpecialLinearGroup.transvection
-          (show (0 : Fin 3) ≠ 1 by decide) (-q) := by
-  apply Matrix.SpecialLinearGroup.ext
-  intro i j
-  fin_cases i <;> fin_cases j <;>
-    simp [mennickeBlock, Matrix.SpecialLinearGroup.transvection_coe,
-      Matrix.mul_apply, Fin.sum_univ_succ, Matrix.one_apply,
-      Matrix.single_apply] <;> ring
-
 theorem elementaryThree_contains_roots :
     ContainsElementaryRoots (elementaryThreeSubgroup R) := by
   intro i j h r
   exact Subgroup.subset_closure ⟨i, j, h, r, rfl⟩
-
-theorem mennickeBlock_rowFirst_sub_mem_iff
-    (a b c d q : R) (hdet : a * d - b * c = 1) :
-    mennickeBlock (a - q * c) (b - q * d) c d
-        (mennicke_rowFirst_sub_det a b c d q hdet) ∈
-          elementaryThreeSubgroup R ↔
-      mennickeBlock a b c d hdet ∈ elementaryThreeSubgroup R := by
-  rw [mennickeBlock_rowFirst_sub_mul]
-  exact (elementaryThreeSubgroup R).mul_mem_cancel_left
-    (elementaryThree_contains_roots 0 1 (by decide) (-q))
 
 theorem mennickeBlock_rowSecond_sub_mem_iff
     (a b c d q : R) (hdet : a * d - b * c = 1) :
@@ -11876,43 +7002,6 @@ theorem mennickeBlock_columnFirst_sub_mem_iff
   rw [mennickeBlock_columnFirst_sub_mul]
   exact (elementaryThreeSubgroup R).mul_mem_cancel_right
     (elementaryThree_contains_roots 1 0 (by decide) (-q))
-
-theorem mennickeBlock_columnSecond_sub_mem_iff
-    (a b c d q : R) (hdet : a * d - b * c = 1) :
-    mennickeBlock a (b - q * a) c (d - q * c)
-        (mennicke_columnSecond_sub_det a b c d q hdet) ∈
-          elementaryThreeSubgroup R ↔
-      mennickeBlock a b c d hdet ∈ elementaryThreeSubgroup R := by
-  rw [mennickeBlock_columnSecond_sub_mul]
-  exact (elementaryThreeSubgroup R).mul_mem_cancel_right
-    (elementaryThree_contains_roots 0 1 (by decide) (-q))
-
-theorem mennickeBlock_uniformizer_mem_of_unit_decomposition
-    {A : Type u} [CommRing A]
-    (π : A) (g p q h : Polynomial A) (u : A)
-    (hu : IsUnit u)
-    (hg : g = Polynomial.C u + Polynomial.C π * h)
-    (hdet : Polynomial.C π * q - g * p = 1)
-    (hpivot : ∀ (a b c d : Polynomial A)
-      (hd : a * d - b * c = 1),
-      IsUnit b →
-        mennickeBlock a b c d hd ∈
-          elementaryThreeSubgroup (Polynomial A)) :
-    mennickeBlock (Polynomial.C π) g p q hdet ∈
-      elementaryThreeSubgroup (Polynomial A) := by
-  have hunit : IsUnit (g - h * Polynomial.C π) := by
-    rw [hg]
-    have heq : Polynomial.C u + Polynomial.C π * h -
-        h * Polynomial.C π = Polynomial.C u := by
-      ring
-    rw [heq]
-    exact Polynomial.isUnit_C.mpr hu
-  have hnew := hpivot (Polynomial.C π)
-    (g - h * Polynomial.C π) p (q - h * p)
-    (mennicke_columnSecond_sub_det
-      (Polynomial.C π) g p q h hdet) hunit
-  exact (mennickeBlock_columnSecond_sub_mem_iff
-    (Polynomial.C π) g p q h hdet).mp hnew
 
 theorem mennicke_ascent_row_det
     {A : Type u} [CommRing A]
@@ -12046,50 +7135,6 @@ private theorem scratch_shifted_remainder_alignment
   · rw [hq, hpow] at hdet
     linear_combination hdet
 
-theorem valuationPrimitiveAscentStep_mennicke_transport
-    {A : Type w} [CommRing A]
-    (g f f' p q : Polynomial A)
-    (hstep : valuationPrimitiveAscentStep g f f')
-    (hg0 : IsUnit (g.coeff 0))
-    (hdeg : f.natDegree < g.natDegree)
-    (hdet : f * q - g * p = 1)
-    (hmonic : ∀ (a b c d : Polynomial A)
-      (hd : a * d - b * c = 1), d.Monic →
-        mennickeBlock a b c d hd ∈
-          elementaryThreeSubgroup (Polynomial A)) :
-    ∃ (p' q' : Polynomial A) (hdet' : f' * q' - g * p' = 1),
-      (mennickeBlock f' g p' q' hdet' ∈
-        elementaryThreeSubgroup (Polynomial A) →
-       mennickeBlock f g p q hdet ∈
-        elementaryThreeSubgroup (Polynomial A)) := by
-  obtain ⟨c, _hc, _hlead, hf'⟩ := hstep
-  let s : ℕ := g.natDegree - f.natDegree
-  have hg : 0 < g.natDegree := by omega
-  obtain ⟨S, q₁, t, R, _hS, _hq₁, _hdegq₁, _hR, hfactor, _hdetaligned⟩ :=
-    scratch_shifted_remainder_alignment f g p q hg0 hg hdet s
-  have hq : q = X ^ s * R + t * g := by
-    linear_combination hfactor
-  have hdet' : f' * R - g * (p - t * f - C c * R) = 1 := by
-    rw [hf']
-    exact mennicke_ascent_good_det f g p q t R s c hdet hq
-  refine ⟨p - t * f - C c * R, R, hdet', ?_⟩
-  intro hgood
-  have hgood' :
-      mennickeBlock (X ^ s * f - C c * g) g
-        (p - t * f - C c * R) R
-        (mennicke_ascent_good_det f g p q t R s c hdet hq) ∈
-          elementaryThreeSubgroup (Polynomial A) := by
-    simpa [hf'] using hgood
-  have hmonic' :
-      mennickeBlock (R * f) g (p - t * f) (X ^ s)
-        (mennicke_ascent_monic_det f g p q t R s hdet hq) ∈
-          elementaryThreeSubgroup (Polynomial A) :=
-    hmonic (R * f) g (p - t * f) (X ^ s)
-      (mennicke_ascent_monic_det f g p q t R s hdet hq)
-      (monic_X_pow s)
-  exact mennickeBlock_mem_of_primitive_ascent
-    f g p q t R s c hdet hq hmonic' hgood'
-
 end ConnesRigidity
 
 noncomputable section
@@ -12195,79 +7240,6 @@ end ConnesRigidity.ScratchSuslinDividingOuterIH
 noncomputable section
 
 namespace ConnesRigidity.ValuationE3InductionScratch
-
-open Polynomial MennickeIdentity StabilizedBlockReduction
-
-universe u
-
-theorem mennicke_valuation_ascent_strong_induction
-    {A : Type u} [CommRing A] [IsDomain A] [ValuationRing A]
-    (g : Polynomial A) (hgzero : IsUnit (g.coeff 0))
-    (outerIH : ∀ (f' g' p' q' : Polynomial A)
-      (hdet' : f' * q' - g' * p' = 1),
-      IsUnit (g'.coeff 0) →
-        g'.natDegree < g.natDegree →
-          mennickeBlock f' g' p' q' hdet' ∈
-            elementaryThreeSubgroup (Polynomial A))
-    (hdiv : ∀ (f p q : Polynomial A)
-      (hdet : f * q - g * p = 1),
-      f.natDegree < g.natDegree →
-      f.leadingCoeff ∣ g.leadingCoeff →
-      (∀ (f' g' p' q' : Polynomial A)
-        (hdet' : f' * q' - g' * p' = 1),
-        IsUnit (g'.coeff 0) →
-          g'.natDegree < g.natDegree →
-            mennickeBlock f' g' p' q' hdet' ∈
-              elementaryThreeSubgroup (Polynomial A)) →
-        mennickeBlock f g p q hdet ∈
-          elementaryThreeSubgroup (Polynomial A))
-    (hstep : ∀ (f p q : Polynomial A) (m : ℕ)
-      (hdet : f * q - g * p = 1),
-      f.natDegree < g.natDegree →
-      IsUnit (f.coeff m) →
-      ¬ f.leadingCoeff ∣ g.leadingCoeff →
-      ∃ (f' p' q' : Polynomial A) (m' : ℕ)
-        (hdet' : f' * q' - g * p' = 1),
-          f'.natDegree < g.natDegree ∧
-          IsUnit (f'.coeff m') ∧
-          m < m' ∧
-          (mennickeBlock f' g p' q' hdet' ∈
-              elementaryThreeSubgroup (Polynomial A) →
-            mennickeBlock f g p q hdet ∈
-              elementaryThreeSubgroup (Polynomial A)))
-    (f p q : Polynomial A) (m : ℕ)
-    (hdet : f * q - g * p = 1)
-    (hdegree : f.natDegree < g.natDegree)
-    (hunit : IsUnit (f.coeff m)) :
-    mennickeBlock f g p q hdet ∈
-      elementaryThreeSubgroup (Polynomial A) := by
-  let P : ℕ → Prop := fun measure =>
-    ∀ (f p q : Polynomial A) (m : ℕ)
-      (hdet : f * q - g * p = 1),
-      g.natDegree - m = measure →
-      f.natDegree < g.natDegree →
-      IsUnit (f.coeff m) →
-        mennickeBlock f g p q hdet ∈
-          elementaryThreeSubgroup (Polynomial A)
-  have hall : ∀ measure : ℕ, P measure := by
-    intro measure
-    induction measure using Nat.strong_induction_on with
-    | h measure ih =>
-      intro f p q m hdet hmeasure hdegree hunit
-      by_cases hdivides : f.leadingCoeff ∣ g.leadingCoeff
-      · exact hdiv f p q hdet hdegree hdivides outerIH
-      · obtain ⟨f', p', q', m', hdet', hdegree', hunit',
-            hascent, hbackwards⟩ :=
-          hstep f p q m hdet hdegree hunit hdivides
-        apply hbackwards
-        have hindex : m' ≤ f'.natDegree :=
-          Polynomial.le_natDegree_of_ne_zero hunit'.ne_zero
-        have hless : g.natDegree - m' < measure := by
-          rw [← hmeasure]
-          omega
-        exact ih (g.natDegree - m') hless
-          f' p' q' m' hdet' rfl hdegree' hunit'
-  exact hall (g.natDegree - m) f p q m hdet rfl hdegree hunit
 
 end ConnesRigidity.ValuationE3InductionScratch
 
@@ -12531,21 +7503,6 @@ theorem exists_mennickeBlock_shifted_remainder
   exact ⟨f₁, t, hdet', hdegree, hshift,
     mennickeBlock_shifted_mem_iff E hE f g p q f₁ t s hdet hshift⟩
 
-theorem elementaryThree_mennickeBlock_shifted_mem_iff
-    {A : Type u} [CommRing A]
-    (f g p q f₁ t : Polynomial A) (s : ℕ)
-    (hdet : f * q - g * p = 1)
-    (hshift : f = X ^ s * f₁ + t * g) :
-    mennickeBlock f g p q hdet ∈
-        StabilizedBlockReduction.elementaryThreeSubgroup (Polynomial A) ↔
-      mennickeBlock (X ^ s * f₁) g (p - t * q) q
-        (mennickeBlock_shifted_det f g p q f₁ t s hdet hshift) ∈
-        StabilizedBlockReduction.elementaryThreeSubgroup (Polynomial A) := by
-  exact mennickeBlock_shifted_mem_iff
-    (StabilizedBlockReduction.elementaryThreeSubgroup (Polynomial A))
-    (fun i j hij r => Subgroup.subset_closure ⟨i, j, hij, r, rfl⟩)
-    f g p q f₁ t s hdet hshift
-
 end ConnesRigidity
 
 end
@@ -12560,66 +7517,6 @@ open Polynomial Matrix
 open StabilizedBlockReduction
 
 universe u
-
-def valuationMennickeMinimalDegree
-    {A : Type u} [CommRing A]
-    (b : Matrix.SpecialLinearGroup (Fin 2) (Polynomial A)) : ℕ :=
-  min (b 0 1).natDegree (b 1 0).natDegree
-
-def valuationMennickeRegular
-    {A : Type u} [CommRing A]
-    (b : Matrix.SpecialLinearGroup (Fin 2) (Polynomial A)) : Prop :=
-  IsUnit ((b 0 1).coeff 0) ∧ IsUnit ((b 1 0).coeff 0)
-
-def valuationMennickeBoundedBlocks
-    (A : Type u) [CommRing A] (n : ℕ) :
-    Set (Matrix.SpecialLinearGroup (Fin 3) (Polynomial A)) :=
-  {g | ∃ b : Matrix.SpecialLinearGroup (Fin 2) (Polynomial A),
-    valuationMennickeRegular b ∧
-      valuationMennickeMinimalDegree b ≤ n ∧
-        g = stabilizedTwoHom b}
-
-def valuationMennickeFiltration
-    (A : Type u) [CommRing A] (n : ℕ) :
-    Subgroup (Matrix.SpecialLinearGroup (Fin 3) (Polynomial A)) :=
-  Subgroup.closure
-    ((elementaryThreeSubgroup (Polynomial A) :
-        Set (Matrix.SpecialLinearGroup (Fin 3) (Polynomial A))) ∪
-      valuationMennickeBoundedBlocks A n)
-
-theorem elementaryThree_le_valuationMennickeFiltration
-    (A : Type u) [CommRing A] (n : ℕ) :
-    elementaryThreeSubgroup (Polynomial A) ≤
-      valuationMennickeFiltration A n := by
-  intro g hg
-  exact Subgroup.subset_closure (Or.inl hg)
-
-theorem stabilizedTwoHom_mem_valuationMennickeFiltration
-    {A : Type u} [CommRing A]
-    (b : Matrix.SpecialLinearGroup (Fin 2) (Polynomial A))
-    (hregular : valuationMennickeRegular b) :
-    stabilizedTwoHom b ∈
-      valuationMennickeFiltration A (valuationMennickeMinimalDegree b) := by
-  apply Subgroup.subset_closure
-  exact Or.inr ⟨b, hregular, le_rfl, rfl⟩
-
-theorem valuationMennickeFiltration_mono
-    {A : Type u} [CommRing A]
-    {m n : ℕ} (hmn : m ≤ n) :
-    valuationMennickeFiltration A m ≤
-      valuationMennickeFiltration A n := by
-  apply Subgroup.closure_mono
-  intro g hg
-  rcases hg with helementary | ⟨b, hb, hdegree, rfl⟩
-  · exact Or.inl helementary
-  · exact Or.inr ⟨b, hb, hdegree.trans hmn, rfl⟩
-
-theorem valuationMennicke_elementaryThree_contains_roots
-    (A : Type u) [CommRing A] :
-    MennickeIdentity.ContainsElementaryRoots
-      (elementaryThreeSubgroup A) := by
-  intro i j hij a
-  exact Subgroup.subset_closure ⟨i, j, hij, a, rfl⟩
 
 theorem stabilizedTwoHom_eq_mennickeBlock
     {A : Type u} [CommRing A]
@@ -12846,14 +7743,6 @@ theorem suslin_unimodularTriple_exists_coprime
     ∃ t : Polynomial A, IsCoprime f (g + t * h) :=
   suslin_semilocalTriple_exists_coprime f g h hfinite hrow
 
-theorem suslin_monicLocalTriple_exists_coprime
-    {A : Type*} [CommRing A] [IsLocalRing A]
-    (f g h : Polynomial A) (hf : f.Monic)
-    (hrow : ∃ a b c : Polynomial A, a * f + b * g + c * h = 1) :
-    ∃ t : Polynomial A, IsCoprime f (g + t * h) :=
-  suslin_unimodularTriple_exists_coprime f g h
-    (monic_local_quotient_maximalIdeals_finite f hf) hrow
-
 end ConnesRigidity
 
 end
@@ -13066,23 +7955,6 @@ theorem specialLinearThree_mem_of_lastColumnTransitivity_and_stabilizedTwo
   have h := (elementaryThreeSubgroup R).mul_mem
     ((elementaryThreeSubgroup R).inv_mem he) heg
   simpa [mul_assoc] using h
-
-theorem suslin_dvr_specialLinearThree_mem
-    {A : Type u} [CommRing A] [IsDomain A]
-    [IsDiscreteValuationRing A]
-    (g : Matrix.SpecialLinearGroup (Fin 3) (Polynomial A)) :
-    g ∈ elementaryThreeSubgroup (Polynomial A) := by
-  apply specialLinearThree_mem_of_lastColumnTransitivity_and_stabilizedTwo
-  · exact suslin_valuation_unimodular_three_elementary_reduce
-  · exact suslin_dvr_stabilized_two_mem
-
-theorem suslin_dvr_elementaryThree_eq_top
-    (A : Type u) [CommRing A] [IsDomain A]
-    [IsDiscreteValuationRing A] :
-    elementaryThreeSubgroup (Polynomial A) = ⊤ := by
-  apply top_unique
-  intro g _
-  exact suslin_dvr_specialLinearThree_mem g
 
 end ConnesRigidity.HorrocksValuationInduction
 
@@ -13814,39 +8686,6 @@ theorem suslin_exists_away_finite_eq_of_localization_eq
   rw [hcomp] at hi
   exact hi
 
-theorem suslin_exists_away_polynomial_eq_of_localization_eq
-    (M : Submonoid A) (d : M)
-    (p q : Polynomial (Localization.Away (d : A)))
-    (hpq : Polynomial.map (suslinAwayToLocalization M d) p =
-      Polynomial.map (suslinAwayToLocalization M d) q) :
-    ∃ e : M,
-      Polynomial.map (suslinAwayToProduct M d e) p =
-        Polynomial.map (suslinAwayToProduct M d e) q := by
-  classical
-  let s : Finset ℕ := p.support ∪ q.support
-  have hcoeff (n : ℕ) :
-      suslinAwayToLocalization M d (p.coeff n) =
-        suslinAwayToLocalization M d (q.coeff n) := by
-    have h := congrArg (fun r : Polynomial (Localization M) => r.coeff n) hpq
-    simpa only [Polynomial.coeff_map] using h
-  obtain ⟨e, he⟩ :=
-    suslin_exists_away_finite_eq_of_localization_eq M d
-      (fun n : s => p.coeff n) (fun n : s => q.coeff n)
-      (fun n => hcoeff n)
-  refine ⟨e, ?_⟩
-  apply Polynomial.ext
-  intro n
-  simp only [Polynomial.coeff_map]
-  by_cases hn : n ∈ s
-  · exact he ⟨n, hn⟩
-  · have hp : p.coeff n = 0 := Polynomial.notMem_support_iff.mp (by
-        intro h
-        exact hn (Finset.mem_union_left q.support h))
-    have hq : q.coeff n = 0 := Polynomial.notMem_support_iff.mp (by
-        intro h
-        exact hn (Finset.mem_union_right p.support h))
-    rw [hp, hq, map_zero]
-
 theorem suslin_exists_away_specialLinear_eq_of_localization_eq
     (M : Submonoid A) (d : M)
     (x y : Matrix.SpecialLinearGroup Index
@@ -13997,40 +8836,6 @@ theorem suslin_exists_away_elementary_of_atPrime
     (Polynomial.mapRingHom (suslinAwayToProduct m.primeCompl d e))
     ⟨q, hq, rfl⟩
 
-theorem suslin_exists_finite_away_elementary_cover_of_atPrime
-    (g : Matrix.SpecialLinearGroup Index (Polynomial A))
-    (hlocal : ∀ (m : Ideal A) [m.IsMaximal],
-      Matrix.SpecialLinearGroup.map
-          (Polynomial.mapRingHom
-            (algebraMap A (Localization.AtPrime m))) g ∈
-        localGlobalElementarySubgroup
-          (Polynomial (Localization.AtPrime m))) :
-    ∃ s : Finset A,
-      (∀ d ∈ s, suslinAwayElementary g d) ∧
-        Ideal.span (s : Set A) = ⊤ := by
-  apply suslin_exists_finite_away_elementary_cover g
-  intro m hm
-  letI : m.IsMaximal := hm
-  obtain ⟨d, hd⟩ := suslin_exists_away_elementary_of_atPrime m g (hlocal m)
-  exact ⟨d, Ideal.mem_primeCompl_iff.mp d.property, hd⟩
-
-theorem suslin_exists_finite_away_elementary_partition_of_atPrime
-    (g : Matrix.SpecialLinearGroup Index (Polynomial A))
-    (hlocal : ∀ (m : Ideal A) [m.IsMaximal],
-      Matrix.SpecialLinearGroup.map
-          (Polynomial.mapRingHom
-            (algebraMap A (Localization.AtPrime m))) g ∈
-        localGlobalElementarySubgroup
-          (Polynomial (Localization.AtPrime m))) :
-    ∃ (s : Finset A) (c : s → A),
-      (∀ d : s, suslinAwayElementary g (d : A)) ∧
-        ∑ d : s, c d * (d : A) = 1 := by
-  apply suslin_exists_finite_away_elementary_partition g
-  intro m hm
-  letI : m.IsMaximal := hm
-  obtain ⟨d, hd⟩ := suslin_exists_away_elementary_of_atPrime m g (hlocal m)
-  exact ⟨d, Ideal.mem_primeCompl_iff.mp d.property, hd⟩
-
 end ConnesRigidity
 
 end
@@ -14152,30 +8957,6 @@ theorem suslinPolynomialDilate_zero_of_mem_augmentation
   rw [show suslinEvaluation g = 1 from hg]
   exact map_one _
 
-theorem suslinPolynomialDilate_mem_elementary
-    (a : ℤ) {g : IntegralSpecialLinearGroup}
-    (hg : g ∈ integralElementarySubgroup) :
-    suslinPolynomialDilate a g ∈ integralElementarySubgroup := by
-  change g ∈ Subgroup.closure _ at hg
-  induction hg using Subgroup.closure_induction with
-  | mem g hg =>
-      obtain ⟨i, j, hij, p, rfl⟩ := hg
-      rw [show suslinPolynomialDilate a
-          (Matrix.SpecialLinearGroup.transvection hij p) =
-          Matrix.SpecialLinearGroup.transvection hij
-            (suslinPolynomialDilationRingHom a p) from
-        specialLinear_map_transvection_baseChange
-          (suslinPolynomialDilationRingHom a) hij p]
-      exact Subgroup.subset_closure
-        ⟨i, j, hij, suslinPolynomialDilationRingHom a p, rfl⟩
-  | one => simpa using integralElementarySubgroup.one_mem
-  | mul g h _ _ ihg ihh =>
-      rw [map_mul]
-      exact integralElementarySubgroup.mul_mem ihg ihh
-  | inv g _ ih =>
-      rw [map_inv]
-      exact integralElementarySubgroup.inv_mem ih
-
 theorem suslin_augmentation_mem_elementary_of_powered_patches
     (g : IntegralSpecialLinearGroup)
     (hg : g ∈ suslinAugmentationKernel)
@@ -14193,33 +8974,6 @@ theorem suslin_augmentation_mem_elementary_of_powered_patches
     (suslinPolynomialDilate_zero_of_mem_augmentation hg)
     s c n N hpartition hpatch
   simpa using h
-
-theorem suslinRelativeElementaryGeneration_of_powered_local_increments
-    (hlocal : ∀ (g : IntegralSpecialLinearGroup),
-      g ∈ suslinAugmentationKernel →
-        ∃ (n N : ℕ) (s c : Fin n → ℤ),
-          (∑ i, c i * s i ^ N = 1) ∧
-          ∀ (i : Fin n) (a : ℤ),
-            suslinPolynomialDilate (a + c i * s i ^ N) g *
-                (suslinPolynomialDilate a g)⁻¹ ∈
-              integralElementarySubgroup) :
-    SuslinRelativeElementaryGeneration := by
-  intro g hg
-  obtain ⟨n, N, s, c, hpartition, hpatch⟩ := hlocal g hg
-  let sn : ℕ → ℤ := fun j => if h : j < n then s ⟨j, h⟩ else 0
-  let cn : ℕ → ℤ := fun j => if h : j < n then c ⟨j, h⟩ else 0
-  have hpartitionFin : ∑ i : Fin n, cn i * sn i ^ N = 1 := by
-    simpa [cn, sn] using hpartition
-  have hpartitionNat : ∑ j ∈ Finset.range n, cn j * sn j ^ N = 1 := calc
-    ∑ j ∈ Finset.range n, cn j * sn j ^ N =
-        ∑ i : Fin n, cn i * sn i ^ N :=
-      (Fin.sum_univ_eq_sum_range (fun j => cn j * sn j ^ N) n).symm
-    _ = 1 := hpartitionFin
-  apply suslin_augmentation_mem_elementary_of_powered_patches
-    g hg sn cn n N hpartitionNat
-  intro j hj
-  simpa [cn, sn, hj] using
-    hpatch ⟨j, hj⟩ (suslinPoweredPrefix sn cn N j)
 
 end ConnesRigidity
 
@@ -14262,12 +9016,6 @@ theorem relativeRoot_mem_Z (I : Ideal R) (i j : Fin 4) (h : i ≠ j)
     (b : R) (hb : b ∈ I) :
     Matrix.SpecialLinearGroup.transvection h b ∈ relativeZSubgroup I := by
   simpa using relativeZ_mem I i j h 0 b hb
-
-theorem relativeRootSubgroup_le_Z (I : Ideal R) :
-    relativeRootSubgroup I ≤ relativeZSubgroup I := by
-  rw [relativeRootSubgroup, Subgroup.closure_le]
-  rintro _ ⟨i, j, h, b, hb, rfl⟩
-  exact relativeRoot_mem_Z I i j h b hb
 
 theorem relativeRoot_mem_F (I : Ideal R) (i j : Fin 4) (h : i ≠ j)
     (b : R) (hb : b ∈ I) :
@@ -15099,62 +9847,6 @@ universe u v
 
 attribute [local instance] Polynomial.algebra
 
-theorem suslinDifferenceDilation_integer
-    (a : ℤ) (g : IntegralSpecialLinearGroup) :
-    suslinDifferenceDilation a g = suslinPolynomialDilate a g := by
-  apply Matrix.SpecialLinearGroup.ext
-  intro i j
-  rfl
-
-theorem suslinDifferencePath_baseChange_mem_elementary
-    {A : Type u} {B : Type v} [CommRing A] [CommRing B]
-    (f : A →+* B) (a : A)
-    (g : Matrix.SpecialLinearGroup Index (Polynomial A))
-    (hg : Matrix.SpecialLinearGroup.map (Polynomial.mapRingHom f) g ∈
-      localGlobalElementarySubgroup (Polynomial B)) :
-    Matrix.SpecialLinearGroup.map
-        (Polynomial.mapRingHom (Polynomial.mapRingHom f))
-        (suslinDifferencePath a g) ∈
-      localGlobalElementarySubgroup (Polynomial (Polynomial B)) := by
-  rw [suslinDifferencePath_baseChange]
-  let gB : Matrix.SpecialLinearGroup Index (Polynomial B) :=
-    Matrix.SpecialLinearGroup.map (Polynomial.mapRingHom f) g
-  have hdilate : suslinDifferenceDilation (f a) gB ∈
-      localGlobalElementarySubgroup (Polynomial B) := by
-    exact map_localGlobalElementarySubgroup_le
-      (suslinDifferenceDilationRingHom (f a))
-      ⟨gB, hg, rfl⟩
-  have hshift : Matrix.SpecialLinearGroup.map
-        (suslinBivariateShiftRingHom (f a)) gB ∈
-      localGlobalElementarySubgroup (Polynomial (Polynomial B)) :=
-    map_localGlobalElementarySubgroup_le
-      (suslinBivariateShiftRingHom (f a)) ⟨gB, hg, rfl⟩
-  have hconstant : Matrix.SpecialLinearGroup.map
-        (suslinBivariateConstantRingHom (A := B))
-          (suslinDifferenceDilation (f a) gB) ∈
-      localGlobalElementarySubgroup (Polynomial (Polynomial B)) :=
-    map_localGlobalElementarySubgroup_le
-      (suslinBivariateConstantRingHom (A := B))
-      ⟨suslinDifferenceDilation (f a) gB, hdilate, rfl⟩
-  exact (localGlobalElementarySubgroup (Polynomial (Polynomial B))).mul_mem
-    hshift
-    ((localGlobalElementarySubgroup (Polynomial (Polynomial B))).inv_mem
-      hconstant)
-
-theorem suslin_increment_mem_elementary_of_differencePath
-    (g : IntegralSpecialLinearGroup) (a b : ℤ)
-    (hpath : suslinDifferencePath a g ∈
-      localGlobalElementarySubgroup (Polynomial IntegralPolynomial)) :
-    suslinPolynomialDilate (a + b) g *
-        (suslinPolynomialDilate a g)⁻¹ ∈
-      integralElementarySubgroup := by
-  have h := map_localGlobalElementarySubgroup_le
-    (Polynomial.evalRingHom
-      (Polynomial.C b * (Polynomial.X : IntegralPolynomial)))
-    ⟨suslinDifferencePath a g, hpath, rfl⟩
-  rw [suslinDifferencePath_eval_mul_X] at h
-  simpa [suslinDifferenceDilation_integer] using h
-
 theorem suslin_symbolic_double_denominator
     (d : ℤ)
     (s : ((Submonoid.powers d).map
@@ -15419,23 +10111,6 @@ theorem suslinRelativeElementaryGeneration_of_maximal_away_powered_increments
     g hg s hspan
   exact fun d hd => hincrement g hg d (hs d hd)
 
-theorem suslinElementaryGeneration_of_maximal_away_powered_increments
-    (hlocal : ∀ (g : IntegralSpecialLinearGroup),
-      g ∈ suslinAugmentationKernel →
-        ∀ (m : Ideal ℤ) [m.IsMaximal],
-          ∃ d : m.primeCompl, suslinAwayElementary g (d : ℤ))
-    (hincrement : ∀ (g : IntegralSpecialLinearGroup),
-      g ∈ suslinAugmentationKernel →
-        ∀ d : ℤ, suslinAwayElementary g d →
-          ∃ N : ℕ, ∀ a c : ℤ,
-            suslinPolynomialDilate (a + c * d ^ N) g *
-              (suslinPolynomialDilate a g)⁻¹ ∈
-                integralElementarySubgroup) :
-    SuslinElementaryGeneration :=
-  suslinElementaryGeneration_iff_relative.mpr
-    (suslinRelativeElementaryGeneration_of_maximal_away_powered_increments
-      hlocal hincrement)
-
 theorem suslinRelativeElementaryGeneration_of_maximal_local_powered_increments
     (hlocal : ∀ (g : IntegralSpecialLinearGroup),
       g ∈ suslinAugmentationKernel →
@@ -15458,27 +10133,6 @@ theorem suslinRelativeElementaryGeneration_of_maximal_local_powered_increments
   intro g hg m inst
   exact suslin_exists_away_elementary_of_atPrime m g (hlocal g hg m)
 
-theorem suslinElementaryGeneration_of_maximal_local_powered_increments
-    (hlocal : ∀ (g : IntegralSpecialLinearGroup),
-      g ∈ suslinAugmentationKernel →
-        ∀ (m : Ideal ℤ) [m.IsMaximal],
-          Matrix.SpecialLinearGroup.map
-            (Polynomial.mapRingHom
-              (algebraMap ℤ (Localization.AtPrime m))) g ∈
-            localGlobalElementarySubgroup
-              (Polynomial (Localization.AtPrime m)))
-    (hincrement : ∀ (g : IntegralSpecialLinearGroup),
-      g ∈ suslinAugmentationKernel →
-        ∀ d : ℤ, suslinAwayElementary g d →
-          ∃ N : ℕ, ∀ a c : ℤ,
-            suslinPolynomialDilate (a + c * d ^ N) g *
-              (suslinPolynomialDilate a g)⁻¹ ∈
-                integralElementarySubgroup) :
-    SuslinElementaryGeneration :=
-  suslinElementaryGeneration_iff_relative.mpr
-    (suslinRelativeElementaryGeneration_of_maximal_local_powered_increments
-      hlocal hincrement)
-
 theorem suslinRelativeElementaryGeneration_of_maximal_local_elementary
     (hlocal : ∀ (g : IntegralSpecialLinearGroup),
       g ∈ suslinAugmentationKernel →
@@ -15493,19 +10147,6 @@ theorem suslinRelativeElementaryGeneration_of_maximal_local_elementary
     hlocal
     (fun g _ d hd =>
       suslin_away_elementary_implies_powered_local_increment g d hd)
-
-theorem suslinElementaryGeneration_of_maximal_local_elementary
-    (hlocal : ∀ (g : IntegralSpecialLinearGroup),
-      g ∈ suslinAugmentationKernel →
-        ∀ (m : Ideal ℤ) [m.IsMaximal],
-          Matrix.SpecialLinearGroup.map
-            (Polynomial.mapRingHom
-              (algebraMap ℤ (Localization.AtPrime m))) g ∈
-            localGlobalElementarySubgroup
-              (Polynomial (Localization.AtPrime m))) :
-    SuslinElementaryGeneration :=
-  suslinElementaryGeneration_iff_relative.mpr
-    (suslinRelativeElementaryGeneration_of_maximal_local_elementary hlocal)
 
 end ConnesRigidity
 
@@ -15864,254 +10505,6 @@ section
 noncomputable section
 namespace ConnesRigidity
 
-def suslinElementaryEvaluation :
-    integralElementaryGroup →* IntegerSpecialLinearGroup :=
-  suslinEvaluation.comp integralElementarySubgroup.subtype
-
-def suslinRelativeXRoots : Set integralElementaryGroup :=
-  {g | ∃ (i j : Index) (h : i ≠ j) (p : IntegralPolynomial),
-    g = cornulierRoot i j h (Polynomial.X * p)}
-
-def suslinRelativeElementaryNormalClosure : Subgroup integralElementaryGroup :=
-  Subgroup.normalClosure suslinRelativeXRoots
-
-def suslinRelativeAmbientSubgroup : Subgroup IntegralSpecialLinearGroup :=
-  suslinRelativeElementaryNormalClosure.map integralElementarySubgroup.subtype
-
-theorem suslinRelativeXRoot_mem_normalClosure
-    (i j : Index) (h : i ≠ j) (p : IntegralPolynomial) :
-    cornulierRoot i j h (Polynomial.X * p) ∈
-      suslinRelativeElementaryNormalClosure :=
-  Subgroup.subset_normalClosure ⟨i, j, h, p, rfl⟩
-
-theorem suslinRelativeXRoot_mem_elementaryKernel
-    (i j : Index) (h : i ≠ j) (p : IntegralPolynomial) :
-    cornulierRoot i j h (Polynomial.X * p) ∈
-      suslinElementaryEvaluation.ker :=
-  suslin_X_root_mem_augmentation i j h p
-
-theorem suslinRelativeElementaryNormalClosure_le_elementaryKernel :
-    suslinRelativeElementaryNormalClosure ≤ suslinElementaryEvaluation.ker := by
-  apply Subgroup.normalClosure_le_normal
-  rintro _ ⟨i, j, h, p, rfl⟩
-  exact suslinRelativeXRoot_mem_elementaryKernel i j h p
-
-theorem suslinRelativeAmbientSubgroup_le_kernel_inf_elementary :
-    suslinRelativeAmbientSubgroup ≤
-      suslinAugmentationKernel ⊓ integralElementarySubgroup := by
-  rintro _ ⟨g, hg, rfl⟩
-  exact ⟨suslinRelativeElementaryNormalClosure_le_elementaryKernel hg,
-    g.property⟩
-
-@[simp] theorem cornulierRoot_inv (i j : Index) (h : i ≠ j)
-    (p : IntegralPolynomial) :
-    (cornulierRoot i j h p)⁻¹ = cornulierRoot i j h (-p) := by
-  apply Subtype.ext
-  exact Matrix.SpecialLinearGroup.transvection_inv h p
-
-def suslinOppositeRootConjugate (i j : Index) (h : i ≠ j)
-    (a p : IntegralPolynomial) : integralElementaryGroup :=
-  cornulierRoot j i h.symm a *
-    cornulierRoot i j h (Polynomial.X * p) *
-    cornulierRoot j i h.symm (-a)
-
-theorem suslinOppositeRootConjugate_mem_normalClosure
-    (i j : Index) (h : i ≠ j) (a p : IntegralPolynomial) :
-    suslinOppositeRootConjugate i j h a p ∈
-      suslinRelativeElementaryNormalClosure := by
-  unfold suslinOppositeRootConjugate
-  rw [← cornulierRoot_inv]
-  exact Subgroup.normalClosure_normal.conj_mem
-    (cornulierRoot i j h (Polynomial.X * p))
-    (suslinRelativeXRoot_mem_normalClosure i j h p)
-    (cornulierRoot j i h.symm a)
-
-theorem suslinOppositeRootConjugate_diagonal_left
-    (i j : Index) (h : i ≠ j) (a p : IntegralPolynomial) :
-    (suslinOppositeRootConjugate i j h a p).val i i =
-      1 - a * (Polynomial.X * p) := by
-  unfold suslinOppositeRootConjugate
-  rw [← cornulierRoot_inv]
-  change
-    (Matrix.SpecialLinearGroup.transvection h.symm a *
-      Matrix.SpecialLinearGroup.transvection h (Polynomial.X * p) *
-      (Matrix.SpecialLinearGroup.transvection h.symm a)⁻¹ :
-      IntegralSpecialLinearGroup) i i = _
-  rw [cornulier_conjugate_root_apply
-    (Matrix.SpecialLinearGroup.transvection h.symm a)
-    i j h (Polynomial.X * p) i i]
-  simp [Matrix.SpecialLinearGroup.transvection_coe,
-    Matrix.SpecialLinearGroup.transvection_inv,
-    Matrix.single_apply, Matrix.one_apply, h, h.symm]
-  ring
-
-theorem suslinOppositeRootConjugate_diagonal_right
-    (i j : Index) (h : i ≠ j) (a p : IntegralPolynomial) :
-    (suslinOppositeRootConjugate i j h a p).val j j =
-      1 + a * (Polynomial.X * p) := by
-  unfold suslinOppositeRootConjugate
-  rw [← cornulierRoot_inv]
-  change
-    (Matrix.SpecialLinearGroup.transvection h.symm a *
-      Matrix.SpecialLinearGroup.transvection h (Polynomial.X * p) *
-      (Matrix.SpecialLinearGroup.transvection h.symm a)⁻¹ :
-      IntegralSpecialLinearGroup) j j = _
-  rw [cornulier_conjugate_root_apply
-    (Matrix.SpecialLinearGroup.transvection h.symm a)
-    i j h (Polynomial.X * p) j j]
-  simp [Matrix.SpecialLinearGroup.transvection_coe,
-    Matrix.SpecialLinearGroup.transvection_inv,
-    Matrix.single_apply, Matrix.one_apply, h, h.symm]
-
-def suslinElementaryRootSet : Set integralElementaryGroup :=
-  {g | ∃ (i j : Index) (h : i ≠ j) (p : IntegralPolynomial),
-    g = cornulierRoot i j h p}
-
-theorem suslinElementaryRootSet_closure_eq_top :
-    Subgroup.closure suslinElementaryRootSet =
-      (⊤ : Subgroup integralElementaryGroup) := by
-  let S : Subgroup integralElementaryGroup :=
-    Subgroup.closure suslinElementaryRootSet
-  have hcover : integralElementarySubgroup ≤
-      S.map integralElementarySubgroup.subtype := by
-    change Subgroup.closure _ ≤ _
-    rw [Subgroup.closure_le]
-    rintro _ ⟨i, j, h, p, rfl⟩
-    refine ⟨cornulierRoot i j h p, ?_, rfl⟩
-    exact Subgroup.subset_closure ⟨i, j, h, p, rfl⟩
-  apply top_unique
-  intro g _
-  obtain ⟨z, hz, hzg⟩ := hcover g.property
-  have heq : z = g := Subtype.ext hzg
-  change g ∈ S
-  subst z
-  exact hz
-
-def suslinElementaryConstantRetraction :
-    integralElementaryGroup →* integralElementaryGroup :=
-  (suslinConstantSection.comp suslinElementaryEvaluation).codRestrict
-    integralElementarySubgroup (by
-      intro g
-      apply suslinConstantSection_map_elementary_le
-      refine ⟨suslinElementaryEvaluation g, ?_, rfl⟩
-      rw [← suslinEvaluation_map_elementary]
-      exact ⟨g.val, g.property, rfl⟩)
-
-@[simp] theorem suslinElementaryConstantRetraction_root
-    (i j : Index) (h : i ≠ j) (p : IntegralPolynomial) :
-    suslinElementaryConstantRetraction (cornulierRoot i j h p) =
-      cornulierRoot i j h (Polynomial.C (p.eval 0)) := by
-  apply Subtype.ext
-  change
-    suslinConstantSection
-      (suslinEvaluation
-        (Matrix.SpecialLinearGroup.transvection h p)) =
-      Matrix.SpecialLinearGroup.transvection h (Polynomial.C (p.eval 0))
-  rw [show suslinEvaluation (Matrix.SpecialLinearGroup.transvection h p) =
-        Matrix.SpecialLinearGroup.transvection h (p.eval 0) from
-      specialLinear_map_transvection_baseChange
-        (Polynomial.evalRingHom (0 : ℤ)) h p]
-  exact specialLinear_map_transvection_baseChange
-    (Polynomial.C : ℤ →+* IntegralPolynomial) h (p.eval 0)
-
-theorem suslinPolynomial_sub_C_eval_eq_X_mul
-    (p : IntegralPolynomial) :
-    p - Polynomial.C (p.eval 0) =
-      Polynomial.X * (p /ₘ Polynomial.X) := by
-  have h := Polynomial.modByMonic_add_div p (Polynomial.X : IntegralPolynomial)
-  rw [Polynomial.modByMonic_X] at h
-  calc
-    p - Polynomial.C (p.eval 0) =
-        (Polynomial.C (p.eval 0) +
-          Polynomial.X * (p /ₘ Polynomial.X)) - Polynomial.C (p.eval 0) := by
-            rw [h]
-    _ = Polynomial.X * (p /ₘ Polynomial.X) := by ring
-
-theorem suslinElementaryRoot_deviation_eq_X_root
-    (i j : Index) (h : i ≠ j) (p : IntegralPolynomial) :
-    cornulierRoot i j h p *
-        (suslinElementaryConstantRetraction
-          (cornulierRoot i j h p))⁻¹ =
-      cornulierRoot i j h
-        (Polynomial.X * (p /ₘ Polynomial.X)) := by
-  rw [suslinElementaryConstantRetraction_root, cornulierRoot_inv]
-  apply Subtype.ext
-  change
-    Matrix.SpecialLinearGroup.transvection h p *
-        Matrix.SpecialLinearGroup.transvection h
-          (-(Polynomial.C (p.eval 0))) =
-      Matrix.SpecialLinearGroup.transvection h
-        (Polynomial.X * (p /ₘ Polynomial.X))
-  rw [← Matrix.SpecialLinearGroup.transvection_add,
-    ← sub_eq_add_neg, suslinPolynomial_sub_C_eval_eq_X_mul]
-
-theorem suslinElementary_deviation_mem_normalClosure
-    (g : integralElementaryGroup) :
-    g * (suslinElementaryConstantRetraction g)⁻¹ ∈
-      suslinRelativeElementaryNormalClosure := by
-  have hg : g ∈ Subgroup.closure suslinElementaryRootSet := by
-    rw [suslinElementaryRootSet_closure_eq_top]
-    trivial
-  let N : Subgroup integralElementaryGroup :=
-    suslinRelativeElementaryNormalClosure
-  have hnormal : N.Normal := by
-    change (Subgroup.normalClosure suslinRelativeXRoots).Normal
-    infer_instance
-  change g * (suslinElementaryConstantRetraction g)⁻¹ ∈ N
-  induction hg using Subgroup.closure_induction with
-  | mem x hx =>
-      obtain ⟨i, j, h, p, rfl⟩ := hx
-      rw [suslinElementaryRoot_deviation_eq_X_root]
-      exact suslinRelativeXRoot_mem_normalClosure i j h (p /ₘ Polynomial.X)
-  | one =>
-      simpa using N.one_mem
-  | mul x y hx hy ihx ihy =>
-      have hc : x * (y * (suslinElementaryConstantRetraction y)⁻¹) *
-          x⁻¹ ∈ N :=
-        hnormal.conj_mem _ ihy x
-      have hm :
-          (x * (y * (suslinElementaryConstantRetraction y)⁻¹) * x⁻¹) *
-            (x * (suslinElementaryConstantRetraction x)⁻¹) ∈ N :=
-        N.mul_mem hc ihx
-      simpa [map_mul, mul_assoc] using hm
-  | inv x hx ih =>
-      have hc :
-          x⁻¹ * (x * (suslinElementaryConstantRetraction x)⁻¹)⁻¹ *
-            (x⁻¹)⁻¹ ∈ N :=
-        hnormal.conj_mem _ (N.inv_mem ih) x⁻¹
-      simpa [map_inv, mul_assoc] using hc
-
-theorem suslinRelativeElementaryNormalClosure_eq_elementaryKernel :
-    suslinRelativeElementaryNormalClosure =
-      suslinElementaryEvaluation.ker := by
-  apply le_antisymm
-  · exact suslinRelativeElementaryNormalClosure_le_elementaryKernel
-  · intro g hg
-    have hzero : suslinElementaryEvaluation g = 1 := hg
-    have hretract : suslinElementaryConstantRetraction g = 1 := by
-      apply Subtype.ext
-      change suslinConstantSection (suslinElementaryEvaluation g) = 1
-      rw [hzero, map_one]
-    have hdev := suslinElementary_deviation_mem_normalClosure g
-    simpa [hretract] using hdev
-
-theorem suslinRelativeAmbientSubgroup_eq_kernel_inf_elementary :
-    suslinRelativeAmbientSubgroup =
-      suslinAugmentationKernel ⊓ integralElementarySubgroup := by
-  apply le_antisymm
-  · exact suslinRelativeAmbientSubgroup_le_kernel_inf_elementary
-  · rintro g ⟨hgkernel, hgelementary⟩
-    let e : integralElementaryGroup := ⟨g, hgelementary⟩
-    have he : e ∈ suslinElementaryEvaluation.ker := hgkernel
-    rw [← suslinRelativeElementaryNormalClosure_eq_elementaryKernel] at he
-    exact ⟨e, he, rfl⟩
-
-theorem suslinRelativeElementaryGeneration_iff_relativeAmbient_eq_kernel :
-    SuslinRelativeElementaryGeneration ↔
-      suslinRelativeAmbientSubgroup = suslinAugmentationKernel := by
-  rw [suslinRelativeAmbientSubgroup_eq_kernel_inf_elementary]
-  exact ⟨fun h => inf_eq_left.mpr h, fun h => inf_eq_left.mp h⟩
-
 end ConnesRigidity
 
 end
@@ -16134,15 +10527,6 @@ theorem suslin_stabilizedThreeElementaryGeneration_of_elementaryThreeGeneration
     StabilizedThreeElementaryGeneration R := by
   intro b
   exact lowerBlock_mem_of_elementaryThree b (hthree b)
-
-theorem suslin_polynomial_stabilizedBlock_elementary_of_elementaryThreeGeneration
-    {A : Type u} [CommRing A]
-    (hthree : ∀ b : Matrix.SpecialLinearGroup (Fin 3) (Polynomial A),
-      b ∈ elementaryThreeSubgroup (Polynomial A))
-    (b : Matrix.SpecialLinearGroup (Fin 3) (Polynomial A)) :
-    lowerBlockSpecialLinear b ∈
-      localGlobalElementarySubgroup (Polynomial A) :=
-  lowerBlock_mem_of_elementaryThree b (hthree b)
 
 theorem suslin_stabilizedThreeElementaryGeneration_of_lastColumnTransitivity_and_stabilizedTwo
     {R : Type u} [CommRing R]
@@ -16176,92 +10560,6 @@ noncomputable section
 
 namespace ConnesRigidity
 
-open Matrix Polynomial
-open StabilizedBlockReduction
-
-universe u
-
-variable {A : Type u} [CommRing A]
-
-def suslinThreeDiagonalUnitPair
-    (i j : Fin 3) (h : i ≠ j) (a : Aˣ) :
-    Matrix.SpecialLinearGroup (Fin 3) A :=
-  Matrix.SpecialLinearGroup.transvection h (a : A) *
-    Matrix.SpecialLinearGroup.transvection h.symm (-(↑a⁻¹ : A)) *
-    Matrix.SpecialLinearGroup.transvection h (a : A) *
-    Matrix.SpecialLinearGroup.transvection h (-1) *
-    Matrix.SpecialLinearGroup.transvection h.symm 1 *
-    Matrix.SpecialLinearGroup.transvection h (-1)
-
-theorem suslinThreeDiagonalUnitPair_mem
-    (i j : Fin 3) (h : i ≠ j) (a : Aˣ) :
-    suslinThreeDiagonalUnitPair i j h a ∈ elementaryThreeSubgroup A := by
-  unfold suslinThreeDiagonalUnitPair elementaryThreeSubgroup
-  exact (Subgroup.closure _).mul_mem
-    ((Subgroup.closure _).mul_mem
-      ((Subgroup.closure _).mul_mem
-        ((Subgroup.closure _).mul_mem
-          ((Subgroup.closure _).mul_mem
-            (Subgroup.subset_closure ⟨i, j, h, (a : A), rfl⟩)
-            (Subgroup.subset_closure
-              ⟨j, i, h.symm, -(↑a⁻¹ : A), rfl⟩))
-          (Subgroup.subset_closure ⟨i, j, h, (a : A), rfl⟩))
-        (Subgroup.subset_closure ⟨i, j, h, -1, rfl⟩))
-      (Subgroup.subset_closure ⟨j, i, h.symm, 1, rfl⟩))
-    (Subgroup.subset_closure ⟨i, j, h, -1, rfl⟩)
-
-private theorem suslinThree_transvection_smul_apply
-    (i j : Fin 3) (h : i ≠ j) (a : A)
-    (v : Fin 3 → A) (k : Fin 3) :
-    (Matrix.SpecialLinearGroup.transvection h a • v) k =
-      if k = i then v i + a * v j else v k := by
-  change ((Matrix.SpecialLinearGroup.transvection h a).val *ᵥ v) k = _
-  rw [Matrix.SpecialLinearGroup.transvection_coe, Matrix.add_mulVec,
-    Matrix.one_mulVec, Matrix.single_mulVec]
-  by_cases hk : k = i <;> simp [hk]
-
-theorem suslinThreeDiagonalUnitPair_smul_apply
-    (i j : Fin 3) (h : i ≠ j) (a : Aˣ)
-    (v : Fin 3 → A) (k : Fin 3) :
-    (suslinThreeDiagonalUnitPair i j h a • v) k =
-      if k = i then (a : A) * v i
-      else if k = j then (↑a⁻¹ : A) * v j
-      else v k := by
-  simp only [suslinThreeDiagonalUnitPair, mul_smul,
-    suslinThree_transvection_smul_apply]
-  by_cases hki : k = i
-  · subst k
-    simp [h, h.symm]
-    linear_combination (v j - (a : A) * v i) * a.mul_inv
-  · by_cases hkj : k = j
-    · subst k
-      simp [h, h.symm]
-      linear_combination -v i * a.inv_mul
-    · simp [hki, hkj]
-
-theorem suslin_three_unit_leadingCoeff_elementary_monic
-    (v : Fin 3 → Polynomial A) (i : Fin 3)
-    (hunit : IsUnit (v i).leadingCoeff) :
-    ∃ e : Matrix.SpecialLinearGroup (Fin 3) (Polynomial A),
-      e ∈ elementaryThreeSubgroup (Polynomial A) ∧
-        ((e • v) i).Monic := by
-  let j : Fin 3 := if i = 0 then 1 else 0
-  have hij : i ≠ j := by
-    dsimp [j]
-    split_ifs with hi
-    · subst i
-      decide
-    · exact hi
-  let inverseLeading : (Polynomial A)ˣ :=
-    Units.map (Polynomial.C : A →+* Polynomial A).toMonoidHom
-      hunit.unit⁻¹
-  let e := suslinThreeDiagonalUnitPair i j hij inverseLeading
-  refine ⟨e, suslinThreeDiagonalUnitPair_mem i j hij inverseLeading, ?_⟩
-  rw [suslinThreeDiagonalUnitPair_smul_apply, if_pos rfl]
-  change (Polynomial.C (↑hunit.unit⁻¹ : A) * v i).Monic
-  exact Polynomial.monic_C_mul_of_mul_leadingCoeff_eq_one
-    hunit.val_inv_mul
-
 end ConnesRigidity
 
 end
@@ -16289,13 +10587,6 @@ theorem suslin_dvr_polynomial_stableRangeThree
     BassStableRangeAtMost (Polynomial A) 3 :=
   bassStableRangeThree_of_noetherian_domain_dimension_two
     suslin_dvr_polynomial_ringKrullDim
-
-theorem suslin_integer_atPrime_polynomial_stableRangeThree
-    (p : Ideal ℤ) [p.IsMaximal] :
-    BassStableRangeAtMost (Polynomial (Localization.AtPrime p)) 3 := by
-  letI : IsDiscreteValuationRing (Localization.AtPrime p) :=
-    suslin_integer_atPrime_isDiscreteValuationRing p
-  exact suslin_dvr_polynomial_stableRangeThree
 
 theorem suslin_dvr_stabilizedThreeElementaryGeneration_of_stabilizedTwo
     {A : Type u} [CommRing A] [IsDomain A]
@@ -16498,12 +10789,6 @@ theorem specialLinear_eq_one_of_modThree_eq_one_of_isOfFinOrder
   intro i j
   exact congrArg (fun A : Matrix ι ι ℤ => A i j) hamatrixone
 
-theorem minkowski_level_three (d : ℕ)
-    (g : Matrix.SpecialLinearGroup (Fin d) ℤ)
-    (hmod : Matrix.SpecialLinearGroup.map (Int.castRingHom (ZMod 3)) g = 1)
-    (hfinite : IsOfFinOrder g) : g = 1 :=
-  specialLinear_eq_one_of_modThree_eq_one_of_isOfFinOrder g hmod hfinite
-
 end MatrixLemmas
 
 theorem levelThreeInteger_torsionFree : LevelThreeIntegerTorsionFree := by
@@ -16517,12 +10802,6 @@ theorem K_no_nontrivial_torsion :
     ∀ g : K, IsOfFinOrder g → g = 1 :=
   K_no_nontrivial_torsion_of_levelThree_torsionFree
     levelThreeInteger_torsionFree
-
-theorem K_eq_one_of_pow_eq_one
-    (g : K) (m : ℕ) (hm : 0 < m) (hpow : g ^ m = 1) :
-    g = 1 :=
-  K_eq_one_of_pow_eq_one_of_levelThree_torsionFree
-    levelThreeInteger_torsionFree g m hm hpow
 
 end ConnesRigidity
 
@@ -16851,12 +11130,6 @@ theorem carry_comm (ℓ ℓ' : X) : carry ℓ ℓ' = carry ℓ' ℓ := by
   · intro a v _ hv
     simp only [map_smul, hv]
 
-theorem carry_cocycle (ℓ₁ ℓ₂ ℓ₃ : X) :
-    carry ℓ₁ ℓ₂ + carry (ℓ₁ + ℓ₂) ℓ₃ =
-      carry ℓ₂ ℓ₃ + carry ℓ₁ (ℓ₂ + ℓ₃) := by
-  rw [carry_add_left, carry_add_right]
-  abel
-
 def shiftVector (n : ℕ) : V →ₗ[F] V :=
   (LinearMap.lsmul R V (Polynomial.X ^ n)).restrictScalars F
 
@@ -16908,12 +11181,6 @@ theorem shiftedCarry_add_right (n : ℕ) (ℓ ℓ₁ ℓ₂ : X) :
     shiftedCarry n ℓ (ℓ₁ + ℓ₂) =
       shiftedCarry n ℓ ℓ₁ + shiftedCarry n ℓ ℓ₂ := by
   simp only [shiftedCarry, shift_add, carry_add_right]
-
-theorem shiftedCarry_cocycle (n : ℕ) (ℓ₁ ℓ₂ ℓ₃ : X) :
-    shiftedCarry n ℓ₁ ℓ₂ + shiftedCarry n (ℓ₁ + ℓ₂) ℓ₃ =
-      shiftedCarry n ℓ₂ ℓ₃ + shiftedCarry n ℓ₁ (ℓ₂ + ℓ₃) := by
-  rw [shiftedCarry_add_left, shiftedCarry_add_right]
-  abel
 
 end
 
@@ -17039,25 +11306,6 @@ def orderFourElement (n : ℕ) : CarryGroup n :=
 @[simp] theorem orderFourElement_quadratic (n : ℕ) :
     (orderFourElement n).quadratic = 0 := rfl
 
-theorem two_nsmul_orderFourElement_ne_zero (n : ℕ) :
-    (2 : ℕ) • orderFourElement n ≠ 0 := by
-  intro h
-  have hq := congr_arg (fun z : CarryGroup n ↦ z.quadratic (diagonal e)) h
-  have hc :
-      shiftedCarry n (coefficientFunctional n) (coefficientFunctional n)
-          (diagonal e) = 0 := by
-    simpa [two_nsmul_quadratic] using hq
-  change shift n (coefficientFunctional n) e *
-    shift n (coefficientFunctional n) e = 0 at hc
-  simpa using hc
-
-theorem addOrderOf_orderFourElement (n : ℕ) :
-    addOrderOf (orderFourElement n) = 4 := by
-  have hfour := four_nsmul_eq_zero (orderFourElement n)
-  have htwo := two_nsmul_orderFourElement_ne_zero n
-  exact addOrderOf_eq_prime_pow (p := 2) (n := 1)
-    (by simpa using htwo) (by simpa using hfour)
-
 end CarryGroup
 
 end
@@ -17159,49 +11407,8 @@ instance instYTopologicalAddGroup : IsTopologicalAddGroup Y where
     intro w
     exact (continuous_Y_eval w).neg
 
-theorem continuous_tensorFunctional_eval (w : T) :
-    Continuous (fun z : X × X => tensorFunctional z.1 z.2 w) := by
-  induction w using TensorProduct.induction_on with
-  | zero =>
-      simpa using (continuous_const : Continuous (fun _ : X × X => (0 : F)))
-  | tmul u v =>
-      exact (((continuous_X_eval u).comp continuous_fst).mul
-        ((continuous_X_eval v).comp continuous_snd)).congr
-          (fun z => by simp [tensorFunctional_tmul])
-  | add u v hu hv =>
-      exact (hu.add hv).congr (fun z => by simp)
-
-theorem continuous_carry : Continuous (fun z : X × X => carry z.1 z.2) := by
-  apply continuous_Y_iff.mpr
-  intro w
-  exact continuous_tensorFunctional_eval (w : T)
-
 theorem continuous_shift (n : ℕ) : Continuous (shift n : X → X) :=
   continuous_X_precomp (shiftVector n)
-
-theorem continuous_shiftedCarry (n : ℕ) :
-    Continuous (fun z : X × X => shiftedCarry n z.1 z.2) := by
-  apply continuous_Y_iff.mpr
-  rintro ⟨w, hw⟩
-  change Continuous
-    (fun z : X × X => tensorFunctional (shift n z.1) (shift n z.2) w)
-  change w ∈ Submodule.span F (Set.range square) at hw
-  refine Submodule.span_induction
-    (p := fun u _ => Continuous
-      (fun z : X × X => tensorFunctional (shift n z.1) (shift n z.2) u))
-    ?_ ?_ ?_ ?_ hw
-  · rintro _ ⟨v, rfl⟩
-    change Continuous
-      (fun z : X × X => z.1 (shiftVector n v) * z.2 (shiftVector n v))
-    exact ((continuous_X_eval (shiftVector n v)).comp continuous_fst).mul
-      ((continuous_X_eval (shiftVector n v)).comp continuous_snd)
-  · simpa using (continuous_const : Continuous (fun _ : X × X => (0 : F)))
-  · intro u v _ _ hu hv
-    simp_rw [map_add]
-    convert hu.add hv using 1 <;> rfl
-  · intro a v _ hv
-    simp_rw [map_smul, smul_eq_mul]
-    convert (continuous_const : Continuous (fun _ : X × X => a)).mul hv using 1 <;> rfl
 
 def carryCoordinates (n : ℕ) (z : CarryGroup n) : X × Y :=
   (z.linear, z.quadratic)
@@ -17584,59 +11791,6 @@ section
 
 namespace ConnesRigidity
 
-open ConnesRigidity.FeedbackBooleanPolynomial
-
-abbrev BooleanQuadraticPolynomial (ι : Type*) [Fintype ι] [LinearOrder ι] :=
-  BinaryQuadraticPolynomial ι
-
-def booleanSupport {ι : Type*} [Fintype ι] [LinearOrder ι]
-    (p : BooleanQuadraticPolynomial ι) : Finset (ι → ZMod 2) :=
-  Finset.univ.filter (fun x ↦ p.eval x ≠ 0)
-
-@[simp] theorem mem_booleanSupport {ι : Type*} [Fintype ι] [LinearOrder ι]
-    (p : BooleanQuadraticPolynomial ι) (x : ι → ZMod 2) :
-    x ∈ booleanSupport p ↔ p.eval x ≠ 0 := by
-  simp [booleanSupport]
-
-theorem boolean_support_quarter {ι : Type*} [Fintype ι] [LinearOrder ι]
-    (p : BooleanQuadraticPolynomial ι)
-    (hp : ∃ x, p.eval x ≠ 0) :
-    Fintype.card (ι → ZMod 2) ≤ 4 * (booleanSupport p).card := by
-  simpa [booleanSupport] using
-    BinaryQuadraticPolynomial.four_mul_support_card_ge_of_eval_nonzero p hp
-
-theorem boolean_support (m : ℕ) (hm : 2 ≤ m)
-    (p : BooleanQuadraticPolynomial (Fin m))
-    (hp : ∃ x, p.eval x ≠ 0) :
-    2 ^ (m - 2) ≤ (booleanSupport p).card := by
-  have hquarter := boolean_support_quarter p hp
-  have hcube : Fintype.card (Fin m → ZMod 2) = 2 ^ m := by
-    simp
-  have hpower : 2 ^ m = 4 * 2 ^ (m - 2) := by
-    calc
-      2 ^ m = 2 ^ (m - 2) * 2 ^ 2 := by
-        rw [← pow_add, Nat.sub_add_cancel hm]
-      _ = 4 * 2 ^ (m - 2) := by omega
-  rw [hcube, hpower] at hquarter
-  exact Nat.le_of_mul_le_mul_left hquarter (by decide)
-
-theorem boolean_support_of_ne_zero (m : ℕ) (hm : 2 ≤ m)
-    (p : BooleanQuadraticPolynomial (Fin m))
-    (hp : p.eval ≠ 0) :
-    2 ^ (m - 2) ≤ (booleanSupport p).card := by
-  apply boolean_support m hm p
-  by_contra h
-  apply hp
-  funext x
-  by_contra hx
-  exact h ⟨x, hx⟩
-
-theorem four_coordinate_boolean_support (N : ℕ) (hN : 0 < N)
-    (p : BooleanQuadraticPolynomial (Fin (4 * N)))
-    (hp : ∃ x, p.eval x ≠ 0) :
-    2 ^ (4 * N - 2) ≤ (booleanSupport p).card := by
-  apply boolean_support (4 * N) (by omega) p hp
-
 end ConnesRigidity
 
 end
@@ -17668,39 +11822,11 @@ theorem carry_add_right (x y z : Bit) :
     carry x (y + z) = carry x y + carry x z := by
   simp [carry, mul_add]
 
-theorem carry_cocycle (x y z : Bit) :
-    carry x y + carry (x + y) z =
-      carry y z + carry x (y + z) := by
-  simp [carry, add_mul, mul_add]
-  ac_rfl
-
 def liftBit (x : Bit) : ZMod 4 := (x.val : ZMod 4)
 
 @[simp] theorem liftBit_zero : liftBit 0 = 0 := by decide
 
 @[simp] theorem liftBit_one : liftBit 1 = 1 := by decide
-
-theorem binary_carry_identity (x y : Bit) :
-    liftBit x + liftBit y =
-      liftBit (x + y) + 2 * liftBit x * liftBit y := by
-  fin_cases x <;> fin_cases y <;> decide
-
-def diamond (p q : Point) : Point :=
-  (p.1 + q.1, p.2 + q.2 + carry p.1 q.1)
-
-theorem diamond_comm (p q : Point) : diamond p q = diamond q p := by
-  rcases p with ⟨x, y⟩
-  rcases q with ⟨x', y'⟩
-  fin_cases x <;> fin_cases y <;> fin_cases x' <;> fin_cases y' <;> decide
-
-theorem diamond_assoc (p q r : Point) :
-    diamond (diamond p q) r = diamond p (diamond q r) := by
-  rcases p with ⟨x, y⟩
-  rcases q with ⟨x', y'⟩
-  rcases r with ⟨x'', y''⟩
-  fin_cases x <;> fin_cases y <;>
-    fin_cases x' <;> fin_cases y' <;>
-    fin_cases x'' <;> fin_cases y'' <;> decide
 
 @[ext] structure Carry where
 
@@ -17752,9 +11878,6 @@ def pointEquiv : Carry ≃ Point where
 @[simp] theorem pointEquiv_apply (p : Carry) :
     pointEquiv p = (p.low, p.high) := rfl
 
-theorem pointEquiv_add (p q : Carry) :
-    pointEquiv (p + q) = diamond (pointEquiv p) (pointEquiv q) := rfl
-
 def code (p : Carry) : ZMod 4 :=
   liftBit p.low + 2 * liftBit p.high
 
@@ -17773,120 +11896,11 @@ def codeEquiv : Carry ≃+ ZMod 4 where
 @[simp] theorem codeEquiv_symm_apply (z : ZMod 4) :
     codeEquiv.symm z = decode z := rfl
 
-theorem code_add (p q : Carry) : code (p + q) = code p + code q :=
-  codeEquiv.map_add p q
-
-def lowProjection : Carry →+ Bit where
-  toFun := Carry.low
-  map_zero' := rfl
-  map_add' _ _ := rfl
-
-def highInclusion : Bit →+ Carry where
-  toFun x := ⟨0, x⟩
-  map_zero' := rfl
-  map_add' := by decide
-
-theorem lowProjection_surjective : Function.Surjective lowProjection := by
-  intro x
-  exact ⟨⟨x, 0⟩, rfl⟩
-
-theorem highInclusion_injective : Function.Injective highInclusion := by
-  intro x y h
-  exact congrArg Carry.high h
-
-theorem ker_lowProjection_eq_range_highInclusion :
-    lowProjection.ker = highInclusion.range := by
-  ext p
-  constructor
-  · intro hp
-    change p.low = 0 at hp
-    refine ⟨p.high, ?_⟩
-    apply Carry.ext
-    · exact hp.symm
-    · rfl
-  · rintro ⟨x, hx⟩
-    change p.low = 0
-    rw [← hx]
-    rfl
-
-theorem two_nsmul_of_low_one (p : Carry) (h : p.low = 1) :
-    2 • p = (⟨0, 1⟩ : Carry) := by
-  rcases p with ⟨x, y⟩
-  change x = 1 at h
-  subst x
-  fin_cases y <;> decide
-
-theorem no_additive_splitting :
-    ¬ ∃ section_ : Bit →+ Carry,
-      lowProjection.comp section_ = AddMonoidHom.id Bit := by
-  rintro ⟨section_, hsection⟩
-  have hlow : (section_ 1).low = 1 := by
-    have h := DFunLike.congr_fun hsection 1
-    exact h
-  have hdouble : 2 • section_ 1 = (0 : Carry) := by
-    rw [← section_.map_nsmul]
-    change section_ (2 : Bit) = 0
-    have htwo : (2 : Bit) = 0 := by decide
-    rw [htwo, section_.map_zero]
-  have hnonzero : (⟨0, 1⟩ : Carry) ≠ 0 := by decide
-  apply hnonzero
-  rw [← two_nsmul_of_low_one (section_ 1) hlow]
-  exact hdouble
-
-theorem generator_double :
-    (⟨1, 0⟩ : Carry) + ⟨1, 0⟩ = ⟨0, 1⟩ := by decide
-
-theorem generator_addOrderOf :
-    addOrderOf (⟨1, 0⟩ : Carry) = 4 := by
-  calc
-    addOrderOf (⟨1, 0⟩ : Carry) =
-        addOrderOf (codeEquiv (⟨1, 0⟩ : Carry)) :=
-      (codeEquiv.addOrderOf_eq (⟨1, 0⟩ : Carry)).symm
-    _ = 4 := by
-      change addOrderOf (1 : ZMod 4) = 4
-      exact ZMod.addOrderOf_one 4
-
 theorem exponent_four : ∀ p : Carry, 4 • p = 0 := by decide
-
-theorem not_exponent_two : ∃ p : Carry, 2 • p ≠ 0 := by decide
-
-theorem split_exponent_two : ∀ p : Point, 2 • p = 0 := by decide
-
-theorem not_add_equiv_split : ¬ Nonempty (Carry ≃+ Point) := by
-  rintro ⟨e⟩
-  have hzero : 2 • e (⟨1, 0⟩ : Carry) = 0 :=
-    split_exponent_two _
-  have hnonzero : 2 • (⟨1, 0⟩ : Carry) ≠ 0 := by decide
-  apply hnonzero
-  apply e.injective
-  simpa using hzero
 
 @[simp] theorem card : Fintype.card Carry = 4 := by decide
 
 end Carry
-
-theorem carry_not_coboundary :
-    ¬ ∃ f : Bit → Bit, f 0 = 0 ∧
-      ∀ x y, carry x y = f x + f y + f (x + y) := by
-  rintro ⟨f, hf, hcarry⟩
-  have h := hcarry 1 1
-  have hdouble : f 1 + f 1 = 0 := CharTwo.add_self_eq_zero (f 1)
-  norm_num [carry, hf, hdouble] at h
-  have htwo : (2 : Bit) = 0 := by decide
-  simp [htwo, hf] at h
-
-def uniformPointMass (α : Type*) [Fintype α] (_ : α) : ℚ :=
-  1 / Fintype.card α
-
-theorem pointEquiv_preserves_uniform_probability (p : Carry) :
-    uniformPointMass Carry p =
-      uniformPointMass Point (Carry.pointEquiv p) := by
-  simp [uniformPointMass, Carry.card]
-
-theorem pointEquiv_preserves_uniform_pmf (p : Carry) :
-    PMF.uniformOfFintype Carry p =
-      PMF.uniformOfFintype Point (Carry.pointEquiv p) := by
-  simp [PMF.uniformOfFintype_apply, Carry.card]
 
 end ConnesRigidity.FiniteCarry
 
@@ -18057,8 +12071,6 @@ namespace ConnesRigidity
 abbrev E (n : ℕ) :=
   Additive (PontryaginDual (Multiplicative (CarryGroup n)))
 
-abbrev PaperDual (n : ℕ) := E n
-
 def fourthRootAddCharacter : AddChar (ZMod 4) Circle :=
   ZMod.toCircle
 
@@ -18193,10 +12205,6 @@ theorem epsilon_addOrderOf (n : ℕ) :
     (by simpa using epsilon_two_nsmul_ne_zero n)
     (by simpa using E_four_nsmul n (epsilon n e))
 
-theorem E_exists_order_four (n : ℕ) :
-    ∃ η : E n, addOrderOf η = 4 :=
-  ⟨epsilon n e, epsilon_addOrderOf n⟩
-
 section GeneralPontryaginDual
 
 variable (A : Type*) [CommGroup A] [TopologicalSpace A] [IsTopologicalGroup A]
@@ -18298,22 +12306,8 @@ theorem shiftVector_range (n : ℕ) :
     funext i
     exact (hu i).symm
 
-theorem shift_eq_dualMap (n : ℕ) :
-    shift n = (shiftVector n).dualMap :=
-  rfl
-
-theorem shift_surjective (n : ℕ) :
-    Function.Surjective (shift n) := by
-  change Function.Surjective (shiftVector n).dualMap
-  exact LinearMap.dualMap_surjective_of_injective (shiftVector_injective n)
-
 def shiftKernel (n : ℕ) : Submodule F X :=
   LinearMap.ker (shift n)
-
-theorem mem_shiftKernel_iff (n : ℕ) (ℓ : X) :
-    ℓ ∈ shiftKernel n ↔ ∀ v : V, ℓ (shiftVector n v) = 0 := by
-  change shift n ℓ = 0 ↔ _
-  simp [LinearMap.ext_iff]
 
 theorem shiftKernel_eq_dualAnnihilator (n : ℕ) :
     shiftKernel n = (shiftedSubmodule n).dualAnnihilator := by
@@ -18341,13 +12335,6 @@ theorem shiftKernel_card (n : ℕ) :
   rw [Nat.card_congr (shiftKernelEquivQuotient n).toEquiv]
   exact shiftedQuotient_card n
 
-theorem shiftKernel_card_injective {m n : ℕ}
-    (h : Nat.card (shiftKernel m) = Nat.card (shiftKernel n)) :
-    m = n := by
-  rw [shiftKernel_card, shiftKernel_card] at h
-  exact Nat.mul_left_cancel (by decide : 0 < 4)
-    ((Nat.pow_right_injective (by decide : 2 ≤ 2)) h)
-
 end
 
 end ConnesRigidity
@@ -18368,10 +12355,6 @@ def rho (n : ℕ) : CarryGroup n →+ X where
 @[simp] theorem rho_apply (n : ℕ) (z : CarryGroup n) :
     rho n z = z.linear := rfl
 
-theorem continuous_rho (n : ℕ) :
-    Continuous (rho n : CarryGroup n → X) :=
-  continuous_linear n
-
 def carryKernelInclusion (n : ℕ) : Y →+ CarryGroup n where
   toFun q := ⟨0, q⟩
   map_zero' := rfl
@@ -18385,35 +12368,6 @@ def carryKernelInclusion (n : ℕ) : Y →+ CarryGroup n where
 
 @[simp] theorem carryKernelInclusion_quadratic (n : ℕ) (q : Y) :
     (carryKernelInclusion n q).quadratic = q := rfl
-
-theorem continuous_carryKernelInclusion (n : ℕ) :
-    Continuous (carryKernelInclusion n : Y → CarryGroup n) := by
-  apply continuous_CarryGroup_iff.mpr
-  exact ⟨fun _ => continuous_const, fun w => continuous_Y_eval w⟩
-
-theorem rho_surjective (n : ℕ) : Function.Surjective (rho n) := by
-  intro ℓ
-  exact ⟨⟨ℓ, 0⟩, rfl⟩
-
-theorem carryKernelInclusion_injective (n : ℕ) :
-    Function.Injective (carryKernelInclusion n) := by
-  intro q q' h
-  exact congrArg CarryGroup.quadratic h
-
-theorem rho_ker_eq_carryKernelInclusion_range (n : ℕ) :
-    (rho n).ker = (carryKernelInclusion n).range := by
-  ext z
-  constructor
-  · intro hz
-    change z.linear = 0 at hz
-    refine ⟨z.quadratic, ?_⟩
-    apply CarryGroup.ext
-    · exact hz.symm
-    · rfl
-  · rintro ⟨q, hq⟩
-    change z.linear = 0
-    rw [← hq]
-    rfl
 
 @[simp] theorem shift_zero_apply (ℓ : X) : shift 0 ℓ = ℓ := by
   apply LinearMap.ext
@@ -18444,29 +12398,6 @@ theorem continuous_carryPullback (n : ℕ) :
   exact ((continuous_shift n).comp (continuous_linear n)).prodMk
     (continuous_quadratic n)
 
-theorem carryPullback_surjective (n : ℕ) :
-    Function.Surjective (carryPullback n) := by
-  intro z
-  obtain ⟨ℓ, hℓ⟩ := shift_surjective n z.linear
-  refine ⟨⟨ℓ, z.quadratic⟩, ?_⟩
-  apply CarryGroup.ext
-  · exact hℓ
-  · rfl
-
-theorem mem_carryPullback_ker_iff (n : ℕ) (z : CarryGroup n) :
-    z ∈ (carryPullback n).ker ↔
-      z.linear ∈ shiftKernel n ∧ z.quadratic = 0 := by
-  change (⟨shift n z.linear, z.quadratic⟩ : CarryGroup 0) = 0 ↔
-    shift n z.linear = 0 ∧ z.quadratic = 0
-  constructor
-  · intro h
-    exact ⟨congrArg CarryGroup.linear h,
-      congrArg CarryGroup.quadratic h⟩
-  · rintro ⟨hlinear, hquadratic⟩
-    apply CarryGroup.ext
-    · exact hlinear
-    · exact hquadratic
-
 def shiftKernelInclusion (n : ℕ) : shiftKernel n →+ CarryGroup n where
   toFun ℓ := ⟨ℓ.1, 0⟩
   map_zero' := rfl
@@ -18488,27 +12419,6 @@ theorem continuous_shiftKernelInclusion (n : ℕ) :
   apply continuous_CarryGroup_iff.mpr
   exact ⟨fun v => (continuous_X_eval v).comp continuous_subtype_val,
     fun _ => continuous_const⟩
-
-theorem shiftKernelInclusion_injective (n : ℕ) :
-    Function.Injective (shiftKernelInclusion n) := by
-  intro ℓ ℓ' h
-  apply Subtype.ext
-  exact congrArg CarryGroup.linear h
-
-theorem carryPullback_ker_eq_shiftKernelInclusion_range (n : ℕ) :
-    (carryPullback n).ker = (shiftKernelInclusion n).range := by
-  ext z
-  constructor
-  · intro hz
-    obtain ⟨hlinear, hquadratic⟩ :=
-      (mem_carryPullback_ker_iff n z).mp hz
-    refine ⟨⟨z.linear, hlinear⟩, ?_⟩
-    apply CarryGroup.ext
-    · rfl
-    · exact hquadratic.symm
-  · rintro ⟨ℓ, rfl⟩
-    exact (mem_carryPullback_ker_iff n (shiftKernelInclusion n ℓ)).mpr
-      ⟨ℓ.property, rfl⟩
 
 def shiftVectorLeftInverse (n : ℕ) : V →ₗ[F] V :=
   (shiftVector n).leftInverse
@@ -18706,54 +12616,6 @@ def carryGroupSplitEquiv (n : ℕ) :
     exact Prod.ext ((carryPullback n).map_add z w)
       ((kernelProjection n).map_add z w)
 
-def carryPullbackKernelEquiv (n : ℕ) :
-    (carryPullback n).ker ≃+ shiftKernel n where
-  toFun z := ⟨z.1.linear, (mem_carryPullback_ker_iff n z.1).mp z.2 |>.1⟩
-  invFun ℓ :=
-    ⟨⟨ℓ.1, 0⟩, (mem_carryPullback_ker_iff n ⟨ℓ.1, 0⟩).mpr
-      ⟨ℓ.2, rfl⟩⟩
-  left_inv z := by
-    apply Subtype.ext
-    apply CarryGroup.ext
-    · rfl
-    · exact ((mem_carryPullback_ker_iff n z.1).mp z.2).2.symm
-  right_inv ℓ := by
-    apply Subtype.ext
-    rfl
-  map_add' z w := by
-    apply Subtype.ext
-    rfl
-
-theorem carryPullback_ker_card (n : ℕ) :
-    Nat.card ((carryPullback n).ker) = 2 ^ (4 * n) := by
-  rw [Nat.card_congr (carryPullbackKernelEquiv n).toEquiv]
-  exact shiftKernel_card n
-
-theorem carryPullback_ker_card_injective {m n : ℕ}
-    (h : Nat.card ((carryPullback m).ker) =
-      Nat.card ((carryPullback n).ker)) : m = n := by
-  rw [carryPullback_ker_card, carryPullback_ker_card] at h
-  exact Nat.mul_left_cancel (by decide : 0 < 4)
-    ((Nat.pow_right_injective (by decide : 2 ≤ 2)) h)
-
-theorem rho_does_not_split (n : ℕ) :
-    ¬ ∃ section_ : X →+ CarryGroup n,
-      (rho n).comp section_ = AddMonoidHom.id X := by
-  rintro ⟨section_, hsection⟩
-  let ℓ := CarryGroup.coefficientFunctional n
-  have hlinear : (section_ ℓ).linear = ℓ :=
-    DFunLike.congr_fun hsection ℓ
-  have hdouble : (2 : ℕ) • section_ ℓ = 0 := by
-    rw [← map_nsmul]
-    rw [two_nsmul, add_self_eq_zero, map_zero]
-  have heq : (2 : ℕ) • section_ ℓ =
-      (2 : ℕ) • CarryGroup.orderFourElement n := by
-    apply CarryGroup.ext
-    · simp
-    · simp [hlinear, ℓ]
-  exact CarryGroup.two_nsmul_orderFourElement_ne_zero n
-    (heq.symm.trans hdouble)
-
 end
 
 end ConnesRigidity
@@ -18845,26 +12707,6 @@ theorem linearMap_ext_on_diagonal {W : Type*}
       change f (c • (⟨x, hx⟩ : B)) = g (c • (⟨x, hx⟩ : B))
       simpa only [map_smul] using congrArg (c • ·) ih
 
-theorem d_unique (f : B →ₗ[F] V)
-    (h : ∀ v : V, f (diagonal v) = v) : f = d := by
-  apply linearMap_ext_on_diagonal
-  intro v
-  simpa using h v
-
-theorem d_eq_iff (f : B →ₗ[F] V) :
-    f = d ↔ ∀ v : V, f (diagonal v) = v := by
-  constructor
-  · rintro rfl v
-    exact d_diagonal v
-  · exact d_unique f
-
-theorem d_equivariant (gV : V →ₗ[F] V) (gB : B →ₗ[F] B)
-    (h : ∀ v : V, gB (diagonal v) = diagonal (gV v)) :
-    d.comp gB = gV.comp d := by
-  apply linearMap_ext_on_diagonal
-  intro v
-  simp [h]
-
 end
 
 end ConnesRigidity
@@ -18876,60 +12718,6 @@ section
 namespace ConnesRigidity
 
 noncomputable section
-
-theorem continuous_pointwiseDual_eq_evaluation
-    (M : Type*) [AddCommGroup M] [Module F M]
-    (φ : (M →ₗ[F] F) →ₗ[F] F)
-    (hφ : @Continuous (M →ₗ[F] F) F
-      (pointwiseDualTopology M) inferInstance φ) :
-    ∃ m : M, ∀ ℓ : M →ₗ[F] F, φ ℓ = ℓ m := by
-  letI : TopologicalSpace (M →ₗ[F] F) := pointwiseDualTopology M
-  have hzeroOpen : IsOpen ({0} : Set F) := isOpen_discrete _
-  have hkerOpen : IsOpen {ℓ : M →ₗ[F] F | φ ℓ = 0} :=
-    hzeroOpen.preimage hφ
-  have hkerOpen' :
-      @IsOpen (M →ₗ[F] F) (pointwiseDualTopology M)
-        {ℓ : M →ₗ[F] F | φ ℓ = 0} := hkerOpen
-  obtain ⟨U, hU, hpre⟩ := isOpen_induced_iff.mp hkerOpen'
-  have hzeroU : (0 : M → F) ∈ U := by
-    have h : (0 : M →ₗ[F] F) ∈ {ℓ : M →ₗ[F] F | φ ℓ = 0} := by
-      simp
-    rw [← hpre] at h
-    exact h
-  obtain ⟨I, u, hu, hsubset⟩ := (isOpen_pi_iff.mp hU) 0 hzeroU
-  have hzeroCoord : ∀ i ∈ I, (0 : F) ∈ u i := by
-    intro i hi
-    simpa using (hu i hi).2
-  have hkernels :
-      (⨅ i : {i // i ∈ I}, (Module.Dual.eval F M i.1).ker) ≤ φ.ker := by
-    intro ℓ hℓ
-    have hv : ∀ i ∈ I, ℓ i = 0 := by
-      intro i hi
-      have hi' :=
-        (Submodule.mem_iInf
-          (fun i : {i // i ∈ I} => (Module.Dual.eval F M i.1).ker)).mp hℓ
-          (⟨i, hi⟩ : {i // i ∈ I})
-      exact LinearMap.mem_ker.mp hi'
-    have hcylinder : (fun m => ℓ m) ∈ (I : Set M).pi u := by
-      intro i hi
-      have hi' : i ∈ I := Finset.mem_coe.mp hi
-      change ℓ i ∈ u i
-      rw [hv i hi']
-      exact hzeroCoord i hi'
-    apply LinearMap.mem_ker.mpr
-    have hmem : ℓ ∈ {f : M →ₗ[F] F | φ f = 0} := by
-      rw [← hpre]
-      exact hsubset hcylinder
-    exact hmem
-  have hspan :
-      φ ∈ Submodule.span F (Set.range fun i : {i // i ∈ I} =>
-        Module.Dual.eval F M i.1) :=
-    mem_span_of_iInf_ker_le_ker hkernels
-  obtain ⟨c, hc⟩ := (Submodule.mem_span_range_iff_exists_fun F).mp hspan
-  refine ⟨∑ i, c i • i.1, ?_⟩
-  intro ℓ
-  rw [← hc]
-  simp
 
 def binaryRootCharacter : PontryaginDual (Multiplicative F) where
   toMonoidHom := AddChar.toMonoidHomEquiv (ZMod.toCircle (N := 2))
@@ -19015,39 +12803,6 @@ theorem circle_four_square_liftBit (a : F) :
         ring
       _ = _ := (ZMod.toCircle_natCast (N := 2) 1).symm
 
-theorem circle_four_square_two_bits (a b : F) :
-    (ZMod.toCircle
-      (FiniteCarry.liftBit a + 2 * FiniteCarry.liftBit b) : Circle) ^ 2 =
-      ZMod.toCircle a := by
-  have hbits :
-      (2 : ℕ) • (FiniteCarry.liftBit a + 2 * FiniteCarry.liftBit b) =
-        (2 : ℕ) • FiniteCarry.liftBit a := by
-    fin_cases a <;> fin_cases b <;> decide
-  calc
-    _ = ZMod.toCircle
-      ((2 : ℕ) • (FiniteCarry.liftBit a + 2 * FiniteCarry.liftBit b)) :=
-      (AddChar.map_nsmul_eq_pow (ZMod.toCircle : AddChar (ZMod 4) Circle)
-        2 _).symm
-    _ = ZMod.toCircle ((2 : ℕ) • FiniteCarry.liftBit a) :=
-      congrArg ZMod.toCircle hbits
-    _ = (ZMod.toCircle (FiniteCarry.liftBit a) : Circle) ^ 2 :=
-      AddChar.map_nsmul_eq_pow (ZMod.toCircle : AddChar (ZMod 4) Circle)
-        2 _
-    _ = ZMod.toCircle a := circle_four_square_liftBit a
-
-theorem two_nsmul_epsilon (n : ℕ) (v : V) :
-    (2 : ℕ) • epsilon n v = iota n (shiftVector n v) := by
-  apply Additive.toMul.injective
-  apply PontryaginDual.ext
-  intro z
-  change (ZMod.toCircle
-      (CarryGroup.evalFour n v (Multiplicative.toAdd z)) : Circle) ^ 2 =
-    ZMod.toCircle ((Multiplicative.toAdd z).linear (shiftVector n v))
-  rw [CarryGroup.evalFour_apply]
-  exact circle_four_square_two_bits
-    ((Multiplicative.toAdd z).linear (shiftVector n v))
-    ((Multiplicative.toAdd z).quadratic (diagonal v))
-
 def quadraticInclusionContinuous (n : ℕ) :
     Multiplicative Y →ₜ* Multiplicative (CarryGroup n) where
   toMonoidHom := (carryKernelInclusion n).toMultiplicative
@@ -19120,15 +12875,6 @@ def quadraticPairing : B →+ Additive (PontryaginDual (Multiplicative Y)) where
 @[simp] theorem quadraticPairing_apply (b : B) (q : Y) :
     Additive.toMul (quadraticPairing b) (Multiplicative.ofAdd q) =
       ZMod.toCircle (q b) := rfl
-
-theorem quadraticPairing_injective : Function.Injective quadraticPairing := by
-  intro b c h
-  apply Module.eval_apply_injective F
-  apply LinearMap.ext
-  intro q
-  have hpoint := DFunLike.congr_fun (congrArg Additive.toMul h)
-    (Multiplicative.ofAdd q)
-  exact ZMod.injective_toCircle hpoint
 
 theorem circle_four_twice_liftBit (a : F) :
     ZMod.toCircle (2 * FiniteCarry.liftBit a : ZMod 4) =
@@ -19661,15 +13407,6 @@ theorem carryCoordinates_measurePreserving (n : ℕ) :
       (carryHomeomorph n) = productHaar
   exact MeasurableEquiv.map_map_symm (carryCoordinatesMeasurableEquiv n)
 
-theorem carryGroups_common_haar (m n : ℕ) :
-    MeasurePreserving
-      ((carryCoordinatesMeasurableEquiv m).trans
-        (carryCoordinatesMeasurableEquiv n).symm)
-      (carryHaar m) (carryHaar n) := by
-  exact (carryCoordinates_measurePreserving m).trans
-    (MeasurePreserving.symm (carryCoordinatesMeasurableEquiv n)
-      (carryCoordinates_measurePreserving n))
-
 end ConnesRigidity
 
 end
@@ -19707,6 +13444,7 @@ theorem carry_pontryagin_characters_separate
     ∃ χ : E n,
       Additive.toMul χ (Multiplicative.ofAdd x) ≠
         Additive.toMul χ (Multiplicative.ofAdd y) := by
+  let _ := @linearEvaluationCharacter_apply
   by_contra h
   push Not at h
   apply hxy
@@ -19908,20 +13646,6 @@ def carryFourierTransform (n : ℕ) :
 abbrev carryFourierEquiv (n : ℕ) :
     (lp (fun _ : E n => ℂ) 2) ≃ₗᵢ[ℂ] Lp ℂ 2 (carryHaar n) :=
   carryFourierTransform n
-
-def carryInverseFourierTransform (n : ℕ) :
-    Lp ℂ 2 (carryHaar n) ≃ₗᵢ[ℂ] (lp (fun _ : E n => ℂ) 2) :=
-  (carryFourierBasis n).repr
-
-theorem carryFourier_hasSum (n : ℕ) (f : Lp ℂ 2 (carryHaar n)) :
-    HasSum (fun η : E n =>
-      carryInverseFourierTransform n f η • carryCharacterL2 n η) f := by
-  rw [← carryFourierBasis_coe n]
-  exact HilbertBasis.hasSum_repr (carryFourierBasis n) f
-
-theorem carryFourier_parseval (n : ℕ) (f : Lp ℂ 2 (carryHaar n)) :
-    ‖carryInverseFourierTransform n f‖ = ‖f‖ := by
-  exact (carryInverseFourierTransform n).norm_map f
 
 theorem carryFourierTransform_single (n : ℕ) [DecidableEq (E n)] (η : E n) :
     carryFourierTransform n (lp.single 2 η 1) = carryCharacterL2 n η := by
@@ -20411,11 +14135,6 @@ theorem splitFourierEquiv_single [DecidableEq D] (d : D) :
   exact Orthonormal.linearIsometryEquiv_symm_apply_single_one
     splitCharacterL2_orthonormal splitCharacterL2_span_closure_eq_top.ge d
 
-theorem splitFourier_hasSum (f : Lp ℂ 2 productHaar) :
-    HasSum (fun d : D => splitFourierBasis.repr f d • splitCharacterL2 d) f := by
-  rw [← splitFourierBasis_coe]
-  exact HilbertBasis.hasSum_repr splitFourierBasis f
-
 end ConnesRigidity
 
 end
@@ -20429,15 +14148,6 @@ open ConnesRigidity
 universe u v w
 
 noncomputable section
-
-def groupFactorEquivRefl (G : CountableDiscreteGroup.{u}) :
-    TracialGroupFactorEquiv G G where
-  toStarAlgEquiv := StarAlgEquiv.refl ℂ (GroupVonNeumannAlgebra G)
-  normal := by
-    constructor <;> intro S p hp <;> simpa using hp
-  trace_preserving := by
-    intro x
-    rfl
 
 def groupFactorEquivSymm
     {G : CountableDiscreteGroup.{u}}
@@ -20486,10 +14196,6 @@ def groupFactorEquivTrans
         canonicalTrace G x
     rw [f.trace_preserving, e.trace_preserving]
 
-theorem groupFactorsIsomorphic_refl (G : CountableDiscreteGroup.{u}) :
-    TracialGroupFactorsIsomorphic G G :=
-  ⟨groupFactorEquivRefl G⟩
-
 theorem groupFactorsIsomorphic_symm
     {G : CountableDiscreteGroup.{u}}
     {H : CountableDiscreteGroup.{v}}
@@ -20508,120 +14214,6 @@ theorem groupFactorsIsomorphic_trans
   obtain ⟨e⟩ := hGH
   obtain ⟨f⟩ := hHJ
   exact ⟨groupFactorEquivTrans e f⟩
-
-def GroupFactorHasTrivialCenter (G : CountableDiscreteGroup.{u}) : Prop :=
-  ∀ z : GroupVonNeumannAlgebra G,
-    (∀ x : GroupVonNeumannAlgebra G, z * x = x * z) →
-      ∃ c : ℂ, z = algebraMap ℂ (GroupVonNeumannAlgebra G) c
-
-def IsII₁GroupFactor (G : CountableDiscreteGroup.{u}) : Prop :=
-  GroupFactorHasTrivialCenter G ∧
-    ¬ FiniteDimensional ℂ (GroupVonNeumannAlgebra G)
-
-theorem groupFactorHasTrivialCenter_of_equiv
-    {G : CountableDiscreteGroup.{u}}
-    {H : CountableDiscreteGroup.{v}}
-    (e : TracialGroupFactorEquiv G H)
-    (hG : GroupFactorHasTrivialCenter G) :
-    GroupFactorHasTrivialCenter H := by
-  intro z hz
-  have hcentral :
-      ∀ x : GroupVonNeumannAlgebra G,
-        e.toStarAlgEquiv.symm z * x = x * e.toStarAlgEquiv.symm z := by
-    intro x
-    have h := congrArg e.toStarAlgEquiv.symm (hz (e.toStarAlgEquiv x))
-    simpa only [map_mul, StarAlgEquiv.symm_apply_apply] using h
-  obtain ⟨c, hc⟩ := hG (e.toStarAlgEquiv.symm z) hcentral
-  refine ⟨c, ?_⟩
-  calc
-    z = e.toStarAlgEquiv (e.toStarAlgEquiv.symm z) := by simp
-    _ = e.toStarAlgEquiv (algebraMap ℂ (GroupVonNeumannAlgebra G) c) :=
-      congrArg e.toStarAlgEquiv hc
-    _ = algebraMap ℂ (GroupVonNeumannAlgebra H) c :=
-      e.toStarAlgEquiv.toAlgEquiv.commutes c
-
-theorem groupFactorFiniteDimensional_iff_of_equiv
-    {G : CountableDiscreteGroup.{u}}
-    {H : CountableDiscreteGroup.{v}}
-    (e : TracialGroupFactorEquiv G H) :
-    FiniteDimensional ℂ (GroupVonNeumannAlgebra G) ↔
-      FiniteDimensional ℂ (GroupVonNeumannAlgebra H) := by
-  constructor
-  · intro hG
-    letI := hG
-    exact e.toStarAlgEquiv.toAlgEquiv.toLinearEquiv.finiteDimensional
-  · intro hH
-    letI := hH
-    exact e.toStarAlgEquiv.symm.toAlgEquiv.toLinearEquiv.finiteDimensional
-
-theorem isII₁GroupFactor_iff_of_equiv
-    {G : CountableDiscreteGroup.{u}}
-    {H : CountableDiscreteGroup.{v}}
-    (e : TracialGroupFactorEquiv G H) :
-    IsII₁GroupFactor G ↔ IsII₁GroupFactor H := by
-  constructor
-  · rintro ⟨hcenter, hinfinite⟩
-    refine ⟨groupFactorHasTrivialCenter_of_equiv e hcenter, ?_⟩
-    intro hfinite
-    exact hinfinite
-      ((groupFactorFiniteDimensional_iff_of_equiv e).mpr hfinite)
-  · rintro ⟨hcenter, hinfinite⟩
-    refine ⟨groupFactorHasTrivialCenter_of_equiv
-      (groupFactorEquivSymm e) hcenter, ?_⟩
-    intro hfinite
-    exact hinfinite
-      ((groupFactorFiniteDimensional_iff_of_equiv e).mp hfinite)
-
-structure ICCFactorCriterion : Prop where
-  icc_iff_ii₁ :
-    ∀ G : CountableDiscreteGroup.{u}, IsICC G ↔ IsII₁GroupFactor G
-
-structure ConnesJonesCriterion where
-  factorHasPropertyT : CountableDiscreteGroup.{u} → Prop
-  invariant_under_factor_equiv :
-    ∀ {G H : CountableDiscreteGroup.{u}},
-      TracialGroupFactorsIsomorphic G H →
-        (factorHasPropertyT G ↔ factorHasPropertyT H)
-  group_propertyT_iff :
-    ∀ G : CountableDiscreteGroup.{u}, IsICC G →
-      (HasKazhdanPropertyT G ↔ factorHasPropertyT G)
-
-theorem icc_of_groupFactor_isomorphic
-    (criterion : ICCFactorCriterion.{u})
-    {G H : CountableDiscreteGroup.{u}}
-    (hGH : TracialGroupFactorsIsomorphic G H)
-    (hH : IsICC H) :
-    IsICC G := by
-  obtain ⟨e⟩ := hGH
-  apply (criterion.icc_iff_ii₁ G).mpr
-  exact (isII₁GroupFactor_iff_of_equiv e).mpr
-    ((criterion.icc_iff_ii₁ H).mp hH)
-
-theorem factor_transfer
-    (iccCriterion : ICCFactorCriterion.{u})
-    (connesJones : ConnesJonesCriterion.{u})
-    {G H : CountableDiscreteGroup.{u}}
-    (hGH : TracialGroupFactorsIsomorphic G H)
-    (hHicc : IsICC H)
-    (hHT : HasKazhdanPropertyT H) :
-    IsICC G ∧ HasKazhdanPropertyT G := by
-  have hGicc : IsICC G :=
-    icc_of_groupFactor_isomorphic iccCriterion hGH hHicc
-  refine ⟨hGicc, (connesJones.group_propertyT_iff G hGicc).mpr ?_⟩
-  exact (connesJones.invariant_under_factor_equiv hGH).mpr
-    ((connesJones.group_propertyT_iff H hHicc).mp hHT)
-
-theorem family_factor_transfer
-    (iccCriterion : ICCFactorCriterion.{u})
-    (connesJones : ConnesJonesCriterion.{u})
-    (Λ : CountableDiscreteGroup.{u})
-    (Γ : ℕ → CountableDiscreteGroup.{u})
-    (hΛicc : IsICC Λ)
-    (hΛT : HasKazhdanPropertyT Λ)
-    (hfactor : ∀ n, TracialGroupFactorsIsomorphic (Γ n) Λ) :
-    ∀ n, IsICC (Γ n) ∧ HasKazhdanPropertyT (Γ n) := by
-  intro n
-  exact factor_transfer iccCriterion connesJones (hfactor n) hΛicc hΛT
 
 end
 
@@ -20722,159 +14314,6 @@ structure CrossedProductModel
     [NormedAddCommGroup ℋ] [InnerProductSpace ℂ ℋ] [CompleteSpace ℋ] where
   algebra : VonNeumannAlgebra ℋ
   trace : algebra.toStarSubalgebra → ℂ
-
-structure FourierCrossedProductTheorem
-    {K : Type u} {Ω : Type v} {ℋ : Type w}
-    [Group K] [AddCommGroup Ω] [TopologicalSpace Ω] [MeasurableSpace Ω]
-    [NormedAddCommGroup ℋ] [InnerProductSpace ℂ ℋ] [CompleteSpace ℋ]
-    (X : HaarProbabilityAction K Ω)
-    (G : CountableDiscreteGroup.{x})
-    (M : CrossedProductModel ℋ) where
-
-  toStarAlgEquiv :
-    GroupVonNeumannAlgebra G ≃⋆ₐ[ℂ] M.algebra.toStarSubalgebra
-  normal : IsNormalStarAlgEquiv toStarAlgEquiv
-  trace_preserving :
-    ∀ a, M.trace (toStarAlgEquiv a) = canonicalTrace G a
-
-structure EquivariantCrossedProductTheorem
-    {K : Type u} {Ω : Type v} {Ξ : Type w}
-    {ℋ : Type x} {𝒦 : Type y}
-    [Group K]
-    [AddCommGroup Ω] [TopologicalSpace Ω] [MeasurableSpace Ω]
-    [AddCommGroup Ξ] [TopologicalSpace Ξ] [MeasurableSpace Ξ]
-    [NormedAddCommGroup ℋ] [InnerProductSpace ℂ ℋ] [CompleteSpace ℋ]
-    [NormedAddCommGroup 𝒦] [InnerProductSpace ℂ 𝒦] [CompleteSpace 𝒦]
-    {X : HaarProbabilityAction K Ω}
-    {Y : HaarProbabilityAction K Ξ}
-    (_e : EquivariantHaarEquiv X Y)
-    (M : CrossedProductModel ℋ)
-    (N : CrossedProductModel 𝒦) where
-  toStarAlgEquiv : M.algebra.toStarSubalgebra ≃⋆ₐ[ℂ]
-    N.algebra.toStarSubalgebra
-  normal : IsNormalStarAlgEquiv toStarAlgEquiv
-  trace_preserving : ∀ a, N.trace (toStarAlgEquiv a) = M.trace a
-
-private theorem normalStarAlgEquiv_trans
-    {A : Type u} {B : Type v} {C : Type w}
-    [Semiring A] [StarRing A] [Algebra ℂ A] [StarModule ℂ A]
-    [Semiring B] [StarRing B] [Algebra ℂ B] [StarModule ℂ B]
-    [Semiring C] [StarRing C] [Algebra ℂ C] [StarModule ℂ C]
-    (e : A ≃⋆ₐ[ℂ] B) (f : B ≃⋆ₐ[ℂ] C)
-    (he : IsNormalStarAlgEquiv e)
-    (hf : IsNormalStarAlgEquiv f) :
-    IsNormalStarAlgEquiv (e.trans f) := by
-  constructor
-  · intro S p hp
-    have he' := he.1 S p hp
-    have hf' := hf.1 (e '' S) (e p) he'
-    change IsProjectionSupremum ((fun a ↦ f (e a)) '' S) (f (e p))
-    simpa only [Set.image_image] using hf'
-  · intro S p hp
-    have hf' := hf.2 S p hp
-    have he' := he.2 (f.symm '' S) (f.symm p) hf'
-    change IsProjectionSupremum
-      ((fun c ↦ e.symm (f.symm c)) '' S) (e.symm (f.symm p))
-    simpa only [Set.image_image] using he'
-
-private theorem normalStarAlgEquiv_symm
-    {A : Type u} {B : Type v}
-    [Semiring A] [StarRing A] [Algebra ℂ A] [StarModule ℂ A]
-    [Semiring B] [StarRing B] [Algebra ℂ B] [StarModule ℂ B]
-    (e : A ≃⋆ₐ[ℂ] B)
-    (he : IsNormalStarAlgEquiv e) :
-    IsNormalStarAlgEquiv e.symm :=
-  ⟨he.2, he.1⟩
-
-def groupFactorEquiv_of_equivariantHaar
-    {K : Type u} {Ω : Type v} {Ξ : Type w}
-    {ℋ : Type x} {𝒦 : Type y}
-    [Group K]
-    [AddCommGroup Ω] [TopologicalSpace Ω] [MeasurableSpace Ω]
-    [AddCommGroup Ξ] [TopologicalSpace Ξ] [MeasurableSpace Ξ]
-    [NormedAddCommGroup ℋ] [InnerProductSpace ℂ ℋ] [CompleteSpace ℋ]
-    [NormedAddCommGroup 𝒦] [InnerProductSpace ℂ 𝒦] [CompleteSpace 𝒦]
-    {X : HaarProbabilityAction K Ω}
-    {Y : HaarProbabilityAction K Ξ}
-    {G : CountableDiscreteGroup.{u}}
-    {H : CountableDiscreteGroup.{u}}
-    {M : CrossedProductModel ℋ}
-    {N : CrossedProductModel 𝒦}
-    (fourierG : FourierCrossedProductTheorem X G M)
-    (fourierH : FourierCrossedProductTheorem Y H N)
-    (e : EquivariantHaarEquiv X Y)
-    (transport : EquivariantCrossedProductTheorem e M N) :
-    TracialGroupFactorEquiv G H where
-  toStarAlgEquiv := fourierG.toStarAlgEquiv.trans
-    (transport.toStarAlgEquiv.trans fourierH.toStarAlgEquiv.symm)
-  normal := normalStarAlgEquiv_trans fourierG.toStarAlgEquiv
-    (transport.toStarAlgEquiv.trans fourierH.toStarAlgEquiv.symm)
-    fourierG.normal
-    (normalStarAlgEquiv_trans transport.toStarAlgEquiv
-      fourierH.toStarAlgEquiv.symm transport.normal
-      (normalStarAlgEquiv_symm fourierH.toStarAlgEquiv fourierH.normal))
-  trace_preserving := by
-    intro a
-    change canonicalTrace H
-      (fourierH.toStarAlgEquiv.symm
-        (transport.toStarAlgEquiv (fourierG.toStarAlgEquiv a))) =
-      canonicalTrace G a
-    calc
-      canonicalTrace H
-          (fourierH.toStarAlgEquiv.symm
-            (transport.toStarAlgEquiv (fourierG.toStarAlgEquiv a))) =
-          N.trace (transport.toStarAlgEquiv (fourierG.toStarAlgEquiv a)) := by
-            symm
-            simpa using fourierH.trace_preserving
-              (fourierH.toStarAlgEquiv.symm
-                (transport.toStarAlgEquiv (fourierG.toStarAlgEquiv a)))
-      _ = M.trace (fourierG.toStarAlgEquiv a) :=
-        transport.trace_preserving (fourierG.toStarAlgEquiv a)
-      _ = canonicalTrace G a := fourierG.trace_preserving a
-
-theorem groupFactorsIsomorphic_of_equivariantHaar
-    {K : Type u} {Ω : Type v} {Ξ : Type w}
-    {ℋ : Type x} {𝒦 : Type y}
-    [Group K]
-    [AddCommGroup Ω] [TopologicalSpace Ω] [MeasurableSpace Ω]
-    [AddCommGroup Ξ] [TopologicalSpace Ξ] [MeasurableSpace Ξ]
-    [NormedAddCommGroup ℋ] [InnerProductSpace ℂ ℋ] [CompleteSpace ℋ]
-    [NormedAddCommGroup 𝒦] [InnerProductSpace ℂ 𝒦] [CompleteSpace 𝒦]
-    {X : HaarProbabilityAction K Ω}
-    {Y : HaarProbabilityAction K Ξ}
-    {G H : CountableDiscreteGroup.{u}}
-    {M : CrossedProductModel ℋ}
-    {N : CrossedProductModel 𝒦}
-    (fourierG : FourierCrossedProductTheorem X G M)
-    (fourierH : FourierCrossedProductTheorem Y H N)
-    (e : EquivariantHaarEquiv X Y)
-    (transport : EquivariantCrossedProductTheorem e M N) :
-    TracialGroupFactorsIsomorphic G H :=
-  ⟨groupFactorEquiv_of_equivariantHaar fourierG fourierH e transport⟩
-
-theorem family_groupFactorsIsomorphic_of_equivariantHaar
-    {K : Type u} {Ω : Type v} {Ξ : Type w}
-    {ℋ : Type x} {𝒦 : Type y}
-    [Group K]
-    [AddCommGroup Ω] [TopologicalSpace Ω] [MeasurableSpace Ω]
-    [AddCommGroup Ξ] [TopologicalSpace Ξ] [MeasurableSpace Ξ]
-    [NormedAddCommGroup ℋ] [InnerProductSpace ℂ ℋ] [CompleteSpace ℋ]
-    [NormedAddCommGroup 𝒦] [InnerProductSpace ℂ 𝒦] [CompleteSpace 𝒦]
-    {Λ : CountableDiscreteGroup.{u}}
-    {Γ : ℕ → CountableDiscreteGroup.{u}}
-    {X : HaarProbabilityAction K Ω}
-    {Y : ℕ → HaarProbabilityAction K Ξ}
-    {M : CrossedProductModel ℋ}
-    {N : ℕ → CrossedProductModel 𝒦}
-    (fourierΛ : FourierCrossedProductTheorem X Λ M)
-    (fourierΓ : ∀ n, FourierCrossedProductTheorem (Y n) (Γ n) (N n))
-    (equiv : ∀ n, EquivariantHaarEquiv (Y n) X)
-    (transport : ∀ n,
-      EquivariantCrossedProductTheorem (equiv n) (N n) M) :
-    ∀ n, TracialGroupFactorsIsomorphic (Γ n) Λ := by
-  intro n
-  exact groupFactorsIsomorphic_of_equivariantHaar
-    (fourierΓ n) fourierΛ (equiv n) (transport n)
 
 end
 
@@ -21010,11 +14449,6 @@ def lambdaGroup : ConnesRigidity.CountableDiscreteGroup where
   Carrier := Lambda
   group := inferInstance
   countable := inferInstance
-
-theorem Lambda_mul_left (g h : Lambda) :
-    Multiplicative.toAdd (g * h).left =
-      Multiplicative.toAdd g.left +
-        kDLinear g.right (Multiplicative.toAdd h.left) := rfl
 
 @[simp] theorem Lambda_mul_right (g h : Lambda) :
     (g * h).right = g.right * h.right := rfl
@@ -21152,13 +14586,6 @@ theorem gamma_not_isomorphic {m n : ℕ} (hmn : m ≠ n) :
   rintro ⟨e⟩
   exact hmn (F.parameter_eq_of_mulEquiv e)
 
-theorem invariant_finite (n : ℕ) :
-    Finite (F.invariant.carrier (F.Gamma n)) := by
-  apply Nat.finite_of_card_ne_zero
-  change F.invariant.value (F.Gamma n) ≠ 0
-  rw [F.invariant_card]
-  exact pow_ne_zero _ (by decide : (2 : ℕ) ≠ 0)
-
 theorem gamma_not_isomorphic_lambda (n : ℕ) :
     ¬GroupsIsomorphic (F.Gamma n) F.Lambda :=
   not_groupsIsomorphic_of_orderFour (F.gamma_order_four n)
@@ -21169,41 +14596,12 @@ theorem lambda_not_isomorphic_gamma (n : ℕ) :
   rintro ⟨e⟩
   exact F.gamma_not_isomorphic_lambda n ⟨e.symm⟩
 
-theorem embedding_finiteIndex (n : ℕ) :
-    (F.embeddings n).hom.range.FiniteIndex := by
-  apply (F.embeddings n).range_finiteIndex
-  exact pow_ne_zero _ (by decide : (2 : ℕ) ≠ 0)
-
 theorem gamma_commensurable (m n : ℕ) :
     AbstractlyCommensurable (F.Gamma m) (F.Gamma n) := by
   apply abstractlyCommensurable_of_common_embedding
     (F.embeddings m) (F.embeddings n)
   · exact pow_ne_zero _ (by decide : (2 : ℕ) ≠ 0)
   · exact pow_ne_zero _ (by decide : (2 : ℕ) ≠ 0)
-
-def fullFamily : Option ℕ → CountableDiscreteGroup.{u}
-  | none => F.Lambda
-  | some n => F.Gamma n
-
-theorem fullFamily_parameter_eq_of_mulEquiv
-    {i j : Option ℕ} (e : F.fullFamily i ≃* F.fullFamily j) : i = j := by
-  cases i with
-  | none =>
-      cases j with
-      | none => rfl
-      | some n =>
-          exact (F.lambda_not_isomorphic_gamma n ⟨e⟩).elim
-  | some m =>
-      cases j with
-      | none =>
-          exact (F.gamma_not_isomorphic_lambda m ⟨e⟩).elim
-      | some n =>
-          exact congrArg Option.some (F.parameter_eq_of_mulEquiv e)
-
-theorem fullFamily_not_isomorphic {i j : Option ℕ} (hij : i ≠ j) :
-    ¬GroupsIsomorphic (F.fullFamily i) (F.fullFamily j) := by
-  rintro ⟨e⟩
-  exact hij (F.fullFamily_parameter_eq_of_mulEquiv e)
 
 end PaperFamilyInput
 
@@ -21239,13 +14637,6 @@ def PaperFamilyInput.toInfinitePropertyTFiber (F : PaperFamilyInput.{u}) :
   lambda_not_isomorphic := F.lambda_not_isomorphic_gamma
   exact_index_embeddings := F.embeddings
   commensurable := F.gamma_commensurable
-
-theorem PaperFamilyInput.connesRigidityAssertion_false
-    (F : PaperFamilyInput.{0}) : ¬ConnesRigidityAssertion := by
-  intro hrigidity
-  have h := hrigidity (F.Gamma 0) F.Lambda (F.gamma_icc 0)
-    (F.gamma_propertyT 0) (F.factors_isomorphic 0)
-  exact F.gamma_not_isomorphic_lambda 0 h.2
 
 end ConnesRigidity
 
@@ -21593,48 +14984,6 @@ def paperCommonHaarEquiv (n : ℕ) :
   equivariant := by
     intro k z
     apply Prod.ext <;> rfl
-
-structure PaperFourierCrossedProductInput
-    (ℋ : Type u) (𝒦 : Type v)
-    [NormedAddCommGroup ℋ] [InnerProductSpace ℂ ℋ] [CompleteSpace ℋ]
-    [NormedAddCommGroup 𝒦] [InnerProductSpace ℂ 𝒦] [CompleteSpace 𝒦] where
-  splitModel : CrossedProductModel ℋ
-  carryModel : ℕ → CrossedProductModel 𝒦
-  splitFourier : FourierCrossedProductTheorem
-    paperSplitHaarAction lambdaGroup splitModel
-  carryFourier : ∀ n, FourierCrossedProductTheorem
-    (paperCarryHaarAction n) (gammaGroup n) (carryModel n)
-  commonSpaceTransport : ∀ n,
-    EquivariantCrossedProductTheorem (paperCommonHaarEquiv n)
-      (carryModel n) splitModel
-
-def paperGroupFactorEquiv
-    {ℋ : Type u} {𝒦 : Type v}
-    [NormedAddCommGroup ℋ] [InnerProductSpace ℂ ℋ] [CompleteSpace ℋ]
-    [NormedAddCommGroup 𝒦] [InnerProductSpace ℂ 𝒦] [CompleteSpace 𝒦]
-    (input : PaperFourierCrossedProductInput ℋ 𝒦)
-    (n : ℕ) :
-    TracialGroupFactorEquiv (gammaGroup n) lambdaGroup :=
-  groupFactorEquiv_of_equivariantHaar
-    (input.carryFourier n) input.splitFourier
-    (paperCommonHaarEquiv n) (input.commonSpaceTransport n)
-
-theorem paper_family_factors
-    {ℋ : Type u} {𝒦 : Type v}
-    [NormedAddCommGroup ℋ] [InnerProductSpace ℂ ℋ] [CompleteSpace ℋ]
-    [NormedAddCommGroup 𝒦] [InnerProductSpace ℂ 𝒦] [CompleteSpace 𝒦]
-    (input : PaperFourierCrossedProductInput ℋ 𝒦)
-    (n : ℕ) :
-    TracialGroupFactorsIsomorphic (gammaGroup n) lambdaGroup :=
-  ⟨paperGroupFactorEquiv input n⟩
-
-theorem paper_all_family_factors
-    {ℋ : Type u} {𝒦 : Type v}
-    [NormedAddCommGroup ℋ] [InnerProductSpace ℂ ℋ] [CompleteSpace ℋ]
-    [NormedAddCommGroup 𝒦] [InnerProductSpace ℂ 𝒦] [CompleteSpace 𝒦]
-    (input : PaperFourierCrossedProductInput ℋ 𝒦) :
-    ∀ n, TracialGroupFactorsIsomorphic (gammaGroup n) lambdaGroup :=
-  paper_family_factors input
 
 end
 
@@ -22031,23 +15380,6 @@ theorem crossedBaseHaarEquiv_multiplier_apply
         · exact hξ.symm
     _ = _ := hright.symm
 
-theorem crossedBaseHaarEquiv_conj_multiplier
-    {X : HaarProbabilityAction K Ω}
-    {Y : HaarProbabilityAction K Ξ}
-    (e : EquivariantHaarEquiv X Y)
-    (f : crossedCoefficient X) :
-    (crossedBaseHaarEquiv e).conjStarAlgEquiv
-        (crossedBaseMultiplier X f) =
-      crossedBaseMultiplier Y
-        (Lp.compMeasurePreserving e.toMeasurableEquiv.symm
-          (EquivariantHaarEquiv.symm e).measure_preserving f) := by
-  apply ContinuousLinearMap.ext
-  intro ξ
-  change crossedBaseHaarEquiv e
-      (crossedBaseMultiplier X f ((crossedBaseHaarEquiv e).symm ξ)) = _
-  rw [crossedBaseHaarEquiv_multiplier_apply]
-  simp
-
 theorem crossedBaseHaarEquiv_action
     {X : HaarProbabilityAction K Ω}
     {Y : HaarProbabilityAction K Ξ}
@@ -22162,12 +15494,6 @@ theorem carryCharacterCoefficient_apply_ae (n : ℕ) (η : E n) :
       carryCharacterFunction n η :=
   MemLp.coeFn_toLp _
 
-def carryCharacterMultiplier (n : ℕ) (η : E n) :
-    crossedBaseHilbert (paperCarryHaarAction n) →L[ℂ]
-      crossedBaseHilbert (paperCarryHaarAction n) :=
-  crossedBaseMultiplier (paperCarryHaarAction n)
-    (carryCharacterCoefficient n η)
-
 theorem carryCharacterMultiplier_character
     (n : ℕ) (η θ : E n) :
     crossedBaseMultiplier (paperCarryHaarAction n)
@@ -22229,11 +15555,6 @@ theorem splitCharacterCoefficient_apply_ae (d : D) :
     splitCharacterCoefficient d =ᵐ[productHaar]
       splitCharacterFunction d :=
   MemLp.coeFn_toLp _
-
-def splitCharacterMultiplier (d : D) :
-    crossedBaseHilbert paperSplitHaarAction →L[ℂ]
-      crossedBaseHilbert paperSplitHaarAction :=
-  crossedBaseMultiplier paperSplitHaarAction (splitCharacterCoefficient d)
 
 theorem splitCharacterMultiplier_character (d e : D) :
     crossedBaseMultiplier paperSplitHaarAction
@@ -22417,51 +15738,6 @@ section
 namespace ConnesRigidity
 
 noncomputable section
-
-def carryGroupSplitContinuous (n : ℕ) :
-    CarryGroup n ≃ₜ+ CarryGroup 0 × shiftKernel n where
-  toAddEquiv := carryGroupSplitEquiv n
-  continuous_toFun :=
-    (continuous_carryPullback n).prodMk (continuous_kernelProjection n)
-  continuous_invFun := by
-    apply continuous_CarryGroup_iff.mpr
-    constructor
-    · intro v
-      change Continuous
-        (fun z : CarryGroup 0 × shiftKernel n =>
-          z.1.linear (shiftVectorLeftInverse n v) + z.2.1 v)
-      exact ((continuous_X_eval (shiftVectorLeftInverse n v)).comp
-        ((continuous_linear 0).comp continuous_fst)).add
-        ((continuous_X_eval v).comp
-          (continuous_subtype_val.comp continuous_snd))
-    · intro w
-      have h :
-          (fun z : CarryGroup 0 × shiftKernel n =>
-            (carryGroupSplitEquiv n).invFun z |>.quadratic w) =
-          (fun z : CarryGroup 0 × shiftKernel n => z.1.quadratic w) := by
-        funext z
-        change (z.1.quadratic + 0 +
-          shiftedCarry n (shiftSection n z.1.linear) z.2.1) w =
-          z.1.quadratic w
-        have hz : shift n z.2.1 = 0 := z.2.property
-        simp [shiftedCarry, hz]
-      rw [h]
-      exact (continuous_quadratic_eval 0 w).comp continuous_fst
-
-@[simp] theorem carryGroupSplitContinuous_fst (n : ℕ) (z : CarryGroup n) :
-    (carryGroupSplitContinuous n z).1 = carryPullback n z := rfl
-
-@[simp] theorem carryGroupSplitContinuous_snd (n : ℕ) (z : CarryGroup n) :
-    (carryGroupSplitContinuous n z).2 = kernelProjection n z := rfl
-
-@[simp] theorem carryGroupSplitContinuous_symm_apply
-    (n : ℕ) (z : CarryGroup 0 × shiftKernel n) :
-    (carryGroupSplitContinuous n).symm z =
-      carryPullbackSection n z.1 + shiftKernelInclusion n z.2 := rfl
-
-theorem carryGroupSplitContinuous_factor_card (n : ℕ) :
-    Nat.card (shiftKernel n) = 2 ^ (4 * n) :=
-  shiftKernel_card n
 
 end
 
@@ -23268,22 +16544,6 @@ theorem commute_crossedBaseMultiplier_of_commute_characters
   intro i
   exact hT i
 
-theorem crossedMultiplier_mem_character_vonNeumannClosure
-    {ι : Type*} (X : HaarProbabilityAction K Ω)
-    [X.measure.WeaklyRegular]
-    (χ : ι → C(Ω, ℂ))
-    (hdense : (Submodule.span ℂ (Set.range χ)).topologicalClosure = ⊤)
-    (f : crossedCoefficient X) :
-    crossedMultiplier X f ∈
-      vonNeumannClosure
-        (crossedCharacterGeneratorSet X
-          (fun i ↦ crossedContinuousCharacterCoefficient X (χ i))) := by
-  apply crossedMultiplier_mem_vonNeumannClosure_of_base_commutation X
-    (fun i ↦ crossedContinuousCharacterCoefficient X (χ i))
-  intro T hT g
-  exact commute_crossedBaseMultiplier_of_commute_characters
-    X χ hdense T hT g
-
 end ContinuousCharacters
 
 end
@@ -23481,428 +16741,19 @@ section
 
 namespace ConnesRigidity
 
-universe u v w z
-
 section TorsionSubgroup
-
-variable {N : Type u} {K : Type v} [Group N] [Group K]
-variable (φ : K →* MulAut N)
-
-theorem isOfFinOrder_of_pow_four
-    (hfour : ∀ n : N, n ^ (4 : ℕ) = 1) (n : N) : IsOfFinOrder n :=
-  isOfFinOrder_iff_pow_eq_one.mpr ⟨4, by decide, hfour n⟩
-
-theorem semidirect_isOfFinOrder_right
-    (x : N ⋊[φ] K) (hx : IsOfFinOrder x) : IsOfFinOrder x.right :=
-  (SemidirectProduct.rightHom : N ⋊[φ] K →* K).isOfFinOrder hx
-
-theorem semidirect_torsion_right_eq_one
-    (hK : ∀ k : K, IsOfFinOrder k → k = 1)
-    (x : N ⋊[φ] K) (hx : IsOfFinOrder x) : x.right = 1 :=
-  hK x.right (semidirect_isOfFinOrder_right φ x hx)
-
-theorem semidirect_torsion_eq_inl
-    (hK : ∀ k : K, IsOfFinOrder k → k = 1)
-    (x : N ⋊[φ] K) (hx : IsOfFinOrder x) :
-    x = SemidirectProduct.inl x.left := by
-  apply SemidirectProduct.ext
-  · rfl
-  · simpa using semidirect_torsion_right_eq_one φ hK x hx
-
-theorem semidirect_isOfFinOrder_iff_right_eq_one
-    (hN : ∀ n : N, IsOfFinOrder n)
-    (hK : ∀ k : K, IsOfFinOrder k → k = 1)
-    (x : N ⋊[φ] K) :
-    IsOfFinOrder x ↔ x.right = 1 := by
-  constructor
-  · exact semidirect_torsion_right_eq_one φ hK x
-  · intro hx
-    have heq : x = SemidirectProduct.inl x.left := by
-      apply SemidirectProduct.ext
-      · rfl
-      · simpa using hx
-    rw [heq]
-    exact SemidirectProduct.inl.isOfFinOrder (hN x.left)
-
-theorem semidirect_isOfFinOrder_iff_of_exponent_four
-    (hfour : ∀ n : N, n ^ (4 : ℕ) = 1)
-    (hK : ∀ k : K, IsOfFinOrder k → k = 1)
-    (x : N ⋊[φ] K) :
-    IsOfFinOrder x ↔ x.right = 1 :=
-  semidirect_isOfFinOrder_iff_right_eq_one φ
-    (isOfFinOrder_of_pow_four hfour) hK x
-
-theorem semidirect_mem_projectionKernel_iff_isOfFinOrder
-    (hN : ∀ n : N, IsOfFinOrder n)
-    (hK : ∀ k : K, IsOfFinOrder k → k = 1)
-    (x : N ⋊[φ] K) :
-    x ∈ (SemidirectProduct.rightHom : N ⋊[φ] K →* K).ker ↔
-      IsOfFinOrder x := by
-  rw [MonoidHom.mem_ker]
-  exact (semidirect_isOfFinOrder_iff_right_eq_one φ hN hK x).symm
-
-theorem semidirect_mem_kernelRange_iff_isOfFinOrder
-    (hN : ∀ n : N, IsOfFinOrder n)
-    (hK : ∀ k : K, IsOfFinOrder k → k = 1)
-    (x : N ⋊[φ] K) :
-    x ∈ (SemidirectProduct.inl : N →* N ⋊[φ] K).range ↔
-      IsOfFinOrder x := by
-  rw [SemidirectProduct.range_inl_eq_ker_rightHom]
-  exact semidirect_mem_projectionKernel_iff_isOfFinOrder φ hN hK x
-
-theorem semidirect_kernelRange_characteristic
-    (hN : ∀ n : N, IsOfFinOrder n)
-    (hK : ∀ k : K, IsOfFinOrder k → k = 1) :
-    (SemidirectProduct.inl : N →* N ⋊[φ] K).range.Characteristic := by
-  apply Subgroup.characteristic_iff_comap_eq.mpr
-  intro e
-  ext x
-  change e x ∈ (SemidirectProduct.inl : N →* N ⋊[φ] K).range ↔
-    x ∈ (SemidirectProduct.inl : N →* N ⋊[φ] K).range
-  rw [semidirect_mem_kernelRange_iff_isOfFinOrder φ hN hK,
-    semidirect_mem_kernelRange_iff_isOfFinOrder φ hN hK]
-  exact Function.Injective.isOfFinOrder_iff
-    (f := e.toMonoidHom) e.injective
-
-theorem semidirect_projectionKernel_characteristic
-    (hN : ∀ n : N, IsOfFinOrder n)
-    (hK : ∀ k : K, IsOfFinOrder k → k = 1) :
-    (SemidirectProduct.rightHom : N ⋊[φ] K →* K).ker.Characteristic := by
-  rw [← SemidirectProduct.range_inl_eq_ker_rightHom]
-  exact semidirect_kernelRange_characteristic φ hN hK
 
 end TorsionSubgroup
 
 section Isomorphisms
 
-variable {N : Type u} {K : Type v} {N' : Type w} {K' : Type z}
-variable [Group N] [Group K] [Group N'] [Group K']
-variable (φ : K →* MulAut N) (ψ : K' →* MulAut N')
-
-theorem semidirect_mulEquiv_isOfFinOrder_iff
-    (f : (N ⋊[φ] K) ≃* (N' ⋊[ψ] K')) (x : N ⋊[φ] K) :
-    IsOfFinOrder (f x) ↔ IsOfFinOrder x :=
-  Function.Injective.isOfFinOrder_iff (f := f.toMonoidHom) f.injective
-
-theorem semidirect_mulEquiv_map_projectionKernel
-    (hN : ∀ n : N, IsOfFinOrder n)
-    (hK : ∀ k : K, IsOfFinOrder k → k = 1)
-    (hN' : ∀ n : N', IsOfFinOrder n)
-    (hK' : ∀ k : K', IsOfFinOrder k → k = 1)
-    (f : (N ⋊[φ] K) ≃* (N' ⋊[ψ] K')) :
-    (SemidirectProduct.rightHom : N ⋊[φ] K →* K).ker.map f.toMonoidHom =
-      (SemidirectProduct.rightHom : N' ⋊[ψ] K' →* K').ker := by
-  ext y
-  constructor
-  · rintro ⟨x, hx, rfl⟩
-    apply (semidirect_mem_projectionKernel_iff_isOfFinOrder ψ hN' hK' _).2
-    apply f.toMonoidHom.isOfFinOrder
-    exact (semidirect_mem_projectionKernel_iff_isOfFinOrder φ hN hK _).1 hx
-  · intro hy
-    have hx : f.symm y ∈
-        (SemidirectProduct.rightHom : N ⋊[φ] K →* K).ker := by
-      apply (semidirect_mem_projectionKernel_iff_isOfFinOrder φ hN hK _).2
-      apply f.symm.toMonoidHom.isOfFinOrder
-      exact (semidirect_mem_projectionKernel_iff_isOfFinOrder ψ hN' hK' _).1 hy
-    exact ⟨f.symm y, hx, f.apply_symm_apply y⟩
-
-theorem semidirect_mulEquiv_map_kernelRange
-    (hN : ∀ n : N, IsOfFinOrder n)
-    (hK : ∀ k : K, IsOfFinOrder k → k = 1)
-    (hN' : ∀ n : N', IsOfFinOrder n)
-    (hK' : ∀ k : K', IsOfFinOrder k → k = 1)
-    (f : (N ⋊[φ] K) ≃* (N' ⋊[ψ] K')) :
-    (SemidirectProduct.inl : N →* N ⋊[φ] K).range.map f.toMonoidHom =
-      (SemidirectProduct.inl : N' →* N' ⋊[ψ] K').range := by
-  rw [SemidirectProduct.range_inl_eq_ker_rightHom,
-    SemidirectProduct.range_inl_eq_ker_rightHom]
-  exact semidirect_mulEquiv_map_projectionKernel φ ψ hN hK hN' hK' f
-
-theorem semidirect_monoidHom_inl_right_eq_one
-    (hN : ∀ n : N, IsOfFinOrder n)
-    (hK' : ∀ k : K', IsOfFinOrder k → k = 1)
-    (f : (N ⋊[φ] K) →* (N' ⋊[ψ] K')) (n : N) :
-    (f (SemidirectProduct.inl n)).right = 1 := by
-  apply semidirect_torsion_right_eq_one ψ hK'
-  apply f.isOfFinOrder
-  exact SemidirectProduct.inl.isOfFinOrder (hN n)
-
-def semidirectKernelMonoidHom
-    (hN : ∀ n : N, IsOfFinOrder n)
-    (hK' : ∀ k : K', IsOfFinOrder k → k = 1)
-    (f : (N ⋊[φ] K) →* (N' ⋊[ψ] K')) : N →* N' where
-  toFun n := (f (SemidirectProduct.inl n)).left
-  map_one' := by simp
-  map_mul' x y := by
-    rw [map_mul, map_mul, SemidirectProduct.mul_left]
-    rw [semidirect_monoidHom_inl_right_eq_one φ ψ hN hK' f x]
-    simp
-
-@[simp] theorem semidirectKernelMonoidHom_apply
-    (hN : ∀ n : N, IsOfFinOrder n)
-    (hK' : ∀ k : K', IsOfFinOrder k → k = 1)
-    (f : (N ⋊[φ] K) →* (N' ⋊[ψ] K')) (n : N) :
-    semidirectKernelMonoidHom φ ψ hN hK' f n =
-      (f (SemidirectProduct.inl n)).left := rfl
-
-theorem semidirectKernelMonoidHom_inl
-    (hN : ∀ n : N, IsOfFinOrder n)
-    (hK' : ∀ k : K', IsOfFinOrder k → k = 1)
-    (f : (N ⋊[φ] K) →* (N' ⋊[ψ] K')) (n : N) :
-    f (SemidirectProduct.inl n) =
-      SemidirectProduct.inl (semidirectKernelMonoidHom φ ψ hN hK' f n) := by
-  apply SemidirectProduct.ext
-  · rfl
-  · exact semidirect_monoidHom_inl_right_eq_one φ ψ hN hK' f n
-
-def semidirectKernelMulEquiv
-    (hN : ∀ n : N, IsOfFinOrder n)
-    (hK : ∀ k : K, IsOfFinOrder k → k = 1)
-    (hN' : ∀ n : N', IsOfFinOrder n)
-    (hK' : ∀ k : K', IsOfFinOrder k → k = 1)
-    (f : (N ⋊[φ] K) ≃* (N' ⋊[ψ] K')) : N ≃* N' where
-  toFun := semidirectKernelMonoidHom φ ψ hN hK' f.toMonoidHom
-  invFun := semidirectKernelMonoidHom ψ φ hN' hK f.symm.toMonoidHom
-  left_inv n := by
-    apply SemidirectProduct.inl_injective (φ := φ)
-    calc
-      SemidirectProduct.inl
-          (semidirectKernelMonoidHom ψ φ hN' hK f.symm.toMonoidHom
-            (semidirectKernelMonoidHom φ ψ hN hK' f.toMonoidHom n)) =
-          f.symm (SemidirectProduct.inl
-            (semidirectKernelMonoidHom φ ψ hN hK' f.toMonoidHom n)) :=
-        (semidirectKernelMonoidHom_inl ψ φ hN' hK f.symm.toMonoidHom _).symm
-      _ = f.symm (f (SemidirectProduct.inl n)) :=
-        congrArg f.symm
-          (semidirectKernelMonoidHom_inl φ ψ hN hK' f.toMonoidHom n).symm
-      _ = SemidirectProduct.inl n := f.symm_apply_apply _
-  right_inv n := by
-    apply SemidirectProduct.inl_injective (φ := ψ)
-    calc
-      SemidirectProduct.inl
-          (semidirectKernelMonoidHom φ ψ hN hK' f.toMonoidHom
-            (semidirectKernelMonoidHom ψ φ hN' hK f.symm.toMonoidHom n)) =
-          f (SemidirectProduct.inl
-            (semidirectKernelMonoidHom ψ φ hN' hK f.symm.toMonoidHom n)) :=
-        (semidirectKernelMonoidHom_inl φ ψ hN hK' f.toMonoidHom _).symm
-      _ = f (f.symm (SemidirectProduct.inl n)) :=
-        congrArg f
-          (semidirectKernelMonoidHom_inl ψ φ hN' hK f.symm.toMonoidHom n).symm
-      _ = SemidirectProduct.inl n := f.apply_symm_apply _
-  map_mul' :=
-    (semidirectKernelMonoidHom φ ψ hN hK' f.toMonoidHom).map_mul
-
-@[simp] theorem semidirectKernelMulEquiv_apply
-    (hN : ∀ n : N, IsOfFinOrder n)
-    (hK : ∀ k : K, IsOfFinOrder k → k = 1)
-    (hN' : ∀ n : N', IsOfFinOrder n)
-    (hK' : ∀ k : K', IsOfFinOrder k → k = 1)
-    (f : (N ⋊[φ] K) ≃* (N' ⋊[ψ] K')) (n : N) :
-    semidirectKernelMulEquiv φ ψ hN hK hN' hK' f n =
-      (f (SemidirectProduct.inl n)).left := rfl
-
-theorem semidirectKernelMulEquiv_inl
-    (hN : ∀ n : N, IsOfFinOrder n)
-    (hK : ∀ k : K, IsOfFinOrder k → k = 1)
-    (hN' : ∀ n : N', IsOfFinOrder n)
-    (hK' : ∀ k : K', IsOfFinOrder k → k = 1)
-    (f : (N ⋊[φ] K) ≃* (N' ⋊[ψ] K')) (n : N) :
-    f (SemidirectProduct.inl n) =
-      SemidirectProduct.inl
-        (semidirectKernelMulEquiv φ ψ hN hK hN' hK' f n) :=
-  semidirectKernelMonoidHom_inl φ ψ hN hK' f.toMonoidHom n
-
-def semidirectQuotientMonoidHom
-    (f : (N ⋊[φ] K) →* (N' ⋊[ψ] K')) : K →* K' :=
-  (SemidirectProduct.rightHom : N' ⋊[ψ] K' →* K').comp
-    (f.comp (SemidirectProduct.inr : K →* N ⋊[φ] K))
-
-@[simp] theorem semidirectQuotientMonoidHom_apply
-    (f : (N ⋊[φ] K) →* (N' ⋊[ψ] K')) (k : K) :
-    semidirectQuotientMonoidHom φ ψ f k =
-      (f (SemidirectProduct.inr k)).right := rfl
-
-theorem semidirectQuotientMonoidHom_right
-    (hN : ∀ n : N, IsOfFinOrder n)
-    (hK' : ∀ k : K', IsOfFinOrder k → k = 1)
-    (f : (N ⋊[φ] K) →* (N' ⋊[ψ] K')) (x : N ⋊[φ] K) :
-    semidirectQuotientMonoidHom φ ψ f x.right = (f x).right := by
-  change (f (SemidirectProduct.inr x.right)).right = (f x).right
-  calc
-    (f (SemidirectProduct.inr x.right)).right =
-        (f (SemidirectProduct.inl x.left)).right *
-          (f (SemidirectProduct.inr x.right)).right := by
-            rw [semidirect_monoidHom_inl_right_eq_one φ ψ hN hK' f x.left,
-              one_mul]
-    _ = (f (SemidirectProduct.inl x.left *
-          SemidirectProduct.inr x.right)).right := by rw [map_mul]; rfl
-    _ = (f x).right := by rw [SemidirectProduct.inl_left_mul_inr_right]
-
-def semidirectActingMulEquiv
-    (hN : ∀ n : N, IsOfFinOrder n)
-    (hK : ∀ k : K, IsOfFinOrder k → k = 1)
-    (hN' : ∀ n : N', IsOfFinOrder n)
-    (hK' : ∀ k : K', IsOfFinOrder k → k = 1)
-    (f : (N ⋊[φ] K) ≃* (N' ⋊[ψ] K')) : K ≃* K' where
-  toFun := semidirectQuotientMonoidHom φ ψ f.toMonoidHom
-  invFun := semidirectQuotientMonoidHom ψ φ f.symm.toMonoidHom
-  left_inv k := by
-    have h := semidirectQuotientMonoidHom_right ψ φ hN' hK
-      f.symm.toMonoidHom (f (SemidirectProduct.inr k))
-    simpa [semidirectQuotientMonoidHom] using h
-  right_inv k := by
-    have h := semidirectQuotientMonoidHom_right φ ψ hN hK'
-      f.toMonoidHom (f.symm (SemidirectProduct.inr k))
-    simpa [semidirectQuotientMonoidHom] using h
-  map_mul' := (semidirectQuotientMonoidHom φ ψ f.toMonoidHom).map_mul
-
-@[simp] theorem semidirectActingMulEquiv_apply
-    (hN : ∀ n : N, IsOfFinOrder n)
-    (hK : ∀ k : K, IsOfFinOrder k → k = 1)
-    (hN' : ∀ n : N', IsOfFinOrder n)
-    (hK' : ∀ k : K', IsOfFinOrder k → k = 1)
-    (f : (N ⋊[φ] K) ≃* (N' ⋊[ψ] K')) (k : K) :
-    semidirectActingMulEquiv φ ψ hN hK hN' hK' f k =
-      (f (SemidirectProduct.inr k)).right := rfl
-
-theorem semidirectActingMulEquiv_right
-    (hN : ∀ n : N, IsOfFinOrder n)
-    (hK : ∀ k : K, IsOfFinOrder k → k = 1)
-    (hN' : ∀ n : N', IsOfFinOrder n)
-    (hK' : ∀ k : K', IsOfFinOrder k → k = 1)
-    (f : (N ⋊[φ] K) ≃* (N' ⋊[ψ] K')) (x : N ⋊[φ] K) :
-    semidirectActingMulEquiv φ ψ hN hK hN' hK' f x.right =
-      (f x).right :=
-  semidirectQuotientMonoidHom_right φ ψ hN hK' f.toMonoidHom x
-
 end Isomorphisms
 
 section Equivariance
 
-variable {N : Type u} {K : Type v} {N' : Type w} {K' : Type z}
-variable [CommGroup N] [Group K] [CommGroup N'] [Group K']
-variable (φ : K →* MulAut N) (ψ : K' →* MulAut N')
-
-theorem semidirectKernelMulEquiv_equivariant
-    (hN : ∀ n : N, IsOfFinOrder n)
-    (hK : ∀ k : K, IsOfFinOrder k → k = 1)
-    (hN' : ∀ n : N', IsOfFinOrder n)
-    (hK' : ∀ k : K', IsOfFinOrder k → k = 1)
-    (f : (N ⋊[φ] K) ≃* (N' ⋊[ψ] K'))
-    (k : K) (n : N) :
-    semidirectKernelMulEquiv φ ψ hN hK hN' hK' f (φ k n) =
-      ψ (semidirectActingMulEquiv φ ψ hN hK hN' hK' f k)
-        (semidirectKernelMulEquiv φ ψ hN hK hN' hK' f n) := by
-  change (f (SemidirectProduct.inl (φ k n))).left =
-    ψ (f (SemidirectProduct.inr k)).right
-      (f (SemidirectProduct.inl n)).left
-  have hinl : f (SemidirectProduct.inl n) =
-      SemidirectProduct.inl
-        (semidirectKernelMonoidHom φ ψ hN hK' f.toMonoidHom n) :=
-    semidirectKernelMonoidHom_inl φ ψ hN hK' f.toMonoidHom n
-  rw [SemidirectProduct.inl_aut]
-  simp only [map_mul, map_inv, SemidirectProduct.mul_left,
-    SemidirectProduct.inv_left]
-  rw [hinl]
-  simp [mul_assoc]
-
 end Equivariance
 
 section AdditiveKernels
-
-variable {E : Type u} {K : Type v} {E' : Type w} {K' : Type z}
-variable [AddCommGroup E] [Group K] [AddCommGroup E'] [Group K']
-variable (φ : K →* MulAut (Multiplicative E))
-  (ψ : K' →* MulAut (Multiplicative E'))
-
-theorem multiplicative_isOfFinOrder_of_four_nsmul
-    (hfour : ∀ e : E, (4 : ℕ) • e = 0)
-    (e : Multiplicative E) : IsOfFinOrder e := by
-  apply isOfFinOrder_iff_pow_eq_one.mpr
-  refine ⟨4, by decide, ?_⟩
-  change Multiplicative.ofAdd ((4 : ℕ) • Multiplicative.toAdd e) = 1
-  rw [hfour]
-  rfl
-
-theorem additiveSemidirect_isOfFinOrder_iff_right_eq_one
-    (hfour : ∀ e : E, (4 : ℕ) • e = 0)
-    (hK : ∀ k : K, IsOfFinOrder k → k = 1)
-    (x : Multiplicative E ⋊[φ] K) :
-    IsOfFinOrder x ↔ x.right = 1 :=
-  semidirect_isOfFinOrder_iff_right_eq_one φ
-    (multiplicative_isOfFinOrder_of_four_nsmul hfour) hK x
-
-def semidirectKernelAddEquiv
-    (hfour : ∀ e : E, (4 : ℕ) • e = 0)
-    (hK : ∀ k : K, IsOfFinOrder k → k = 1)
-    (hfour' : ∀ e : E', (4 : ℕ) • e = 0)
-    (hK' : ∀ k : K', IsOfFinOrder k → k = 1)
-    (f : (Multiplicative E ⋊[φ] K) ≃*
-      (Multiplicative E' ⋊[ψ] K')) : E ≃+ E' :=
-  AddEquiv.toMultiplicative.symm
-    (semidirectKernelMulEquiv φ ψ
-      (multiplicative_isOfFinOrder_of_four_nsmul hfour) hK
-      (multiplicative_isOfFinOrder_of_four_nsmul hfour') hK' f)
-
-@[simp] theorem semidirectKernelAddEquiv_apply
-    (hfour : ∀ e : E, (4 : ℕ) • e = 0)
-    (hK : ∀ k : K, IsOfFinOrder k → k = 1)
-    (hfour' : ∀ e : E', (4 : ℕ) • e = 0)
-    (hK' : ∀ k : K', IsOfFinOrder k → k = 1)
-    (f : (Multiplicative E ⋊[φ] K) ≃*
-      (Multiplicative E' ⋊[ψ] K')) (e : E) :
-    semidirectKernelAddEquiv φ ψ hfour hK hfour' hK' f e =
-      Multiplicative.toAdd
-        (f (SemidirectProduct.inl (Multiplicative.ofAdd e))).left := rfl
-
-def additiveSemidirectActingMulEquiv
-    (hfour : ∀ e : E, (4 : ℕ) • e = 0)
-    (hK : ∀ k : K, IsOfFinOrder k → k = 1)
-    (hfour' : ∀ e : E', (4 : ℕ) • e = 0)
-    (hK' : ∀ k : K', IsOfFinOrder k → k = 1)
-    (f : (Multiplicative E ⋊[φ] K) ≃*
-      (Multiplicative E' ⋊[ψ] K')) : K ≃* K' :=
-  semidirectActingMulEquiv φ ψ
-    (multiplicative_isOfFinOrder_of_four_nsmul hfour) hK
-    (multiplicative_isOfFinOrder_of_four_nsmul hfour') hK' f
-
-theorem semidirectKernelAddEquiv_equivariant
-    (hfour : ∀ e : E, (4 : ℕ) • e = 0)
-    (hK : ∀ k : K, IsOfFinOrder k → k = 1)
-    (hfour' : ∀ e : E', (4 : ℕ) • e = 0)
-    (hK' : ∀ k : K', IsOfFinOrder k → k = 1)
-    (f : (Multiplicative E ⋊[φ] K) ≃*
-      (Multiplicative E' ⋊[ψ] K')) (k : K) (e : E) :
-    semidirectKernelAddEquiv φ ψ hfour hK hfour' hK' f
-        (Multiplicative.toAdd (φ k (Multiplicative.ofAdd e))) =
-      Multiplicative.toAdd
-        (ψ (additiveSemidirectActingMulEquiv φ ψ hfour hK hfour' hK' f k)
-          (Multiplicative.ofAdd
-            (semidirectKernelAddEquiv φ ψ hfour hK hfour' hK' f e))) := by
-  exact congrArg Multiplicative.toAdd
-    (semidirectKernelMulEquiv_equivariant φ ψ
-      (multiplicative_isOfFinOrder_of_four_nsmul hfour) hK
-      (multiplicative_isOfFinOrder_of_four_nsmul hfour') hK' f
-      k (Multiplicative.ofAdd e))
-
-theorem semidirectKernelAddEquiv_smul
-    [DistribMulAction K E] [DistribMulAction K' E']
-    (hφ : ∀ (k : K) (e : E),
-      k • e = Multiplicative.toAdd (φ k (Multiplicative.ofAdd e)))
-    (hψ : ∀ (k : K') (e : E'),
-      k • e = Multiplicative.toAdd (ψ k (Multiplicative.ofAdd e)))
-    (hfour : ∀ e : E, (4 : ℕ) • e = 0)
-    (hK : ∀ k : K, IsOfFinOrder k → k = 1)
-    (hfour' : ∀ e : E', (4 : ℕ) • e = 0)
-    (hK' : ∀ k : K', IsOfFinOrder k → k = 1)
-    (f : (Multiplicative E ⋊[φ] K) ≃*
-      (Multiplicative E' ⋊[ψ] K')) (k : K) (e : E) :
-    semidirectKernelAddEquiv φ ψ hfour hK hfour' hK' f (k • e) =
-      additiveSemidirectActingMulEquiv φ ψ hfour hK hfour' hK' f k •
-        semidirectKernelAddEquiv φ ψ hfour hK hfour' hK' f e := by
-  rw [hφ k e]
-  rw [semidirectKernelAddEquiv_equivariant φ ψ hfour hK hfour' hK' f]
-  exact (hψ _ _).symm
 
 end AdditiveKernels
 
@@ -23915,118 +16766,6 @@ section
 noncomputable section
 
 namespace ConnesRigidity
-
-open Matrix
-
-abbrev CharacteristicTwoPolynomial := Polynomial (ZMod 2)
-
-abbrev CharacteristicTwoSpecialLinear :=
-  Matrix.SpecialLinearGroup (Fin 4) CharacteristicTwoPolynomial
-
-def characteristicTwoOrderFourMatrix :
-    Matrix (Fin 4) (Fin 4) CharacteristicTwoPolynomial :=
-  !![1, 1, 0, 0;
-     0, 1, 1, 0;
-     0, 0, 1, 0;
-     0, 0, 0, 1]
-
-def characteristicTwoOrderFourSquaredMatrix :
-    Matrix (Fin 4) (Fin 4) CharacteristicTwoPolynomial :=
-  !![1, 0, 1, 0;
-     0, 1, 0, 0;
-     0, 0, 1, 0;
-     0, 0, 0, 1]
-
-theorem characteristicTwoOrderFourMatrix_eq_one_add_matrixUnits :
-    characteristicTwoOrderFourMatrix =
-      1 + Matrix.single 0 1 1 + Matrix.single 1 2 1 := by
-  ext i j
-  fin_cases i <;> fin_cases j <;>
-    simp [characteristicTwoOrderFourMatrix, Matrix.one_apply,
-      Matrix.single_apply, Fin.ext_iff]
-
-theorem characteristicTwoOrderFourSquaredMatrix_eq_one_add_matrixUnit :
-    characteristicTwoOrderFourSquaredMatrix =
-      1 + Matrix.single 0 2 1 := by
-  ext i j
-  fin_cases i <;> fin_cases j <;>
-    simp [characteristicTwoOrderFourSquaredMatrix, Matrix.one_apply,
-      Matrix.single_apply, Fin.ext_iff]
-
-theorem characteristicTwoOrderFourMatrix_det :
-    characteristicTwoOrderFourMatrix.det = 1 := by
-  rw [Matrix.det_of_upperTriangular]
-  · norm_num [characteristicTwoOrderFourMatrix, Fin.prod_univ_succ]
-  · intro i j hji
-    fin_cases i <;> fin_cases j <;>
-      norm_num [characteristicTwoOrderFourMatrix] at *
-
-def characteristicTwoOrderFour : CharacteristicTwoSpecialLinear :=
-  ⟨characteristicTwoOrderFourMatrix, characteristicTwoOrderFourMatrix_det⟩
-
-theorem characteristicTwoOrderFourMatrix_sq :
-    characteristicTwoOrderFourMatrix ^ 2 =
-      characteristicTwoOrderFourSquaredMatrix := by
-  ext i j
-  fin_cases i <;> fin_cases j <;>
-    norm_num [pow_two, Matrix.mul_apply, Fin.sum_univ_succ,
-      characteristicTwoOrderFourMatrix,
-      characteristicTwoOrderFourSquaredMatrix, CharTwo.add_self_eq_zero]
-
-theorem characteristicTwoOrderFourMatrix_sq_ne_one :
-    characteristicTwoOrderFourMatrix ^ 2 ≠ 1 := by
-  intro h
-  have hentry := congrFun (congrFun h (0 : Fin 4)) (2 : Fin 4)
-  rw [characteristicTwoOrderFourMatrix_sq] at hentry
-  change (1 : CharacteristicTwoPolynomial) = 0 at hentry
-  exact one_ne_zero hentry
-
-theorem characteristicTwoOrderFourSquaredMatrix_sq :
-    characteristicTwoOrderFourSquaredMatrix ^ 2 = 1 := by
-  ext i j
-  fin_cases i <;> fin_cases j <;>
-    norm_num [pow_two, Matrix.mul_apply, Fin.sum_univ_succ,
-      characteristicTwoOrderFourSquaredMatrix, Matrix.one_apply,
-      CharTwo.add_self_eq_zero]
-
-theorem characteristicTwoOrderFourMatrix_pow_four :
-    characteristicTwoOrderFourMatrix ^ 4 = 1 := by
-  change characteristicTwoOrderFourMatrix ^ (2 * 2) = 1
-  rw [pow_mul,
-    characteristicTwoOrderFourMatrix_sq,
-    characteristicTwoOrderFourSquaredMatrix_sq]
-
-theorem characteristicTwoOrderFour_sq_ne_one :
-    characteristicTwoOrderFour ^ 2 ≠ 1 := by
-  intro h
-  apply characteristicTwoOrderFourMatrix_sq_ne_one
-  exact congrArg (fun g : CharacteristicTwoSpecialLinear =>
-    (g : Matrix (Fin 4) (Fin 4) CharacteristicTwoPolynomial)) h
-
-theorem characteristicTwoOrderFour_pow_four :
-    characteristicTwoOrderFour ^ 4 = 1 := by
-  apply Subtype.ext
-  exact characteristicTwoOrderFourMatrix_pow_four
-
-theorem characteristicTwoOrderFour_orderOf :
-    orderOf characteristicTwoOrderFour = 4 := by
-  simpa using
-    (orderOf_eq_prime_pow (p := 2) (n := 1)
-      characteristicTwoOrderFour_sq_ne_one
-      characteristicTwoOrderFour_pow_four)
-
-theorem characteristicTwoSpecialLinear_not_torsionFree :
-    ¬ IsMulTorsionFree CharacteristicTwoSpecialLinear := by
-  intro h
-  letI := h
-  have hu : characteristicTwoOrderFour = 1 :=
-    IsMulTorsionFree.pow_left_injective (by decide : (4 : ℕ) ≠ 0)
-      (by simpa using characteristicTwoOrderFour_pow_four)
-  exact characteristicTwoOrderFour_sq_ne_one (by simp [hu])
-
-theorem exists_order_four_characteristicTwoSpecialLinear :
-    ∃ u : CharacteristicTwoSpecialLinear, orderOf u = 4 :=
-  ⟨characteristicTwoOrderFour, characteristicTwoOrderFour_orderOf⟩
 
 end ConnesRigidity
 
@@ -24149,18 +16888,6 @@ structure QuotientFixedUnitVector
     (π (E.splitting h) : V →L[ℂ] V) vector = vector
 
 namespace QuotientFixedUnitVector
-
-variable {E : SplitAbelianExtension A G H}
-variable {V : Type u} [NormedAddCommGroup V]
-  [InnerProductSpace ℂ V] [CompleteSpace V]
-variable {π : UnitaryRepresentation G V}
-
-omit [TopologicalSpace A] [DiscreteTopology A]
-  [MeasurableSpace (DiscreteCharacterSpace A)]
-  [BorelSpace (DiscreteCharacterSpace A)] in
-theorem ne_zero (ξ : QuotientFixedUnitVector E V π) : ξ.vector ≠ 0 := by
-  intro h
-  simpa [h] using ξ.norm_one
 
 end QuotientFixedUnitVector
 
@@ -24387,13 +17114,6 @@ def probabilityMeasure
   ⟨P.scalar x, P.scalar_isProbabilityMeasure x hx⟩
 
 omit [BorelSpace (DiscreteCharacterSpace A)] in
-@[simp] theorem probabilityMeasure_toMeasure
-    (P : ProjectionValuedSpectralMeasure E V π)
-    (x : V) (hx : ‖x‖ = 1) :
-    (P.probabilityMeasure x hx : Measure (DiscreteCharacterSpace A)) =
-      P.scalar x := rfl
-
-omit [BorelSpace (DiscreteCharacterSpace A)] in
 
 theorem probabilityMeasure_invariant
     (P : ProjectionValuedSpectralMeasure E V π)
@@ -24477,41 +17197,7 @@ def HasQuotientFixedApproximation
             ‖(π (E.inclusion (Multiplicative.ofAdd a)) : V →L[ℂ] V)
                 x.vector - x.vector‖ ^ 2) < ε
 
-def toSpectralMeasureInterface
-    (P : ProjectionValuedSpectralMeasure E V π)
-    (approximation : HasQuotientFixedApproximation E π) :
-    SpectralMeasureInterface E V π where
-  quotient_fixed_approximation := approximation
-  measure x := P.probabilityMeasure x.vector x.norm_one
-  measure_invariant := P.probabilityMeasure_invariant
-  energy_eq := P.probabilityMeasure_energy
-  positive_atom_invariant := P.positive_atom_invariant
-
 end ProjectionValuedSpectralMeasure
-
-theorem spectral_criterion_of_projection_valued_measure
-    (E : SplitAbelianExtension A G H)
-    (hH : HasKazhdanPropertyT H)
-    (J : Finset A) {c : ℝ} (hc : 0 < c)
-    (hdetection : HasFiniteSpectralDetection E J c)
-    (spectral : ∀ (V : Type u)
-      (_ : NormedAddCommGroup V)
-      (_ : InnerProductSpace ℂ V)
-      (_ : CompleteSpace V)
-      (π : UnitaryRepresentation G V),
-        ProjectionValuedSpectralMeasure E V π)
-    (approximation : ∀ (V : Type u)
-      (_ : NormedAddCommGroup V)
-      (_ : InnerProductSpace ℂ V)
-      (_ : CompleteSpace V)
-      (π : UnitaryRepresentation G V),
-        ProjectionValuedSpectralMeasure.HasQuotientFixedApproximation E π) :
-    HasKazhdanPropertyT G := by
-  apply spectral_criterion E hH J hc hdetection
-  intro V _ _ _ π
-  exact (spectral V inferInstance inferInstance inferInstance π)
-    |>.toSpectralMeasureInterface
-      (approximation V inferInstance inferInstance inferInstance π)
 
 end ConnesRigidity
 
@@ -24628,56 +17314,6 @@ theorem normalizedVector_unitary_displacement_le
     _ ≤ ‖(U : W →L[ℂ] W) ξ - ξ‖ + 4 * ‖p - ξ‖ := by
       nlinarith [normalizedVector_sub_unit_norm_le ξ p hξ hp]
 
-def finiteSquareTolerance {ι : Type v} (J : Finset ι) (ε : ℝ) : ℝ :=
-  min 1 (ε / ((J.card : ℝ) + 1))
-
-theorem finiteSquareTolerance_pos {ι : Type v}
-    (J : Finset ι) {ε : ℝ} (hε : 0 < ε) :
-    0 < finiteSquareTolerance J ε := by
-  unfold finiteSquareTolerance
-  exact lt_min (by norm_num)
-    (div_pos hε (by exact_mod_cast Nat.zero_lt_succ J.card))
-
-theorem sum_sq_lt_of_lt_finiteSquareTolerance
-    {ι : Type v} (J : Finset ι) (f : ι → ℝ)
-    {ε : ℝ} (hε : 0 < ε)
-    (hnonneg : ∀ i ∈ J, 0 ≤ f i)
-    (hsmall : ∀ i ∈ J, f i < finiteSquareTolerance J ε) :
-    (∑ i ∈ J, (f i) ^ 2) < ε := by
-  have hden : 0 < (J.card : ℝ) + 1 := by positivity
-  have hpoint : ∀ i ∈ J,
-      (f i) ^ 2 ≤ ε / ((J.card : ℝ) + 1) := by
-    intro i hi
-    have hone : f i < 1 :=
-      (lt_min_iff.mp (hsmall i hi)).1
-    have hεi : f i < ε / ((J.card : ℝ) + 1) :=
-      (lt_min_iff.mp (hsmall i hi)).2
-    have hsq : (f i) ^ 2 ≤ f i := by
-      nlinarith [hnonneg i hi]
-    exact (hsq.trans hεi.le)
-  calc
-    (∑ i ∈ J, (f i) ^ 2) ≤
-        ∑ _i ∈ J, ε / ((J.card : ℝ) + 1) :=
-      Finset.sum_le_sum hpoint
-    _ = (J.card : ℝ) * (ε / ((J.card : ℝ) + 1)) := by
-      simp
-    _ = ε * ((J.card : ℝ) / ((J.card : ℝ) + 1)) := by
-      ring
-    _ < ε := by
-      have hratio : (J.card : ℝ) / ((J.card : ℝ) + 1) < 1 :=
-        (div_lt_one hden).2 (by linarith)
-      nlinarith
-
-theorem sum_unitary_displacement_sq_lt
-    {ι : Type v} (J : Finset ι) (U : ι → unitary (W →L[ℂ] W))
-    (x : W) {ε : ℝ} (hε : 0 < ε)
-    (hsmall : ∀ i ∈ J,
-      ‖(U i : W →L[ℂ] W) x - x‖ < finiteSquareTolerance J ε) :
-    (∑ i ∈ J, ‖(U i : W →L[ℂ] W) x - x‖ ^ 2) < ε := by
-  exact sum_sq_lt_of_lt_finiteSquareTolerance J
-    (fun i ↦ ‖(U i : W →L[ℂ] W) x - x‖) hε
-    (fun i _ ↦ norm_nonneg _) hsmall
-
 end ConnesRigidity
 
 end
@@ -24727,14 +17363,6 @@ instance quotientFixedSubmodule_completeSpace
     CompleteSpace (quotientFixedSubmodule E π) :=
   (quotientFixedSubmodule_isClosed E π).isComplete.completeSpace_coe
 
-theorem quotientFixedSubmodule_map
-    (E : SplitAbelianExtension A G H)
-    (π : UnitaryRepresentation G V)
-    (h : H) {x : V} (hx : x ∈ quotientFixedSubmodule E π) :
-    (π (E.splitting h) : V →L[ℂ] V) x ∈ quotientFixedSubmodule E π := by
-  rw [(mem_quotientFixedSubmodule E π x).mp hx h]
-  exact hx
-
 theorem quotientFixedOrthogonal_mem
     (E : SplitAbelianExtension A G H)
     (π : UnitaryRepresentation G V)
@@ -24761,13 +17389,6 @@ theorem quotientFixedProjection_mem
     (π : UnitaryRepresentation G V) (x : V) :
     quotientFixedProjection E π x ∈ quotientFixedSubmodule E π :=
   Submodule.starProjection_apply_mem _ _
-
-theorem sub_quotientFixedProjection_mem_orthogonal
-    (E : SplitAbelianExtension A G H)
-    (π : UnitaryRepresentation G V) (x : V) :
-    x - quotientFixedProjection E π x ∈
-      (quotientFixedSubmodule E π)ᗮ :=
-  Submodule.sub_starProjection_mem_orthogonal x
 
 theorem quotientFixedProjection_fixed
     (E : SplitAbelianExtension A G H)
@@ -25501,125 +18122,9 @@ theorem trivialCharacterProjection_quotient_commutes
       (kernelFixedSubmodule E π).starProjection (U x)
   simpa [hmap] using hprojection
 
-structure SpectralAtomCompatibility
-    (E : SplitAbelianExtension A G H)
-    {V : Type u} [NormedAddCommGroup V]
-    [InnerProductSpace ℂ V] [CompleteSpace V]
-    (π : UnitaryRepresentation G V)
-    (Φ : PositiveSpectralFunctional E V π) : Prop where
-  trivial_atom : ∀ x : V,
-    (Φ.measure x).real {1} =
-      (inner ℂ x (trivialCharacterProjection E π x)).re
-
 namespace PositiveSpectralFunctional
 
-variable {E : SplitAbelianExtension A G H}
-variable {V : Type u} [NormedAddCommGroup V]
-  [InnerProductSpace ℂ V] [CompleteSpace V]
-variable {π : UnitaryRepresentation G V}
-
-theorem trivialCharacterProjection_ne_zero_of_atom_pos
-    (Φ : PositiveSpectralFunctional E V π)
-    (compatibility : SpectralAtomCompatibility E π Φ)
-    (x : QuotientFixedUnitVector E V π)
-    (hx : 0 < spectralTrivialAtom
-      (Φ.probabilityMeasure x.vector x.norm_one)) :
-    trivialCharacterProjection E π x.vector ≠ 0 := by
-  intro hzero
-  have hatom := compatibility.trivial_atom x.vector
-  rw [hzero, inner_zero_right] at hatom
-  change 0 < (Φ.measure x.vector).real {1} at hx
-  rw [hatom] at hx
-  norm_num at hx
-
-theorem positive_atom_invariant_of_riesz
-    (Φ : PositiveSpectralFunctional E V π)
-    (compatibility : SpectralAtomCompatibility E π Φ)
-    (x : QuotientFixedUnitVector E V π)
-    (hx : 0 < spectralTrivialAtom
-      (Φ.probabilityMeasure x.vector x.norm_one)) :
-    ∃ η : V, η ≠ 0 ∧
-      (∀ a : A,
-        (π (E.inclusion (Multiplicative.ofAdd a)) : V →L[ℂ] V) η = η) ∧
-      (∀ h : H,
-        (π (E.splitting h) : V →L[ℂ] V) η = η) := by
-  refine ⟨trivialCharacterProjection E π x.vector,
-    Φ.trivialCharacterProjection_ne_zero_of_atom_pos compatibility x hx,
-    trivialCharacterProjection_kernel_fixed E π x.vector, ?_⟩
-  intro h
-  rw [trivialCharacterProjection_quotient_commutes E π h x.vector,
-    x.quotient_fixed h]
-
-def toSpectralMeasureInterfaceOfRiesz
-    (Φ : PositiveSpectralFunctional E V π)
-    (compatibility : SpectralAtomCompatibility E π Φ)
-    (approximation :
-      ProjectionValuedSpectralMeasure.HasQuotientFixedApproximation E π) :
-    SpectralMeasureInterface E V π where
-  quotient_fixed_approximation := approximation
-  measure x := Φ.probabilityMeasure x.vector x.norm_one
-  measure_invariant := Φ.probabilityMeasure_invariant
-  energy_eq := Φ.probabilityMeasure_energy
-  positive_atom_invariant :=
-    Φ.positive_atom_invariant_of_riesz compatibility
-
 end PositiveSpectralFunctional
-
-theorem spectral_criterion_of_riesz_functional
-    (E : SplitAbelianExtension A G H)
-    (hH : HasKazhdanPropertyT H)
-    (J : Finset A) {c : ℝ} (hc : 0 < c)
-    (hdetection : HasFiniteSpectralDetection E J c)
-    (functional : ∀ (V : Type u)
-      (_ : NormedAddCommGroup V)
-      (_ : InnerProductSpace ℂ V)
-      (_ : CompleteSpace V)
-      (π : UnitaryRepresentation G V),
-        PositiveSpectralFunctional E V π)
-    (compatibility : ∀ (V : Type u)
-      (_ : NormedAddCommGroup V)
-      (_ : InnerProductSpace ℂ V)
-      (_ : CompleteSpace V)
-      (π : UnitaryRepresentation G V),
-        SpectralAtomCompatibility E π
-          (functional V inferInstance inferInstance inferInstance π))
-    (approximation : ∀ (V : Type u)
-      (_ : NormedAddCommGroup V)
-      (_ : InnerProductSpace ℂ V)
-      (_ : CompleteSpace V)
-      (π : UnitaryRepresentation G V),
-        ProjectionValuedSpectralMeasure.HasQuotientFixedApproximation E π) :
-    HasKazhdanPropertyT G := by
-  apply spectral_criterion E hH J hc hdetection
-  intro V _ _ _ π
-  exact (functional V inferInstance inferInstance inferInstance π)
-    |>.toSpectralMeasureInterfaceOfRiesz
-      (compatibility V inferInstance inferInstance inferInstance π)
-      (approximation V inferInstance inferInstance inferInstance π)
-
-theorem spectral_criterion_of_positive_functional
-    (E : SplitAbelianExtension A G H)
-    (hH : HasKazhdanPropertyT H)
-    (J : Finset A) {c : ℝ} (hc : 0 < c)
-    (hdetection : HasFiniteSpectralDetection E J c)
-    (functional : ∀ (V : Type u)
-      (_ : NormedAddCommGroup V)
-      (_ : InnerProductSpace ℂ V)
-      (_ : CompleteSpace V)
-      (π : UnitaryRepresentation G V),
-        PositiveSpectralFunctional E V π)
-    (compatibility : ∀ (V : Type u)
-      (_ : NormedAddCommGroup V)
-      (_ : InnerProductSpace ℂ V)
-      (_ : CompleteSpace V)
-      (π : UnitaryRepresentation G V),
-        SpectralAtomCompatibility E π
-          (functional V inferInstance inferInstance inferInstance π)) :
-    HasKazhdanPropertyT G := by
-  apply spectral_criterion_of_riesz_functional E hH J hc hdetection
-    functional compatibility
-  intro V _ _ _ π
-  exact quotientFixedApproximation E π
 
 end ConnesRigidity
 
@@ -25628,99 +18133,6 @@ end
 section
 
 namespace ConnesRigidity
-
-open ConnesRigidity
-
-universe u
-
-def HasRelativeKazhdanPropertyT
-    (G : CountableDiscreteGroup.{u}) (N : Subgroup G) : Prop :=
-  ∀ (H : Type u)
-    (_ : NormedAddCommGroup H)
-    (_ : InnerProductSpace ℂ H)
-    (_ : CompleteSpace H)
-    (π : UnitaryRepresentation G H),
-    π.HasAlmostInvariantUnitVectors →
-      ∃ ξ : H, ξ ≠ 0 ∧
-        ∀ n : N, (π (n : G) : H →L[ℂ] H) ξ = ξ
-
-theorem hasRelativeKazhdanPropertyT_of_propertyT
-    (G : CountableDiscreteGroup.{u}) (N : Subgroup G)
-    (hG : HasKazhdanPropertyT G) :
-    HasRelativeKazhdanPropertyT G N := by
-  intro H _ _ _ π hπ
-  obtain ⟨ξ, hξ, hinv⟩ :=
-    hG H inferInstance inferInstance inferInstance π hπ
-  exact ⟨ξ, hξ, fun n => hinv n⟩
-
-theorem hasRelativeKazhdanPropertyT_bot
-    (G : CountableDiscreteGroup.{u}) :
-    HasRelativeKazhdanPropertyT G ⊥ := by
-  intro H _ _ _ π hπ
-  obtain ⟨ξ, hξ, _⟩ := hπ ∅ 1 (by norm_num)
-  refine ⟨ξ, ?_, ?_⟩
-  · intro hzero
-    simp [hzero] at hξ
-  · intro n
-    have hn : (n : G) = 1 := Subgroup.mem_bot.mp n.property
-    simp [hn]
-
-theorem hasRelativeKazhdanPropertyT_top_iff
-    (G : CountableDiscreteGroup.{u}) :
-    HasRelativeKazhdanPropertyT G ⊤ ↔ HasKazhdanPropertyT G := by
-  constructor
-  · intro hrel H _ _ _ π hπ
-    obtain ⟨ξ, hξ, hfixed⟩ :=
-      hrel H inferInstance inferInstance inferInstance π hπ
-    exact ⟨ξ, hξ, fun g => hfixed ⟨g, Subgroup.mem_top g⟩⟩
-  · exact hasRelativeKazhdanPropertyT_of_propertyT G ⊤
-
-theorem HasRelativeKazhdanPropertyT.mono
-    {G : CountableDiscreteGroup.{u}}
-    {N M : Subgroup G} (hNM : M ≤ N)
-    (hN : HasRelativeKazhdanPropertyT G N) :
-    HasRelativeKazhdanPropertyT G M := by
-  intro H _ _ _ π hπ
-  obtain ⟨ξ, hξ, hfixed⟩ :=
-    hN H inferInstance inferInstance inferInstance π hπ
-  exact ⟨ξ, hξ, fun m => hfixed ⟨m, hNM m.property⟩⟩
-
-theorem HasRelativeKazhdanPropertyT.spectralGap_of_no_fixed
-    {G : CountableDiscreteGroup.{u}}
-    (N : Subgroup G) (hN : HasRelativeKazhdanPropertyT G N)
-    {H : Type u} [NormedAddCommGroup H]
-    [InnerProductSpace ℂ H] [CompleteSpace H]
-    (π : UnitaryRepresentation G H)
-    (hfixed : ∀ ξ : H,
-      (∀ n : N, (π (n : G) : H →L[ℂ] H) ξ = ξ) → ξ = 0) :
-    ∃ (F : Finset G) (δ : ℝ), 0 < δ ∧
-      ∀ ξ : H, ‖ξ‖ = 1 →
-        ∃ g ∈ F, δ ≤ ‖(π g : H →L[ℂ] H) ξ - ξ‖ := by
-  have hno : ¬ π.HasAlmostInvariantUnitVectors := by
-    intro halmost
-    obtain ⟨ξ, hξ, hξfixed⟩ :=
-      hN H inferInstance inferInstance inferInstance π halmost
-    exact hξ (hfixed ξ hξfixed)
-  unfold ConnesRigidity.UnitaryRepresentation.HasAlmostInvariantUnitVectors at hno
-  push Not at hno
-  exact hno
-
-noncomputable def normalQuotientGroup
-    (G : CountableDiscreteGroup.{u}) (N : Subgroup G) [N.Normal] :
-    CountableDiscreteGroup.{u} where
-  Carrier := G ⧸ N
-  group := inferInstance
-  countable := (QuotientGroup.mk'_surjective N).countable
-
-noncomputable def normalQuotientHom
-    (G : CountableDiscreteGroup.{u}) (N : Subgroup G) [N.Normal] :
-    G →* normalQuotientGroup G N :=
-  QuotientGroup.mk' N
-
-theorem normalQuotientHom_surjective
-    (G : CountableDiscreteGroup.{u}) (N : Subgroup G) [N.Normal] :
-    Function.Surjective (normalQuotientHom G N) :=
-  QuotientGroup.mk'_surjective N
 
 end ConnesRigidity
 
@@ -25907,16 +18319,6 @@ theorem trivial_atom_le_finiteAverage_functional
   · exact spectralFiniteAverageTest_nonneg s a w
   · rw [spectralFiniteAverageTest_one s a w hw]
 
-theorem trivial_atom_le_finiteAverage_integral
-    (Φ : PositiveSpectralFunctional E W π) (x : W)
-    {ι : Type v} (s : Finset ι) (a : ι → A) (w : ι → ℝ)
-    (hw : ∑ i ∈ s, w i = 1) :
-    (Φ.measure x).real {1} ≤
-      ∫ χ : DiscreteCharacterSpace A,
-        spectralFiniteAverageTest s a w χ ∂(Φ.measure x) := by
-  rw [Φ.integral_measure x (spectralFiniteAverageTest s a w)]
-  exact Φ.trivial_atom_le_finiteAverage_functional x s a w hw
-
 end PositiveSpectralFunctional
 
 end ConnesRigidity
@@ -26046,17 +18448,6 @@ theorem finiteAverage_functional_eq_kernel_orbit_norm_sq
   simp only [map_sub, map_smul, map_sum, Φ.normalization, Φ.energy,
     smul_eq_mul]
   exact hvariance.symm
-
-theorem kernel_orbit_norm_sq_eq_finiteAverage_integral
-    (Φ : PositiveSpectralFunctional E V π) (x : V)
-    {ι : Type*} (s : Finset ι) (a : ι → A) (w : ι → ℝ)
-    (hw : ∑ i ∈ s, w i = 1) :
-    ‖∑ i ∈ s, w i •
-      ((π (E.inclusion (Multiplicative.ofAdd (a i))) : V →L[ℂ] V) x)‖ ^ 2 =
-      ∫ χ : DiscreteCharacterSpace A,
-        spectralFiniteAverageTest s a w χ ∂(Φ.measure x) := by
-  rw [Φ.integral_measure x (spectralFiniteAverageTest s a w)]
-  exact (Φ.finiteAverage_functional_eq_kernel_orbit_norm_sq x s a w hw).symm
 
 theorem trivial_atom_le_kernel_orbit_norm_sq
     (Φ : PositiveSpectralFunctional E V π) (x : V)
@@ -26509,10 +18900,6 @@ def positiveVectorState (x : V) : (V →L[ℂ] V) →L[ℝ] ℝ :=
   Complex.reCLM.comp
     (((innerSL ℂ x).comp ((ContinuousLinearMap.apply ℂ V) x)).restrictScalars ℝ)
 
-omit [CompleteSpace V] in
-@[simp] theorem positiveVectorState_apply (x : V) (T : V →L[ℂ] V) :
-    positiveVectorState x T = (inner ℂ x (T x)).re := rfl
-
 theorem positiveVectorState_star_mul_self (x : V) (T : V →L[ℂ] V) :
     positiveVectorState x (star T * T) = ‖T x‖ ^ 2 := by
   change (inner ℂ x ((star T) (T x))).re = _
@@ -26520,44 +18907,12 @@ theorem positiveVectorState_star_mul_self (x : V) (T : V →L[ℂ] V) :
     ContinuousLinearMap.adjoint_inner_right]
   exact inner_self_eq_norm_sq (𝕜 := ℂ) (T x)
 
-theorem positiveVectorState_star_mul_self_nonneg (x : V) (T : V →L[ℂ] V) :
-    0 ≤ positiveVectorState x (star T * T) := by
-  rw [positiveVectorState_star_mul_self]
-  positivity
-
 omit [CompleteSpace V] in
 
 @[simp] theorem positiveVectorState_one (x : V) :
     positiveVectorState x (1 : V →L[ℂ] V) = ‖x‖ ^ 2 := by
   change (inner ℂ x x).re = _
   exact inner_self_eq_norm_sq (𝕜 := ℂ) x
-
-omit [CompleteSpace V] in
-
-theorem abs_positiveVectorState_le (x : V) (T : V →L[ℂ] V) :
-    |positiveVectorState x T| ≤ ‖x‖ ^ 2 * ‖T‖ := by
-  change |(inner ℂ x (T x)).re| ≤ _
-  calc
-    |(inner ℂ x (T x)).re| ≤ ‖inner ℂ x (T x)‖ := Complex.abs_re_le_norm _
-    _ ≤ ‖x‖ * ‖T x‖ := norm_inner_le_norm _ _
-    _ ≤ ‖x‖ * (‖T‖ * ‖x‖) := by
-      gcongr
-      exact T.le_opNorm x
-    _ = ‖x‖ ^ 2 * ‖T‖ := by ring
-
-theorem positiveVectorState_unitary_conj
-    (x : V) (U : unitary (V →L[ℂ] V)) (T : V →L[ℂ] V) :
-    positiveVectorState ((U : V →L[ℂ] V) x)
-        ((U : V →L[ℂ] V) * T * (↑(U⁻¹) : V →L[ℂ] V)) =
-      positiveVectorState x T := by
-  have hcancel : (↑(U⁻¹) : V →L[ℂ] V) ((U : V →L[ℂ] V) x) = x := by
-    change ((↑(U⁻¹ * U) : V →L[ℂ] V)) x = x
-    simp
-  change (inner ℂ ((U : V →L[ℂ] V) x)
-    (((U : V →L[ℂ] V) * T * (↑(U⁻¹) : V →L[ℂ] V))
-      ((U : V →L[ℂ] V) x))).re = (inner ℂ x (T x)).re
-  simp only [mul_apply_eq_comp, hcancel]
-  rw [Unitary.inner_map_map]
 
 end ConnesRigidity
 
@@ -26645,11 +19000,6 @@ def compactTestPrecomp (e : X ≃ₜ X) (f : C_c(X, ℝ)) : C_c(X, ℝ) where
   continuous_toFun := f.continuous.comp e.continuous
   hasCompactSupport' := HasCompactSupport.of_compactSpace _
 
-omit [T2Space X] [MeasurableSpace X] [BorelSpace X] in
-@[simp] theorem compactTestPrecomp_apply
-    (e : X ≃ₜ X) (f : C_c(X, ℝ)) (x : X) :
-    compactTestPrecomp e f x = f (e x) := rfl
-
 theorem rieszMeasure_map_homeomorph
     (e : X ≃ₜ X)
     (Λ Λ' : C_c(X, ℝ) →ₚ[ℝ] ℝ)
@@ -26703,15 +19053,6 @@ theorem positiveVectorState_unitary_pullback
         (T ((U : V →L[ℂ] V) x))).re
   rw [ContinuousLinearMap.star_eq_adjoint,
     ContinuousLinearMap.adjoint_inner_right]
-
-theorem positiveVectorState_unitary_conj_inverse
-    (x : V) (U : unitary (V →L[ℂ] V)) (T : V →L[ℂ] V) :
-    positiveVectorState x
-        ((↑(U⁻¹) : V →L[ℂ] V) * T * (U : V →L[ℂ] V)) =
-      positiveVectorState ((U : V →L[ℂ] V) x) T := by
-  change positiveVectorState x
-      (star (U : V →L[ℂ] V) * T * (U : V →L[ℂ] V)) = _
-  exact positiveVectorState_unitary_pullback x U T
 
 end VectorState
 
@@ -27411,15 +19752,6 @@ theorem exists_kernel_fixed_mem_closedConvexHull
     exists_kernel_fixed_norm_minimizer E π x
   exact ⟨y, hy, hfixed⟩
 
-theorem exists_mem_kernelFixedSubmodule_closedConvexHull
-    (E : SplitAbelianExtension A G H)
-    (π : UnitaryRepresentation G V) (x : V) :
-    ∃ y ∈ kernelOrbitClosedConvexHull E π x,
-      y ∈ kernelFixedSubmodule E π := by
-  obtain ⟨y, hy, hfixed⟩ :=
-    exists_kernel_fixed_mem_closedConvexHull E π x
-  exact ⟨y, hy, (mem_kernelFixedSubmodule E π y).mpr hfixed⟩
-
 end ConnesRigidity
 
 end
@@ -27620,16 +19952,6 @@ theorem kernelOrbitAffineApproximation
     kernelOrbit_exists_finset_affineCombination_norm_lt E π x hzero hε
   exact ⟨s, w, hw, hnorm⟩
 
-def PositiveSpectralFunctional.toUnconditionalSpectralMeasureInterface
-    {E : SplitAbelianExtension A G H}
-    {V : Type u} [NormedAddCommGroup V]
-    [InnerProductSpace ℂ V] [CompleteSpace V]
-    {π : UnitaryRepresentation G V}
-    (Φ : PositiveSpectralFunctional E V π) :
-    SpectralMeasureInterface E V π :=
-  Φ.toSpectralMeasureInterfaceOfOrbitApproximation
-    (kernelOrbitAffineApproximation E π)
-
 theorem spectral_criterion_of_positive_functional_unconditional
     (E : SplitAbelianExtension A G H)
     (hH : HasKazhdanPropertyT H)
@@ -27682,38 +20004,6 @@ def jointPositiveSpectralFunctional
       dualCharacterHomeomorph] using
       jointFunctionalCalculus_quotient_covariance E π h f
 
-def jointSpectralMeasureInterfaceOfOrbitApproximation
-    (E : SplitAbelianExtension A G H)
-    (π : UnitaryRepresentation G V)
-    (approximation : HasKernelOrbitAffineApproximation E π) :
-    SpectralMeasureInterface E V π :=
-  (jointPositiveSpectralFunctional E π)
-    |>.toSpectralMeasureInterfaceOfOrbitApproximation approximation
-
-theorem spectral_criterion_of_orbitApproximation
-    (E : SplitAbelianExtension A G H)
-    (hH : HasKazhdanPropertyT H)
-    (J : Finset A) {c : ℝ} (hc : 0 < c)
-    (hdetection : HasFiniteSpectralDetection E J c)
-    (approximation : ∀ (W : Type u)
-      (_ : NormedAddCommGroup W)
-      (_ : InnerProductSpace ℂ W)
-      (_ : CompleteSpace W)
-      (π : UnitaryRepresentation G W),
-        HasKernelOrbitAffineApproximation E π) :
-    HasKazhdanPropertyT G := by
-  apply spectral_criterion_of_positive_functional_and_orbitApproximation
-    E hH J hc hdetection
-  · exact fun W _ _ _ π => jointPositiveSpectralFunctional E π
-  · exact approximation
-
-def jointSpectralMeasureInterface
-    (E : SplitAbelianExtension A G H)
-    (π : UnitaryRepresentation G V) :
-    SpectralMeasureInterface E V π :=
-  (jointPositiveSpectralFunctional E π)
-    |>.toUnconditionalSpectralMeasureInterface
-
 theorem spectral_criterion_unconditional
     (E : SplitAbelianExtension A G H)
     (hH : HasKazhdanPropertyT H)
@@ -27750,103 +20040,11 @@ variable {π : UnitaryRepresentation G V}
 
 namespace ProjectionValuedSpectralMeasure
 
-theorem projection_idempotent
-    (P : ProjectionValuedSpectralMeasure E V π)
-    {s : Set (DiscreteCharacterSpace A)} (hs : MeasurableSet s) :
-    (P.projection s).comp (P.projection s) = P.projection s := by
-  simpa only [Set.inter_self] using (P.projection_inter s s hs hs).symm
-
-theorem scalar_measureReal_eq_projection_norm_sq
-    (P : ProjectionValuedSpectralMeasure E V π)
-    (x : V) {s : Set (DiscreteCharacterSpace A)}
-    (hs : MeasurableSet s) :
-    (P.scalar x).real s = ‖P.projection s x‖ ^ 2 := by
-  rw [P.scalar_apply x s hs]
-  have hself := P.projection_self_adjoint s hs x (P.projection s x)
-  have hidempotent := DFunLike.congr_fun (P.projection_idempotent hs) x
-  change P.projection s (P.projection s x) = P.projection s x at hidempotent
-  rw [hidempotent] at hself
-  rw [← hself]
-  exact inner_self_eq_norm_sq (𝕜 := ℂ) (P.projection s x)
-
-theorem projection_norm_le
-    (P : ProjectionValuedSpectralMeasure E V π)
-    {s : Set (DiscreteCharacterSpace A)} (hs : MeasurableSet s)
-    (x : V) :
-    ‖P.projection s x‖ ≤ ‖x‖ := by
-  have hnorm : 0 ≤ ‖P.projection s x‖ := norm_nonneg _
-  have hxnorm : 0 ≤ ‖x‖ := norm_nonneg _
-  have hquadratic : ‖P.projection s x‖ ^ 2 ≤
-      ‖x‖ * ‖P.projection s x‖ := by
-    rw [← P.scalar_measureReal_eq_projection_norm_sq x hs,
-      P.scalar_apply x s hs]
-    exact re_inner_le_norm (𝕜 := ℂ) x (P.projection s x)
-  nlinarith
-
-theorem abs_scalar_measureReal_sub_le
-    (P : ProjectionValuedSpectralMeasure E V π)
-    (x y : V) (hx : ‖x‖ = 1) (hy : ‖y‖ = 1)
-    {s : Set (DiscreteCharacterSpace A)} (hs : MeasurableSet s) :
-    |(P.scalar x).real s - (P.scalar y).real s| ≤ 2 * ‖x - y‖ := by
-  rw [P.scalar_measureReal_eq_projection_norm_sq x hs,
-    P.scalar_measureReal_eq_projection_norm_sq y hs]
-  have hpx : ‖P.projection s x‖ ≤ 1 := by
-    simpa [hx] using P.projection_norm_le hs x
-  have hpy : ‖P.projection s y‖ ≤ 1 := by
-    simpa [hy] using P.projection_norm_le hs y
-  have hsub : |‖P.projection s x‖ - ‖P.projection s y‖| ≤ ‖x - y‖ := by
-    calc
-      |‖P.projection s x‖ - ‖P.projection s y‖| ≤
-          ‖P.projection s x - P.projection s y‖ := abs_norm_sub_norm_le _ _
-      _ = ‖P.projection s (x - y)‖ := by rw [map_sub]
-      _ ≤ ‖x - y‖ := P.projection_norm_le hs (x - y)
-  have hsum : ‖P.projection s x‖ + ‖P.projection s y‖ ≤ 2 := by
-    linarith
-  calc
-    |‖P.projection s x‖ ^ 2 - ‖P.projection s y‖ ^ 2| =
-        |‖P.projection s x‖ - ‖P.projection s y‖| *
-          (‖P.projection s x‖ + ‖P.projection s y‖) := by
-      rw [← abs_of_nonneg (add_nonneg (norm_nonneg _) (norm_nonneg _)),
-        ← abs_mul]
-      congr 1
-      ring
-    _ ≤ ‖x - y‖ * 2 := by
-      gcongr
-    _ = 2 * ‖x - y‖ := by ring
-
-theorem abs_scalar_map_measureReal_sub_le
-    (P : ProjectionValuedSpectralMeasure E V π)
-    (x : V) (hx : ‖x‖ = 1) (h : H)
-    {s : Set (DiscreteCharacterSpace A)} (hs : MeasurableSet s) :
-    |((P.scalar x).map (dualCharacterAction E.action h)).real s -
-        (P.scalar x).real s| ≤
-      2 * ‖(π (E.splitting h) : V →L[ℂ] V) x - x‖ := by
-  rw [P.scalar_covariance h x]
-  exact P.abs_scalar_measureReal_sub_le
-    ((π (E.splitting h) : V →L[ℂ] V) x) x
-    ((Unitary.norm_map (π (E.splitting h)) x).trans hx) hx hs
-
-theorem abs_scalar_preimage_measureReal_sub_le
-    (P : ProjectionValuedSpectralMeasure E V π)
-    (x : V) (hx : ‖x‖ = 1) (h : H)
-    (hmeas : Measurable (dualCharacterAction E.action h))
-    {s : Set (DiscreteCharacterSpace A)} (hs : MeasurableSet s) :
-    |(P.scalar x).real (dualCharacterAction E.action h ⁻¹' s) -
-        (P.scalar x).real s| ≤
-      2 * ‖(π (E.splitting h) : V →L[ℂ] V) x - x‖ := by
-  rw [← map_measureReal_apply hmeas hs]
-  exact P.abs_scalar_map_measureReal_sub_le x hx h hs
-
 end ProjectionValuedSpectralMeasure
 
 def spectralLargeDisplacementSet (a : A) (r : ℝ) :
     Set (DiscreteCharacterSpace A) :=
   {χ | r ≤ ‖((χ (Multiplicative.ofAdd a) : Circle) : ℂ) - 1‖}
-
-theorem spectralLargeDisplacementSet_measurable (a : A) (r : ℝ) :
-    MeasurableSet (spectralLargeDisplacementSet a r) := by
-  exact ((continuous_character_evaluation a).sub
-    continuous_const).norm.measurable (measurableSet_Ici)
 
 theorem spectralDetection_integrable
     (μ : ProbabilityMeasure (DiscreteCharacterSpace A)) (a : A) :
@@ -27877,29 +20075,6 @@ theorem spectralLargeDisplacement_measureReal_mul_sq_le_energy
     change (r ^ 2 ≤ ‖((χ (Multiplicative.ofAdd a) : Circle) : ℂ) - 1‖ ^ 2) ↔ _
     exact (sq_le_sq₀ hr (norm_nonneg _))
   rwa [hset] at hmarkov
-
-theorem spectralFiniteLargeDisplacement_measureReal_mul_sq_le_energy_sum
-    (μ : ProbabilityMeasure (DiscreteCharacterSpace A))
-    (J : Finset A) (r : ℝ) (hr : 0 ≤ r) :
-    r ^ 2 * (μ : Measure (DiscreteCharacterSpace A)).real
-        (⋃ a ∈ J, spectralLargeDisplacementSet a r) ≤
-      ∑ a ∈ J, spectralDetectionEnergy μ a := by
-  calc
-    r ^ 2 * (μ : Measure (DiscreteCharacterSpace A)).real
-        (⋃ a ∈ J, spectralLargeDisplacementSet a r) ≤
-      r ^ 2 * ∑ a ∈ J,
-        (μ : Measure (DiscreteCharacterSpace A)).real
-          (spectralLargeDisplacementSet a r) := by
-      gcongr
-      exact measureReal_biUnion_finset_le J
-        (fun a => spectralLargeDisplacementSet a r)
-    _ = ∑ a ∈ J,
-        r ^ 2 * (μ : Measure (DiscreteCharacterSpace A)).real
-          (spectralLargeDisplacementSet a r) := by
-      rw [Finset.mul_sum]
-    _ ≤ ∑ a ∈ J, spectralDetectionEnergy μ a := by
-      exact Finset.sum_le_sum fun a _ =>
-        spectralLargeDisplacement_measureReal_mul_sq_le_energy μ a r hr
 
 section ConditionalSpectralMeasure
 
@@ -27990,88 +20165,6 @@ structure RelativeFourierAtomCertificate
       (∀ a ∈ translations, spectralDetectionEnergy μ a < gap ^ 2) →
         0 < spectralTrivialAtom μ
 
-theorem ProjectionValuedSpectralMeasure.exists_kernel_fixed_of_atom_pos
-    (P : ProjectionValuedSpectralMeasure E V π)
-    (x : V) (hx : ‖x‖ = 1)
-    (hatom : 0 < spectralTrivialAtom (P.probabilityMeasure x hx)) :
-    ∃ y : V, y ≠ 0 ∧
-      ∀ a : A,
-        (π (E.inclusion (Multiplicative.ofAdd a)) : V →L[ℂ] V) y = y := by
-  refine ⟨P.projection {1} x, ?_, ?_⟩
-  · intro hzero
-    have hmeasure := P.scalar_apply x {1} (measurableSet_singleton 1)
-    rw [hzero, inner_zero_right] at hmeasure
-    change 0 < (P.scalar x).real {1} at hatom
-    rw [hmeasure] at hatom
-    norm_num at hatom
-  · intro a
-    simpa using P.kernel_eigenprojection a 1 x
-
-theorem hasRelativeKazhdanPropertyT_of_fourierAtomCertificate
-    (certificate : RelativeFourierAtomCertificate E)
-    (hspectral :
-      ∀ (W : Type u)
-        (_ : NormedAddCommGroup W)
-        (_ : InnerProductSpace ℂ W)
-        (_ : CompleteSpace W)
-        (ρ : UnitaryRepresentation G W),
-          Nonempty (ProjectionValuedSpectralMeasure E W ρ)) :
-    HasRelativeKazhdanPropertyT G E.inclusion.range := by
-  classical
-  intro W _ _ _ ρ hρ
-  let P : ProjectionValuedSpectralMeasure E W ρ :=
-    (hspectral W inferInstance inferInstance inferInstance ρ).some
-  let testing : Finset G :=
-    certificate.shears.image E.splitting ∪
-      certificate.translations.image
-        (fun a => E.inclusion (Multiplicative.ofAdd a))
-  obtain ⟨x, hx, hsmall⟩ :=
-    hρ testing (certificate.gap / 2)
-      (div_pos certificate.gap_pos (by norm_num))
-  let μ := P.probabilityMeasure x hx
-  have hshears :
-      ∀ h ∈ certificate.shears,
-        ∀ s : Set (DiscreteCharacterSpace A), MeasurableSet s →
-          |((μ : Measure (DiscreteCharacterSpace A)).map
-              (dualCharacterAction E.action h)).real s -
-            (μ : Measure (DiscreteCharacterSpace A)).real s| <
-              certificate.gap := by
-    intro h hh s hs
-    have hmem : E.splitting h ∈ testing := by
-      apply Finset.mem_union_left
-      exact Finset.mem_image.mpr ⟨h, hh, rfl⟩
-    have hbound := P.abs_scalar_map_measureReal_sub_le x hx h hs
-    have hdisplacement := hsmall (E.splitting h) hmem
-    change
-      |((P.scalar x).map (dualCharacterAction E.action h)).real s -
-        (P.scalar x).real s| < certificate.gap
-    linarith
-  have htranslations :
-      ∀ a ∈ certificate.translations,
-        spectralDetectionEnergy μ a < certificate.gap ^ 2 := by
-    intro a ha
-    have hmem : E.inclusion (Multiplicative.ofAdd a) ∈ testing := by
-      apply Finset.mem_union_right
-      exact Finset.mem_image.mpr ⟨a, ha, rfl⟩
-    have hdisplacement :=
-      hsmall (E.inclusion (Multiplicative.ofAdd a)) hmem
-    change
-      (∫ χ : DiscreteCharacterSpace A,
-        ‖((χ (Multiplicative.ofAdd a) : Circle) : ℂ) - 1‖ ^ 2
-          ∂(P.scalar x)) < certificate.gap ^ 2
-    rw [P.energy_identity]
-    have hnorm := norm_nonneg
-      ((ρ (E.inclusion (Multiplicative.ofAdd a)) : W →L[ℂ] W) x - x)
-    nlinarith [certificate.gap_pos]
-  obtain ⟨y, hy, hyfixed⟩ := P.exists_kernel_fixed_of_atom_pos x hx
-    (certificate.positive_atom μ hshears htranslations)
-  refine ⟨y, hy, ?_⟩
-  intro n
-  obtain ⟨a, ha⟩ := n.property
-  change (ρ (n : G) : W →L[ℂ] W) y = y
-  rw [← ha]
-  exact hyfixed (Multiplicative.toAdd a)
-
 end ConnesRigidity
 
 end
@@ -28081,71 +20174,6 @@ section
 noncomputable section
 
 namespace ConnesRigidity
-
-open ConnesRigidity MeasureTheory Set
-
-variable {Ω Ξ : Type*} [MeasurableSpace Ω] [MeasurableSpace Ξ]
-
-theorem conditionedProbability_compl_measureReal
-    (μ : ProbabilityMeasure Ω) {U : Set Ω}
-    (hU : 0 < (μ : Measure Ω).real U) (hUmeas : MeasurableSet U) :
-    (conditionedProbability μ U hU : Measure Ω).real Uᶜ = 0 := by
-  rw [conditionedProbability_measureReal μ hU hUmeas Uᶜ]
-  simp
-
-theorem conditionedProbability_inter_window
-    (μ : ProbabilityMeasure Ω) {U : Set Ω}
-    (hU : 0 < (μ : Measure Ω).real U) (hUmeas : MeasurableSet U)
-    (s : Set Ω) :
-    (conditionedProbability μ U hU : Measure Ω).real s =
-      (conditionedProbability μ U hU : Measure Ω).real (s ∩ U) := by
-  rw [conditionedProbability_measureReal μ hU hUmeas s,
-    conditionedProbability_measureReal μ hU hUmeas (s ∩ U)]
-  simp [Set.inter_assoc]
-
-theorem conditionedProbability_ae_mem_window
-    (μ : ProbabilityMeasure Ω) {U : Set Ω}
-    (hU : 0 < (μ : Measure Ω).real U) (hUmeas : MeasurableSet U) :
-    ∀ᵐ x ∂(conditionedProbability μ U hU : Measure Ω), x ∈ U := by
-  change U ∈ ae (conditionedProbability μ U hU : Measure Ω)
-  apply (mem_ae_iff).2
-  exact (measureReal_eq_zero_iff).mp
-    (conditionedProbability_compl_measureReal μ hU hUmeas)
-
-theorem conditionedProbability_map_eq_of_eqOn
-    (μ : ProbabilityMeasure Ω) {U : Set Ω}
-    (hU : 0 < (μ : Measure Ω).real U) (hUmeas : MeasurableSet U)
-    (f g : Ω → Ξ) (hfg : ∀ x ∈ U, f x = g x) :
-    (conditionedProbability μ U hU : Measure Ω).map f =
-      (conditionedProbability μ U hU : Measure Ω).map g := by
-  apply Measure.map_congr
-  filter_upwards [conditionedProbability_ae_mem_window μ hU hUmeas]
-    with x hx
-  exact hfg x hx
-
-theorem conditionedProbability_pushforward_eq_of_eqOn
-    (μ : ProbabilityMeasure Ω) {U : Set Ω}
-    (hU : 0 < (μ : Measure Ω).real U) (hUmeas : MeasurableSet U)
-    (f g : Ω → Ξ) (hf : Measurable f) (hg : Measurable g)
-    (hfg : ∀ x ∈ U, f x = g x) :
-    (conditionedProbability μ U hU).map hf.aemeasurable =
-      (conditionedProbability μ U hU).map hg.aemeasurable := by
-  apply Subtype.ext
-  exact conditionedProbability_map_eq_of_eqOn μ hU hUmeas f g hfg
-
-theorem conditionedProbability_pushforward_measureReal
-    (μ : ProbabilityMeasure Ω) {U : Set Ω}
-    (hU : 0 < (μ : Measure Ω).real U) (hUmeas : MeasurableSet U)
-    (f : Ω → Ξ) (hf : Measurable f)
-    (s : Set Ξ) (hs : MeasurableSet s) :
-    (((conditionedProbability μ U hU).map hf.aemeasurable :
-      ProbabilityMeasure Ξ) : Measure Ξ).real s =
-      (conditionedProbability μ U hU : Measure Ω).real
-        ((f ⁻¹' s) ∩ U) := by
-  change
-    ((conditionedProbability μ U hU : Measure Ω).map f).real s = _
-  rw [map_measureReal_apply hf hs]
-  exact conditionedProbability_inter_window μ hU hUmeas (f ⁻¹' s)
 
 end ConnesRigidity
 
@@ -28676,30 +20704,6 @@ def actionKernelUnitaryRepresentation {G I : Type u} [Group G]
         (actionKernelTranslationMap K ρ hinv b x)
     exact actionKernelTranslationMap_mul_apply K ρ hinv a b x
 
-def diagonalPairAction (G : Type u) [Group G] :
-    G →* Equiv.Perm (G × G) where
-  toFun a := (Equiv.mulLeft a).prodCongr (Equiv.mulLeft a)
-  map_one' := by
-    apply Equiv.ext
-    intro x
-    exact Prod.ext (one_mul x.1) (one_mul x.2)
-  map_mul' a b := by
-    apply Equiv.ext
-    intro x
-    apply Prod.ext
-    · exact mul_assoc a b x.1
-    · exact mul_assoc a b x.2
-
-def diagonalPairKernelUnitaryRepresentation {G : Type u} [Group G]
-    (K : Matrix (G × G) (G × G) ℂ)
-    [Fact (scalarOperatorKernel K).PosSemidef]
-    (hinv : ∀ a g h j k : G,
-      K (a * g, a * h) (a * j, a * k) = K (g, h) (j, k)) :
-    G →* (RKHS.OfKernel (scalarOperatorKernel K) ≃ₗᵢ[ℂ]
-      RKHS.OfKernel (scalarOperatorKernel K)) :=
-  actionKernelUnitaryRepresentation K (diagonalPairAction G)
-    (fun a x y => hinv a x.1 x.2 y.1 y.2)
-
 theorem ofKernel_kerFun_one_eq_coe_single
     {I : Type u} (L : Matrix I I (ℂ →L[ℂ] ℂ))
     [Fact L.PosSemidef] (i : I) :
@@ -28731,22 +20735,6 @@ theorem actionKernelUnitaryRepresentation_kerFun_one
           RKHS.OfKernel (scalarOperatorKernel K)) = _
   rw [actionKernelTranslationMap_coe]
   simp [actionPreKernelTranslation]
-
-theorem diagonalPairKernelUnitaryRepresentation_kerFun_one
-    {G : Type u} [Group G]
-    (K : Matrix (G × G) (G × G) ℂ)
-    [Fact (scalarOperatorKernel K).PosSemidef]
-    (hinv : ∀ a g h j k : G,
-      K (a * g, a * h) (a * j, a * k) = K (g, h) (j, k))
-    (a g h : G) :
-    diagonalPairKernelUnitaryRepresentation K hinv a
-      (RKHS.kerFun (RKHS.OfKernel (scalarOperatorKernel K))
-        (g, h) (1 : ℂ)) =
-      RKHS.kerFun (RKHS.OfKernel (scalarOperatorKernel K))
-        (a * g, a * h) (1 : ℂ) := by
-  exact actionKernelUnitaryRepresentation_kerFun_one K
-    (diagonalPairAction G)
-    (fun a x y => hinv a x.1 x.2 y.1 y.2) a (g, h)
 
 structure HilbertKernelRealization {I : Type u}
     (K : Matrix I I ℂ) where
@@ -28807,35 +20795,6 @@ structure EquivariantHilbertKernelRealization
   equivariant : ∀ a g h : G,
     representation a (realization.vector (g, h)) =
       realization.vector (a * g, a * h)
-
-theorem exists_equivariantHilbertKernelRealization
-    {G : Type u} [Group G]
-    (K : Matrix (G × G) (G × G) ℂ)
-    (hpositive : K.PosSemidef)
-    (hdiagonal : ∀ a g h j k : G,
-      K (a * g, a * h) (a * j, a * k) = K (g, h) (j, k)) :
-    Nonempty (EquivariantHilbertKernelRealization K) := by
-  letI : Fact (scalarOperatorKernel K).PosSemidef :=
-    ⟨scalarOperatorKernel_posSemidef K hpositive⟩
-  let H := RKHS.OfKernel (scalarOperatorKernel K)
-  let R : HilbertKernelRealization K := {
-    carrier := H
-    vector := fun q => RKHS.kerFun H q (1 : ℂ)
-    gram := by
-      intro q r
-      rw [RKHS.kerFun_inner, RKHS.kerFun_apply,
-        RKHS.OfKernel.kernel_ofKernel]
-      simp [scalarOperatorKernel,
-        ContinuousLinearMap.toSpanSingleton_apply]
-  }
-  refine ⟨{
-    realization := R
-    representation := diagonalPairKernelUnitaryRepresentation K hdiagonal
-    equivariant := ?_
-  }⟩
-  intro a g h
-  exact diagonalPairKernelUnitaryRepresentation_kerFun_one
-    K hdiagonal a g h
 
 def equivariantPairCocycle {G : Type u} [Group G]
     {K : Matrix (G × G) (G × G) ℂ}
@@ -28962,41 +20921,6 @@ structure EquivariantMarkedHilbertKernelRealization
   equivariant : ∀ (g : G) (i j : I),
     representation g (realization.vector (i, j)) =
       realization.vector (ρ g i, ρ g j)
-
-theorem exists_equivariantMarkedHilbertKernelRealization
-    {G I : Type u} [Group G]
-    (ρ : G →* Equiv.Perm I)
-    (K : Matrix (I × I) (I × I) ℂ)
-    (hpositive : K.PosSemidef)
-    (hdiagonal : ∀ (g : G) (i j k l : I),
-      K (ρ g i, ρ g j) (ρ g k, ρ g l) = K (i, j) (k, l)) :
-    Nonempty (EquivariantMarkedHilbertKernelRealization ρ K) := by
-  letI : Fact (scalarOperatorKernel K).PosSemidef :=
-    ⟨scalarOperatorKernel_posSemidef K hpositive⟩
-  let H := RKHS.OfKernel (scalarOperatorKernel K)
-  let R : HilbertKernelRealization K := {
-    carrier := H
-    vector := fun q => RKHS.kerFun H q (1 : ℂ)
-    gram := by
-      intro q r
-      rw [RKHS.kerFun_inner, RKHS.kerFun_apply,
-        RKHS.OfKernel.kernel_ofKernel]
-      simp [scalarOperatorKernel,
-        ContinuousLinearMap.toSpanSingleton_apply]
-  }
-  have hinvariant : ∀ (g : G) (q r : I × I),
-      K (markedPairAction ρ g q) (markedPairAction ρ g r) = K q r := by
-    intro g q r
-    exact hdiagonal g q.1 q.2 r.1 r.2
-  refine ⟨{
-    realization := R
-    representation := actionKernelUnitaryRepresentation K
-      (markedPairAction ρ) hinvariant
-    equivariant := ?_
-  }⟩
-  intro g i j
-  exact actionKernelUnitaryRepresentation_kerFun_one K
-    (markedPairAction ρ) hinvariant g (i, j)
 
 theorem scalarKernel_canonical_dense
     {I : Type u} (K : Matrix I I ℂ)
@@ -29215,79 +21139,6 @@ theorem markedPairAffineAction_point
   exact hilbertKernelRealization_pair_vector_add K R.realization
     hadd (ρ g i) (ρ g i₀) i₀
 
-theorem HilbertKernelRealization.vector_eq_of_row_eq
-    {I : Type u} {K : Matrix I I ℂ}
-    (R : HilbertKernelRealization K) {i j : I}
-    (hrows : ∀ q : I, K i q = K j q) :
-    R.vector i = R.vector j := by
-  have horth (q : I) :
-      ⟪R.vector i - R.vector j, R.vector q⟫_ℂ = 0 := by
-    rw [inner_sub_left, R.gram, R.gram, hrows q, sub_self]
-  apply sub_eq_zero.mp
-  apply (inner_self_eq_zero (𝕜 := ℂ)).mp
-  rw [inner_sub_right, horth i, horth j, sub_self]
-
-theorem markedPairAffineAction_point_fixed_of_kernel_rows
-    {G I : Type u} [Group G]
-    {ρ : G →* Equiv.Perm I}
-    (K : Matrix (I × I) (I × I) ℂ)
-    (R : EquivariantMarkedHilbertKernelRealization ρ K)
-    (hadd : ∀ i j k : I, ∀ q : I × I,
-      K (i, j) q + K (j, k) q = K (i, k) q)
-    (i₀ i : I) (g : G)
-    (hrows : ∀ q : I × I,
-      K (ρ g i, i₀) q = K (i, i₀) q) :
-    markedPairAffineAction K R hadd i₀ g (markedPairPoint R i₀ i) =
-      markedPairPoint R i₀ i := by
-  rw [markedPairAffineAction_point]
-  exact HilbertKernelRealization.vector_eq_of_row_eq
-    R.realization hrows
-
-theorem markedPairAffineAction_fixed_of_index_fixed
-    {G I : Type u} [Group G]
-    {ρ : G →* Equiv.Perm I}
-    (K : Matrix (I × I) (I × I) ℂ)
-    (R : EquivariantMarkedHilbertKernelRealization ρ K)
-    (hadd : ∀ i j k : I, ∀ q : I × I,
-      K (i, j) q + K (j, k) q = K (i, k) q)
-    (i₀ i : I) (g : G) (hi : ρ g i = i) :
-    markedPairAffineAction K R hadd i₀ g (markedPairPoint R i₀ i) =
-      markedPairPoint R i₀ i := by
-  rw [markedPairAffineAction_point, hi]
-
-theorem markedPairAffineAction_subgroup_fixed
-    {G I : Type u} [Group G]
-    {ρ : G →* Equiv.Perm I}
-    (K : Matrix (I × I) (I × I) ℂ)
-    (R : EquivariantMarkedHilbertKernelRealization ρ K)
-    (hadd : ∀ i j k : I, ∀ q : I × I,
-      K (i, j) q + K (j, k) q = K (i, k) q)
-    (i₀ i : I) (J : Subgroup G)
-    (hi : ∀ g : J, ρ (g : G) i = i) :
-    ∀ g : J,
-      markedPairAffineAction K R hadd i₀ (g : G)
-        (markedPairPoint R i₀ i) = markedPairPoint R i₀ i := by
-  intro g
-  exact markedPairAffineAction_fixed_of_index_fixed K R hadd
-    i₀ i g (hi g)
-
-theorem markedPairAffineAction_subgroup_fixed_of_kernel_rows
-    {G I : Type u} [Group G]
-    {ρ : G →* Equiv.Perm I}
-    (K : Matrix (I × I) (I × I) ℂ)
-    (R : EquivariantMarkedHilbertKernelRealization ρ K)
-    (hadd : ∀ i j k : I, ∀ q : I × I,
-      K (i, j) q + K (j, k) q = K (i, k) q)
-    (i₀ i : I) (J : Subgroup G)
-    (hrows : ∀ (g : J) (q : I × I),
-      K (ρ (g : G) i, i₀) q = K (i, i₀) q) :
-    ∀ g : J,
-      markedPairAffineAction K R hadd i₀ (g : G)
-        (markedPairPoint R i₀ i) = markedPairPoint R i₀ i := by
-  intro g
-  exact markedPairAffineAction_point_fixed_of_kernel_rows K R hadd
-    i₀ i g (hrows g)
-
 theorem markedPairPoint_sub
     {G I : Type u} [Group G]
     {ρ : G →* Equiv.Perm I}
@@ -29302,20 +21153,6 @@ theorem markedPairPoint_sub
   apply (sub_eq_iff_eq_add).mpr
   exact (hilbertKernelRealization_pair_vector_add K R.realization
     hadd i j i₀).symm
-
-theorem markedPairPoint_dist_sq
-    {G I : Type u} [Group G]
-    {ρ : G →* Equiv.Perm I}
-    (K : Matrix (I × I) (I × I) ℂ)
-    (R : EquivariantMarkedHilbertKernelRealization ρ K)
-    (hadd : ∀ i j k : I, ∀ q : I × I,
-      K (i, j) q + K (j, k) q = K (i, k) q)
-    (i₀ i j : I) :
-    dist (markedPairPoint R i₀ i) (markedPairPoint R i₀ j) ^ 2 =
-      (K (i, j) (i, j)).re := by
-  rw [dist_eq_norm, markedPairPoint_sub K R hadd i₀ i j,
-    norm_sq_eq_re_inner (𝕜 := ℂ), R.realization.gram]
-  rfl
 
 end ConnesRigidity.CornulierUltralimit
 
@@ -29439,53 +21276,6 @@ theorem exists_hyperfilter_positive_gram_kernel_of_pointwise_bound
   apply ge_of_tendsto hquadratic
   exact Eventually.of_forall fun n =>
     (gram_posSemidef_infinite (v n)).2 c
-
-theorem exists_hyperfilter_diagonal_positive_pair_kernel
-    {G : Type*} [Group G] {H : ℕ → Type*}
-    [∀ n, SeminormedAddCommGroup (H n)]
-    [∀ n, InnerProductSpace ℂ (H n)]
-    (v : ∀ n, G × G → H n) (B : G × G → ℝ)
-    (hbound : ∀ n q, ‖v n q‖ ≤ B q)
-    (hdiagonal : ∀ a g h j k : G,
-      ∀ᶠ n in Filter.atTop,
-        ⟪v n (a * g, a * h), v n (a * j, a * k)⟫_ℂ =
-          ⟪v n (g, h), v n (j, k)⟫_ℂ)
-    (hadd : ∀ n (g h j : G),
-      v n (g, h) + v n (h, j) = v n (g, j)) :
-    ∃ L : Matrix (G × G) (G × G) ℂ,
-      L.PosSemidef ∧
-      (∀ a g h j k : G,
-        L (a * g, a * h) (a * j, a * k) = L (g, h) (j, k)) ∧
-      (∀ g h j : G, ∀ q : G × G,
-        L (g, h) q + L (h, j) q = L (g, j) q) ∧
-      ∀ q r, Tendsto (fun n => ⟪v n q, v n r⟫_ℂ)
-        (Filter.hyperfilter ℕ) (𝓝 (L q r)) := by
-  obtain ⟨L, hpositive, hconv⟩ :=
-    exists_hyperfilter_positive_gram_kernel_of_pointwise_bound
-      v B hbound
-  refine ⟨L, hpositive, ?_, ?_, hconv⟩
-  · intro a g h j k
-    have hevent :
-        (fun n =>
-          ⟪v n (a * g, a * h), v n (a * j, a * k)⟫_ℂ) =ᶠ[
-          (Filter.hyperfilter ℕ : Filter ℕ)]
-            (fun n => ⟪v n (g, h), v n (j, k)⟫_ℂ) :=
-      (hdiagonal a g h j k).filter_mono Nat.hyperfilter_le_atTop
-    exact tendsto_nhds_unique
-      (hconv (a * g, a * h) (a * j, a * k))
-      (Tendsto.congr' hevent.symm (hconv (g, h) (j, k)))
-  · intro g h j q
-    have haddconv :=
-      (hconv (g, h) q).add (hconv (h, j) q)
-    have hfunctions :
-        (fun n =>
-          ⟪v n (g, h), v n q⟫_ℂ +
-            ⟪v n (h, j), v n q⟫_ℂ) =
-          (fun n => ⟪v n (g, j), v n q⟫_ℂ) := by
-      funext n
-      rw [← inner_add_left, hadd]
-    exact tendsto_nhds_unique haddconv
-      (by rw [hfunctions]; exact hconv (g, j) q)
 
 theorem exists_hyperfilter_action_diagonal_positive_pair_kernel
     {G I : Type*} [Group G] {H : ℕ → Type*}
@@ -30181,23 +21971,6 @@ theorem unitary_mem_normalFixedSubmodule
       rfl
     _ = (π g : H →L[ℂ] H) x := by rw [hx n']
 
-theorem normalFixedSubmodule_map
-    (g : G) :
-    (normalFixedSubmodule N π).map
-        (Unitary.linearIsometryEquiv (π g)).toLinearEquiv.toLinearMap =
-      normalFixedSubmodule N π := by
-  ext x
-  constructor
-  · rintro ⟨y, hy, rfl⟩
-    exact unitary_mem_normalFixedSubmodule N π g hy
-  · intro hx
-    refine ⟨(π g⁻¹ : H →L[ℂ] H) x,
-      unitary_mem_normalFixedSubmodule N π g⁻¹ hx, ?_⟩
-    change (π g : H →L[ℂ] H) ((π g⁻¹ : H →L[ℂ] H) x) = x
-    change (↑(π g * π g⁻¹) : H →L[ℂ] H) x = x
-    rw [← map_mul]
-    simp
-
 theorem unitary_mem_normalFixedSubmodule_orthogonal
     (g : G) {x : H} (hx : x ∈ (normalFixedSubmodule N π)ᗮ) :
     (π g : H →L[ℂ] H) x ∈ (normalFixedSubmodule N π)ᗮ := by
@@ -30374,15 +22147,6 @@ theorem normalFixed_starProjection_commute
     exact unitary_mem_normalFixedSubmodule_orthogonal N π g
       (Submodule.sub_starProjection_mem_orthogonal x)
 
-theorem normalFixed_starProjection_displacement_le
-    (g : G) (x : H) :
-    ‖(π g : H →L[ℂ] H)
-          ((normalFixedSubmodule N π).starProjection x) -
-        (normalFixedSubmodule N π).starProjection x‖ ≤
-      ‖(π g : H →L[ℂ] H) x - x‖ := by
-  rw [← normalFixed_starProjection_commute N π g x, ← map_sub]
-  exact (normalFixedSubmodule N π).norm_starProjection_apply_le _
-
 theorem normalFixed_orthogonalResidual_displacement_le
     (g : G) (x : H) :
     ‖(π g : H →L[ℂ] H)
@@ -30449,12 +22213,6 @@ theorem hilbertSquaredEnclosingRadii_bddBelow (S : Set V) :
 
 def hilbertCircumradiusSq (S : Set V) : ℝ :=
   sInf (hilbertSquaredEnclosingRadii S)
-
-theorem hilbertCircumradiusSq_nonneg
-    {S : Set V} (hS : IsBounded S) :
-    0 ≤ hilbertCircumradiusSq S := by
-  apply le_csInf (hilbertSquaredEnclosingRadii_nonempty hS)
-  exact fun _ hr => hr.1
 
 theorem hilbert_midpoint_sq_parallelogram
     (x y z : V) :
@@ -30686,33 +22444,6 @@ theorem affine_subgroup_fixedPoint_of_bounded_orbit
     S hSne hS (α (n : G))
     (affineSubgroupOrbit_image α N x n)
 
-theorem affineSubgroupOrbit_bounded_of_fixed
-    (α : AffineHilbertAction G V) (N : Subgroup G)
-    (x y : V) (hy : IsAffineFixed α N y) :
-    ∃ C : ℝ, ∀ n : N, ‖α (n : G) x - x‖ ≤ C := by
-  refine ⟨2 * ‖x - y‖, ?_⟩
-  intro n
-  have hisometry := (α (n : G)).dist_map x y
-  rw [hy n, dist_eq_norm, dist_eq_norm] at hisometry
-  calc
-    ‖α (n : G) x - x‖ =
-        ‖(α (n : G) x - y) + (y - x)‖ := by
-      congr 1
-      abel
-    _ ≤ ‖α (n : G) x - y‖ + ‖y - x‖ := norm_add_le _ _
-    _ = 2 * ‖x - y‖ := by
-      rw [hisometry, norm_sub_rev]
-      ring
-
-theorem exists_affine_subgroup_fixedPoint_iff_bounded_orbit
-    (α : AffineHilbertAction G V) (N : Subgroup G) (x : V) :
-    (∃ y : V, IsAffineFixed α N y) ↔
-      ∃ C : ℝ, ∀ n : N, ‖α (n : G) x - x‖ ≤ C := by
-  constructor
-  · rintro ⟨y, hy⟩
-    exact affineSubgroupOrbit_bounded_of_fixed α N x y hy
-  · exact affine_subgroup_fixedPoint_of_bounded_orbit α N x
-
 end AffineActions
 
 end ConnesRigidity
@@ -30772,21 +22503,6 @@ theorem cornulier_normalized_minimizing_action_false
       ⟨C, fun g => hC (g : G)⟩
   apply hnormal.no_global_fixed
   exact ⟨z, fun g => hz ⟨g, Subgroup.mem_top g⟩⟩
-
-theorem cornulier_not_corelative_of_normalized_minimizer
-    (H K₁ K₂ : Subgroup G) (S : Finset G)
-    (hgen : K₁ ⊔ K₂ = ⊤)
-    (hH₁ : H ≤ Subgroup.normalizer (K₁ : Set G))
-    (hH₂ : H ≤ Subgroup.normalizer (K₂ : Set G))
-    (α : AffineHilbertAction G V)
-    (hnormal : CornulierUltralimit.AffineUniformGeneratorDisplacement α S)
-    (x₁ x₂ : V)
-    (hmin : IsMinimizingAffinePair α K₁ K₂ x₁ x₂)
-    (hno : ∀ x : V,
-      (affineLinearRepresentation α).IsInvariant x → x = 0) :
-    ¬ HasCorelativeAffineOrbitBound H :=
-  fun hcorel => cornulier_normalized_minimizing_action_false
-    H K₁ K₂ S hgen hH₁ hH₂ hcorel α hnormal x₁ x₂ hmin hno
 
 def realInnerCharacter (f : G →* Multiplicative V) (v : V) :
     G →* Multiplicative ℝ where
@@ -30989,84 +22705,6 @@ noncomputable section
 
 namespace ConnesRigidity
 
-open scoped ClosedSubmodule
-
-variable {V : Type*} [NormedAddCommGroup V]
-  [InnerProductSpace ℂ V] [CompleteSpace V]
-
-theorem midpoint_norm_minimizer_unique
-    (S : Set V)
-    (hmid : ∀ x ∈ S, ∀ y ∈ S, midpoint ℂ x y ∈ S)
-    {x y : V} (hx : x ∈ S) (hy : y ∈ S)
-    (hxmin : ∀ z ∈ S, ‖x‖ ≤ ‖z‖)
-    (hymin : ∀ z ∈ S, ‖y‖ ≤ ‖z‖) : x = y := by
-  have hnorm : ‖x‖ = ‖y‖ :=
-    le_antisymm (hxmin y hy) (hymin x hx)
-  exact eq_of_norm_eq_and_midpoint_norm_ge x y ‖x‖
-    rfl hnorm.symm (hxmin _ (hmid x hx y hy))
-
-theorem linearIsometry_fixes_norm_minimizer
-    (S : Set V)
-    (hmid : ∀ x ∈ S, ∀ y ∈ S, midpoint ℂ x y ∈ S)
-    (U : V ≃ₗᵢ[ℂ] V)
-    (hU : ∀ z ∈ S, U z ∈ S)
-    {x : V} (hx : x ∈ S)
-    (hxmin : ∀ z ∈ S, ‖x‖ ≤ ‖z‖) : U x = x := by
-  apply midpoint_norm_minimizer_unique S hmid (hU x hx) hx
-  · intro z hz
-    rw [U.norm_map]
-    exact hxmin z hz
-  · exact hxmin
-
-theorem exists_unique_norm_minimizer_of_closed_convex
-    (S : Set V) (hne : S.Nonempty)
-    (hclosed : IsClosed S) (hconvex : Convex ℝ S) :
-    ∃! x : V, x ∈ S ∧ ∀ z ∈ S, ‖x‖ ≤ ‖z‖ := by
-  obtain ⟨x, hx, hnorm⟩ := exists_norm_eq_iInf_of_complete_convex
-    hne hclosed.isComplete hconvex (0 : V)
-  have hxnorm : ‖x‖ = ⨅ z : S, ‖(z : V)‖ := by
-    simpa using hnorm
-  have hxmin : ∀ z ∈ S, ‖x‖ ≤ ‖z‖ := by
-    intro z hz
-    rw [hxnorm]
-    have hbounded : BddBelow (Set.range fun w : S => ‖(w : V)‖) := by
-      refine ⟨0, ?_⟩
-      rintro _ ⟨w, rfl⟩
-      exact norm_nonneg _
-    exact ciInf_le hbounded (⟨z, hz⟩ : S)
-  refine ⟨x, ⟨hx, hxmin⟩, ?_⟩
-  intro y hy
-  apply midpoint_norm_minimizer_unique S
-    (fun a ha b hb => ?_) hy.1 hx hy.2 hxmin
-  have hmid : midpoint ℂ a b = midpoint ℝ a b := by
-    rw [midpoint_eq_smul_add, midpoint_eq_smul_add]
-    change ((2 : ℂ)⁻¹ • (a + b)) = ((2 : ℝ)⁻¹ • (a + b))
-    rw [← IsScalarTower.algebraMap_smul ℂ ((2 : ℝ)⁻¹) (a + b)]
-    norm_num
-  rw [hmid]
-  exact hconvex.midpoint_mem ha hb
-
-theorem exists_linearIsometry_fixed_of_invariant_closed_convex
-    {G : Type*} [Group G]
-    (ρ : G →* (V ≃ₗᵢ[ℂ] V))
-    (S : Set V) (hne : S.Nonempty) (hclosed : IsClosed S)
-    (hconvex : Convex ℝ S)
-    (hinvariant : ∀ g : G, ∀ z ∈ S, ρ g z ∈ S) :
-    ∃ x : V, x ∈ S ∧ ∀ g : G, ρ g x = x := by
-  obtain ⟨x, ⟨hx, hxmin⟩, -⟩ :=
-    exists_unique_norm_minimizer_of_closed_convex S hne hclosed hconvex
-  refine ⟨x, hx, ?_⟩
-  intro g
-  apply linearIsometry_fixes_norm_minimizer S (fun a ha b hb => ?_)
-    (ρ g) (hinvariant g) hx hxmin
-  have hmid : midpoint ℂ a b = midpoint ℝ a b := by
-    rw [midpoint_eq_smul_add, midpoint_eq_smul_add]
-    change ((2 : ℂ)⁻¹ • (a + b)) = ((2 : ℝ)⁻¹ • (a + b))
-    rw [← IsScalarTower.algebraMap_smul ℂ ((2 : ℝ)⁻¹) (a + b)]
-    norm_num
-  rw [hmid]
-  exact hconvex.midpoint_mem ha hb
-
 end ConnesRigidity
 
 end
@@ -31076,59 +22714,6 @@ section
 noncomputable section
 
 namespace ConnesRigidity
-
-open ConnesRigidity
-
-universe u
-
-variable {V : Type u} [NormedAddCommGroup V]
-  [InnerProductSpace ℂ V]
-
-theorem cornulier_eq_of_norm_eq_midpoint_le
-    (x y : V) (hxy : ‖x‖ = ‖y‖)
-    (hmid : ‖x‖ ≤ ‖midpoint ℂ x y‖) : x = y := by
-  have hnorm : 0 ≤ ‖x‖ := norm_nonneg x
-  have hmid' : 2 * ‖x‖ ≤ ‖x + y‖ := by
-    rw [midpoint_eq_smul_add, norm_smul] at hmid
-    norm_num at hmid ⊢
-    linarith
-  have hpar := parallelogram_law_with_norm ℂ x y
-  rw [← hxy] at hpar
-  have hsub : ‖x - y‖ = 0 := by
-    have hsubnonneg : 0 ≤ ‖x - y‖ := norm_nonneg _
-    nlinarith [sq_nonneg (‖x + y‖ - 2 * ‖x‖),
-      sq_nonneg ‖x - y‖, mul_nonneg hnorm hsubnonneg]
-  exact sub_eq_zero.mp (norm_eq_zero.mp hsub)
-
-theorem cornulier_minimal_pair_difference_eq
-    (x₁ x₂ y₁ y₂ : V)
-    (hnorm : ‖x₁ - x₂‖ = ‖y₁ - y₂‖)
-    (hmid : ‖x₁ - x₂‖ ≤
-      ‖midpoint ℂ x₁ y₁ - midpoint ℂ x₂ y₂‖) :
-    x₁ - x₂ = y₁ - y₂ := by
-  apply cornulier_eq_of_norm_eq_midpoint_le
-    (x₁ - x₂) (y₁ - y₂) hnorm
-  have hidentity :
-      midpoint ℂ x₁ y₁ - midpoint ℂ x₂ y₂ =
-        midpoint ℂ (x₁ - x₂) (y₁ - y₂) := by
-    simpa [vsub_eq_sub] using
-      (midpoint_vsub_midpoint (R := ℂ) x₁ y₁ x₂ y₂)
-  rw [← hidentity]
-  exact hmid
-
-theorem cornulier_minimal_pair_difference_eq_of_mem
-    (S T : Set V)
-    (hS : ∀ ⦃x y⦄, x ∈ S → y ∈ S → midpoint ℂ x y ∈ S)
-    (hT : ∀ ⦃x y⦄, x ∈ T → y ∈ T → midpoint ℂ x y ∈ T)
-    {x₁ x₂ y₁ y₂ : V}
-    (hx₁ : x₁ ∈ S) (hx₂ : x₂ ∈ T)
-    (hy₁ : y₁ ∈ S) (hy₂ : y₂ ∈ T)
-    (hmin : ∀ ⦃x y⦄, x ∈ S → y ∈ T →
-      ‖x₁ - x₂‖ ≤ ‖x - y‖)
-    (hymin : ‖y₁ - y₂‖ = ‖x₁ - x₂‖) :
-    x₁ - x₂ = y₁ - y₂ := by
-  exact cornulier_minimal_pair_difference_eq
-    x₁ x₂ y₁ y₂ hymin.symm (hmin (hS hx₁ hy₁) (hT hx₂ hy₂))
 
 end ConnesRigidity
 
@@ -31275,27 +22860,6 @@ def diagonalLinearIsometryHom
     diagonalLinearIsometryHom π g x n =
       (π g : V →L[ℂ] V) (x n) := rfl
 
-theorem diagonalDisplacement_mul
-    (π : UnitaryRepresentation G V) (v : ℕ → V)
-    (hsum : ∀ g : G, Summable fun n : ℕ =>
-      ‖(π g : V →L[ℂ] V) (v n) - v n‖ ^ (2 : ℕ))
-    (g h : G) :
-    diagonalDisplacement π v hsum (g * h) =
-      diagonalDisplacement π v hsum g +
-        diagonalLinearIsometryHom π g
-          (diagonalDisplacement π v hsum h) := by
-  apply lp.ext
-  funext n
-  change (π (g * h) : V →L[ℂ] V) (v n) - v n =
-    ((π g : V →L[ℂ] V) (v n) - v n) +
-      (π g : V →L[ℂ] V)
-        ((π h : V →L[ℂ] V) (v n) - v n)
-  rw [map_mul]
-  change (π g : V →L[ℂ] V)
-      ((π h : V →L[ℂ] V) (v n)) - v n = _
-  rw [map_sub]
-  abel
-
 def diagonalAffineAction
     (π : UnitaryRepresentation G V) (v : ℕ → V)
     (hsum : ∀ g : G, Summable fun n : ℕ =>
@@ -31412,18 +22976,6 @@ theorem exists_almostInvariantUnitSequence_summable
       rw [pow_two, ← mul_pow]
       norm_num
 
-theorem exists_diagonalAffine_of_almostInvariant
-    (π : UnitaryRepresentation G V)
-    (hπ : π.HasAlmostInvariantUnitVectors) :
-    ∃ (v : ℕ → V)
-      (α : AffineHilbertAction G (lp (fun _ : ℕ => V) 2)),
-      (∀ n, ‖v n‖ = 1) ∧
-      (∀ (g : G) (x : lp (fun _ : ℕ => V) 2) (n : ℕ),
-        α g x n = (π g : V →L[ℂ] V) (x n + v n) - v n) := by
-  obtain ⟨v, hv, hsum⟩ := exists_almostInvariantUnitSequence_summable π hπ
-  refine ⟨v, diagonalAffineAction π v hsum, hv, ?_⟩
-  exact fun g x n => diagonalAffineAction_apply π v hsum g x n
-
 end CountableNormalization
 
 end ConnesRigidity
@@ -31492,19 +23044,6 @@ private theorem columnShear_mul_last (s : Fin 3 → IntegralPolynomial)
       Matrix.transvection (2 : Fin 4) 3 (s 2) * g.val.val :
         Matrix (Fin 4) (Fin 4) IntegralPolynomial)) 3 j = _
   simp [Matrix.transvection, Matrix.mul_apply, Fin.sum_univ_four]
-
-private theorem rowShear_mul_castSucc (s : Fin 3 → IntegralPolynomial)
-    (g : integralElementaryGroup) (i : Fin 3) (j : Fin 4) :
-    ((cornulierRowShear s * g : integralElementaryGroup).val :
-      Matrix (Fin 4) (Fin 4) IntegralPolynomial) i.castSucc j =
-      (g.val : Matrix (Fin 4) (Fin 4) IntegralPolynomial) i.castSucc j := by
-  change
-    ((Matrix.transvection (3 : Fin 4) 0 (s 0) *
-      Matrix.transvection (3 : Fin 4) 1 (s 1) *
-      Matrix.transvection (3 : Fin 4) 2 (s 2) * g.val.val :
-        Matrix (Fin 4) (Fin 4) IntegralPolynomial)) i.castSucc j = _
-  fin_cases i <;>
-    simp [Matrix.transvection, Matrix.mul_apply, Fin.sum_univ_four]
 
 private theorem rowShear_mul_last (s : Fin 3 → IntegralPolynomial)
     (g : integralElementaryGroup) (j : Fin 4) :
@@ -31701,34 +23240,6 @@ theorem rankTwo_transvection_smul_single
     Matrix.SpecialLinearGroup.transvection_coe, Pi.single_apply,
     Matrix.one_apply, Matrix.single_apply, eq_comm]
 
-theorem rankTwo_invariant_additive_character_eq_zero
-    (χ : (Fin 2 → A) →+ Additive Circle)
-    (hupper : ∀ v : Fin 2 → A,
-      χ ((Matrix.SpecialLinearGroup.transvection
-        (show (0 : Fin 2) ≠ 1 by decide) (1 : A)) • v) = χ v)
-    (hlower : ∀ v : Fin 2 → A,
-      χ ((Matrix.SpecialLinearGroup.transvection
-        (show (1 : Fin 2) ≠ 0 by decide) (1 : A)) • v) = χ v) :
-    χ = 0 := by
-  have hzero : ∀ a : A, χ (Pi.single (0 : Fin 2) a) = 0 := by
-    intro a
-    have h := hupper (Pi.single (1 : Fin 2) a)
-    rw [rankTwo_transvection_smul_single, one_mul, map_add] at h
-    exact add_left_cancel (h.trans (add_zero _).symm)
-  have hone : ∀ a : A, χ (Pi.single (1 : Fin 2) a) = 0 := by
-    intro a
-    have h := hlower (Pi.single (0 : Fin 2) a)
-    rw [rankTwo_transvection_smul_single, one_mul, map_add] at h
-    exact add_left_cancel (h.trans (add_zero _).symm)
-  apply AddMonoidHom.ext
-  intro v
-  have hv : v = Pi.single (0 : Fin 2) (v 0) +
-      Pi.single (1 : Fin 2) (v 1) := by
-    ext i
-    fin_cases i <;> simp
-  change χ v = 0
-  rw [hv, map_add, hzero, hone, add_zero]
-
 def elementaryRankTwo (A : Type) [CommRing A] :
     Subgroup (Matrix.SpecialLinearGroup (Fin 2) A) :=
   Subgroup.closure
@@ -31783,69 +23294,6 @@ def elementaryRankTwoTranslationSubgroup (A : Type) [CommRing A] :
 
 open scoped commutatorElement
 
-theorem elementaryRankTwo_root_commutator
-    {i j : Fin 2} (hij : i ≠ j) (a b : A) :
-    ⁅(SemidirectProduct.inr (elementaryRankTwoRoot hij a) :
-        ElementaryRankTwoSemidirect A),
-      (SemidirectProduct.inl
-        (Multiplicative.ofAdd (Pi.single j b : Fin 2 → A)) :
-          ElementaryRankTwoSemidirect A)⁆ =
-      SemidirectProduct.inl
-        (Multiplicative.ofAdd (Pi.single i (a * b) : Fin 2 → A)) := by
-  rw [commutatorElement_def,
-    ← map_inv (SemidirectProduct.inr :
-      elementaryRankTwo A →* ElementaryRankTwoSemidirect A),
-    ← SemidirectProduct.inl_aut]
-  rw [← map_inv, ← map_mul]
-  apply congrArg (SemidirectProduct.inl :
-    Multiplicative (Fin 2 → A) →* ElementaryRankTwoSemidirect A)
-  apply Multiplicative.toAdd.injective
-  simp only [toAdd_mul, toAdd_inv]
-  rw [elementaryRankTwoAction_toAdd]
-  change (Matrix.SpecialLinearGroup.transvection hij a •
-      (Pi.single j b : Fin 2 → A)) + -(Pi.single j b) =
-      Pi.single i (a * b)
-  rw [rankTwo_transvection_smul_single]
-  abel
-
-theorem elementaryRankTwo_kernel_le_commutator :
-    elementaryRankTwoTranslationSubgroup A ≤
-      commutator (ElementaryRankTwoSemidirect A) := by
-  rintro _ ⟨v, rfl⟩
-  let w := Multiplicative.toAdd v
-  have hw : w = Pi.single (0 : Fin 2) (w 0) +
-      Pi.single (1 : Fin 2) (w 1) := by
-    ext i
-    fin_cases i <;> simp
-  have hv : v = Multiplicative.ofAdd (Pi.single (0 : Fin 2) (w 0)) *
-      Multiplicative.ofAdd (Pi.single (1 : Fin 2) (w 1)) := by
-    apply Multiplicative.toAdd.injective
-    exact hw
-  rw [hv, map_mul]
-  apply Subgroup.mul_mem
-  · rw [← one_mul (w 0), ← elementaryRankTwo_root_commutator
-      (show (0 : Fin 2) ≠ 1 by decide) (1 : A) (w 0)]
-    exact Subgroup.commutator_mem_commutator (Subgroup.mem_top _)
-      (Subgroup.mem_top _)
-  · rw [← one_mul (w 1), ← elementaryRankTwo_root_commutator
-      (show (1 : Fin 2) ≠ 0 by decide) (1 : A) (w 1)]
-    exact Subgroup.commutator_mem_commutator (Subgroup.mem_top _)
-      (Subgroup.mem_top _)
-
-theorem elementaryRankTwo_abelian_hom_kills_kernel
-    {C : Type} [CommGroup C]
-    (f : ElementaryRankTwoSemidirect A →* C)
-    (v : Multiplicative (Fin 2 → A)) :
-    f (SemidirectProduct.inl v) = 1 := by
-  have hcomm : commutator (ElementaryRankTwoSemidirect A) ≤ f.ker := by
-    rw [commutator_def, Subgroup.commutator_le]
-    intro g _ h _
-    change f ⁅g, h⁆ = 1
-    rw [map_commutatorElement, commutatorElement_eq_one_iff_mul_comm]
-    exact mul_comm _ _
-  exact hcomm (elementaryRankTwo_kernel_le_commutator
-    ⟨v, rfl⟩)
-
 instance elementaryRankTwoMatrix_countable [Countable A] :
     Countable (Matrix.SpecialLinearGroup (Fin 2) A) := by
   let f : Matrix.SpecialLinearGroup (Fin 2) A →
@@ -31875,19 +23323,6 @@ def integralElementaryRankTwoGroup : ConnesRigidity.CountableDiscreteGroup where
 abbrev integralElementaryRankTwoTranslationSubgroup :
     Subgroup integralElementaryRankTwoGroup :=
   elementaryRankTwoTranslationSubgroup IntegralPolynomial
-
-theorem integralRankTwo_invariant_additive_character_eq_zero
-    (χ : (Fin 2 → IntegralPolynomial) →+ Additive Circle)
-    (hupper : ∀ v : Fin 2 → IntegralPolynomial,
-      χ ((Matrix.SpecialLinearGroup.transvection
-        (show (0 : Fin 2) ≠ 1 by decide)
-          (1 : IntegralPolynomial)) • v) = χ v)
-    (hlower : ∀ v : Fin 2 → IntegralPolynomial,
-      χ ((Matrix.SpecialLinearGroup.transvection
-        (show (1 : Fin 2) ≠ 0 by decide)
-          (1 : IntegralPolynomial)) • v) = χ v) :
-    χ = 0 :=
-  rankTwo_invariant_additive_character_eq_zero χ hupper hlower
 
 end ConnesRigidity
 
@@ -31996,15 +23431,6 @@ def IsRelativeKazhdanPair
           ∃ η : W, η ≠ 0 ∧
             ∀ n : N, (π (n : G) : W →L[ℂ] W) η = η
 
-theorem hasRelativeKazhdanPropertyT_of_pair
-    {G : CountableDiscreteGroup.{u}} {N : Subgroup G}
-    {F : Finset G} {κ : ℝ}
-    (h : IsRelativeKazhdanPair G N F κ) :
-    HasRelativeKazhdanPropertyT G N := by
-  intro W _ _ _ π hπ
-  obtain ⟨ξ, hξ, hsmall⟩ := hπ F κ h.1
-  exact h.2 W inferInstance inferInstance inferInstance π ξ hξ hsmall
-
 theorem HasUniformRelativeKazhdanDisplacement.map
     {G H : CountableDiscreteGroup.{u}} {N : Subgroup G}
     (h : HasUniformRelativeKazhdanDisplacement G N) (f : G →* H) :
@@ -32103,11 +23529,6 @@ theorem shalomPolynomialKazhdanConstant_pos (m : ℕ) :
     shalomPolynomialKazhdanConstant 1 = (1 / 242 : ℝ) := by
   norm_num [shalomPolynomialKazhdanConstant]
 
-theorem shalomPolynomialInduction_numerical_bound :
-    (((1 / 242 : ℝ) + 2 * (1 / 242) / (1 / 11)) /
-      (1 - (1 / 242) / (1 / 11))) < (1 / 10 : ℝ) := by
-  norm_num
-
 def shalomPolynomialTranslation (i : Fin 2) (a : IntegralPolynomial) :
     integralElementaryRankTwoGroup :=
   integralElementaryRankTwoInl
@@ -32163,12 +23584,6 @@ theorem shalom_uniformPolynomialTranslationDisplacement
       integralElementaryRankTwoTranslationSubgroup :=
   uniformRelativeKazhdanDisplacement_of_pair
     integralElementaryRankTwoTranslationSubgroup h
-
-theorem shalom_polynomialRankTwo_hasRelativePropertyT
-    (h : ShalomIntegralPolynomialRelativePair) :
-    HasRelativeKazhdanPropertyT integralElementaryRankTwoGroup
-      integralElementaryRankTwoTranslationSubgroup :=
-  hasRelativeKazhdanPropertyT_of_pair h
 
 end ConnesRigidity
 
@@ -32565,29 +23980,6 @@ def gaussianAffineKernel
     gaussianAffineKernel α x t g h =
       (Real.exp (-t * ‖α g x - α h x‖ ^ 2) : ℂ) := rfl
 
-theorem gaussianAffineKernel_posSemidef
-    (α : AffineHilbertAction G V) (x : V)
-    {t : ℝ} (ht : 0 ≤ t) :
-    (gaussianAffineKernel α x t).PosSemidef :=
-  gaussianKernel_posSemidef (fun g : G => α g x) ht
-
-theorem gaussianAffineKernel_left_invariant
-    (α : AffineHilbertAction G V) (x : V) (t : ℝ)
-    (a g h : G) :
-    gaussianAffineKernel α x t (a * g) (a * h) =
-      gaussianAffineKernel α x t g h := by
-  have hdist := (α a).dist_map (α g x) (α h x)
-  rw [dist_eq_norm, dist_eq_norm] at hdist
-  have hnorm :
-      ‖α (a * g) x - α (a * h) x‖ =
-        ‖α g x - α h x‖ := by
-    rw [map_mul, map_mul]
-    exact hdist
-  change (Real.exp
-      (-t * ‖α (a * g) x - α (a * h) x‖ ^ 2) : ℂ) =
-    (Real.exp (-t * ‖α g x - α h x‖ ^ 2) : ℂ)
-  rw [hnorm]
-
 end AffineActions
 
 end ConnesRigidity
@@ -32697,67 +24089,6 @@ noncomputable section
 
 namespace ConnesRigidity
 
-open ConnesRigidity
-
-universe u
-
-variable {G : Type u} [Group G]
-variable {V : Type u} [NormedAddCommGroup V]
-  [InnerProductSpace ℂ V] [CompleteSpace V]
-
-theorem unitaryOrbit_closedConvexHull_subset_closedBall
-    (π : UnitaryRepresentation G V) (N : Subgroup G)
-    (ξ : V) (c : ℝ)
-    (hdisp : ∀ n : N,
-      ‖(π (n : G) : V →L[ℂ] V) ξ - ξ‖ ≤ c) :
-    closedConvexHull ℝ
-        (Set.range fun n : N ↦ (π (n : G) : V →L[ℂ] V) ξ) ⊆
-      Metric.closedBall ξ c := by
-  apply closedConvexHull_min
-    (t := Metric.closedBall ξ c) ?_
-    (convex_closedBall ξ c) Metric.isClosed_closedBall
-  rintro _ ⟨n, rfl⟩
-  rw [Metric.mem_closedBall, dist_eq_norm]
-  exact hdisp n
-
-theorem zero_not_mem_unitaryOrbit_closedConvexHull
-    (π : UnitaryRepresentation G V) (N : Subgroup G)
-    (ξ : V) (c : ℝ) (hξ : ‖ξ‖ = 1) (hc : c < 1)
-    (hdisp : ∀ n : N,
-      ‖(π (n : G) : V →L[ℂ] V) ξ - ξ‖ ≤ c) :
-    (0 : V) ∉ closedConvexHull ℝ
-      (Set.range fun n : N ↦ (π (n : G) : V →L[ℂ] V) ξ) := by
-  intro hzero
-  have hball := unitaryOrbit_closedConvexHull_subset_closedBall
-    π N ξ c hdisp hzero
-  have hbound := (Metric.mem_closedBall.mp hball)
-  rw [dist_zero_left, hξ] at hbound
-  exact (not_le_of_gt hc) hbound
-
-theorem zero_not_mem_unitaryOrbit_closedConvexHull_of_lt
-    (π : UnitaryRepresentation G V) (N : Subgroup G)
-    (ξ : V) (c : ℝ) (hξ : ‖ξ‖ = 1) (hc : c < 1)
-    (hdisp : ∀ n : N,
-      ‖(π (n : G) : V →L[ℂ] V) ξ - ξ‖ < c) :
-    (0 : V) ∉ closedConvexHull ℝ
-      (Set.range fun n : N ↦ (π (n : G) : V →L[ℂ] V) ξ) :=
-  zero_not_mem_unitaryOrbit_closedConvexHull π N ξ c hξ hc
-    (fun n ↦ (hdisp n).le)
-
-theorem unitaryOrbit_closedConvexHull_ne_zero
-    (π : UnitaryRepresentation G V) (N : Subgroup G)
-    (ξ : V) (c : ℝ) (hξ : ‖ξ‖ = 1) (hc : c < 1)
-    (hdisp : ∀ n : N,
-      ‖(π (n : G) : V →L[ℂ] V) ξ - ξ‖ ≤ c)
-    (y : V)
-    (hy : y ∈ closedConvexHull ℝ
-      (Set.range fun n : N ↦ (π (n : G) : V →L[ℂ] V) ξ)) :
-    y ≠ 0 := by
-  intro hzero
-  subst y
-  exact zero_not_mem_unitaryOrbit_closedConvexHull
-    π N ξ c hξ hc hdisp hy
-
 end ConnesRigidity
 
 end
@@ -32768,153 +24099,6 @@ noncomputable section
 
 namespace ConnesRigidity
 
-open ConnesRigidity
-
-universe u
-
-variable {G : Type u} [Group G]
-variable {V : Type u} [NormedAddCommGroup V]
-  [InnerProductSpace ℂ V] [CompleteSpace V]
-
-def unitarySubgroupOrbit
-    (π : UnitaryRepresentation G V) (N : Subgroup G) (x : V) : Set V :=
-  Set.range fun n : N ↦ (π (n : G) : V →L[ℂ] V) x
-
-def unitaryClosedConvexOrbit
-    (π : UnitaryRepresentation G V) (N : Subgroup G) (x : V) : Set V :=
-  closedConvexHull ℝ (unitarySubgroupOrbit π N x)
-
-theorem mem_unitaryClosedConvexOrbit
-    (π : UnitaryRepresentation G V) (N : Subgroup G) (x : V) :
-    x ∈ unitaryClosedConvexOrbit π N x := by
-  apply subset_closedConvexHull
-  refine ⟨1, ?_⟩
-  simp
-
-theorem unitarySubgroup_preserves_closedConvexOrbit
-    (π : UnitaryRepresentation G V) (N : Subgroup G)
-    (x : V) (n : N) :
-    ∀ y ∈ unitaryClosedConvexOrbit π N x,
-      (π (n : G) : V →L[ℂ] V) y ∈ unitaryClosedConvexOrbit π N x := by
-  let orbit : Set V := unitarySubgroupOrbit π N x
-  let U : V →L[ℝ] V :=
-    (π (n : G) : V →L[ℂ] V).restrictScalars ℝ
-  have horbit : U '' orbit ⊆ orbit := by
-    rintro _ ⟨_, ⟨m, rfl⟩, rfl⟩
-    refine ⟨n * m, ?_⟩
-    change
-      (π ((n : G) * (m : G)) : V →L[ℂ] V) x =
-        (π (n : G) : V →L[ℂ] V)
-          ((π (m : G) : V →L[ℂ] V) x)
-    rw [map_mul]
-    rfl
-  have hhull : U '' convexHull ℝ orbit ⊆ convexHull ℝ orbit := by
-    change U.toLinearMap '' convexHull ℝ orbit ⊆ convexHull ℝ orbit
-    rw [LinearMap.image_convexHull]
-    exact convexHull_mono horbit
-  have hclosure : U '' closure (convexHull ℝ orbit) ⊆
-      closure (convexHull ℝ orbit) :=
-    (image_closure_subset_closure_image U.continuous).trans
-      (closure_mono hhull)
-  intro y hy
-  change U y ∈ closedConvexHull ℝ orbit
-  rw [closedConvexHull_eq_closure_convexHull]
-  apply hclosure
-  refine ⟨y, ?_, rfl⟩
-  rw [← closedConvexHull_eq_closure_convexHull]
-  exact hy
-
-private theorem unitaryOrbit_eq_of_norm_eq_and_midpoint_norm_ge
-    (x y : V) (d : ℝ)
-    (hx : ‖x‖ = d) (hy : ‖y‖ = d)
-    (hmid : d ≤ ‖midpoint ℂ x y‖) : x = y := by
-  have hmid' : 2 * d ≤ ‖x + y‖ := by
-    rw [midpoint_eq_smul_add, norm_smul] at hmid
-    norm_num at hmid ⊢
-    linarith
-  have hpar := parallelogram_law_with_norm ℂ x y
-  rw [hx, hy] at hpar
-  have hzero : ‖x - y‖ = 0 := by
-    have hd : 0 ≤ d := hx ▸ norm_nonneg x
-    have hsquare : (2 * d) ^ 2 ≤ ‖x + y‖ ^ 2 :=
-      (sq_le_sq₀ (by positivity) (norm_nonneg _)).mpr hmid'
-    have hnonneg : 0 ≤ ‖x - y‖ := norm_nonneg _
-    nlinarith [sq_nonneg ‖x - y‖]
-  exact sub_eq_zero.mp (norm_eq_zero.mp hzero)
-
-private theorem unitaryOrbit_midpoint_minimizer_unique
-    (S : Set V)
-    (hmid : ∀ x ∈ S, ∀ y ∈ S, midpoint ℂ x y ∈ S)
-    {x y : V} (hx : x ∈ S) (hy : y ∈ S)
-    (hxmin : ∀ z ∈ S, ‖x‖ ≤ ‖z‖)
-    (hymin : ∀ z ∈ S, ‖y‖ ≤ ‖z‖) : x = y := by
-  have hnorm : ‖x‖ = ‖y‖ :=
-    le_antisymm (hxmin y hy) (hymin x hx)
-  exact unitaryOrbit_eq_of_norm_eq_and_midpoint_norm_ge x y ‖x‖
-    rfl hnorm.symm (hxmin _ (hmid x hx y hy))
-
-private theorem unitaryOrbit_linearIsometry_fixes_minimizer
-    (S : Set V)
-    (hmid : ∀ x ∈ S, ∀ y ∈ S, midpoint ℂ x y ∈ S)
-    (U : V ≃ₗᵢ[ℂ] V)
-    (hU : ∀ z ∈ S, U z ∈ S)
-    {x : V} (hx : x ∈ S)
-    (hxmin : ∀ z ∈ S, ‖x‖ ≤ ‖z‖) : U x = x := by
-  apply unitaryOrbit_midpoint_minimizer_unique S hmid (hU x hx) hx
-  · intro z hz
-    rw [U.norm_map]
-    exact hxmin z hz
-  · exact hxmin
-
-theorem unitary_closedConvexOrbit_norm_minimizer_fixed
-    (π : UnitaryRepresentation G V) (N : Subgroup G) (x : V) :
-    ∃ y ∈ unitaryClosedConvexOrbit π N x,
-      (∀ z ∈ unitaryClosedConvexOrbit π N x, ‖y‖ ≤ ‖z‖) ∧
-        ∀ n : N, (π (n : G) : V →L[ℂ] V) y = y := by
-  let S : Set V := unitaryClosedConvexOrbit π N x
-  have hnonempty : S.Nonempty :=
-    ⟨x, mem_unitaryClosedConvexOrbit π N x⟩
-  have hclosed : IsClosed S := isClosed_closedConvexHull
-  have hconvex : Convex ℝ S := convex_closedConvexHull
-  letI : InnerProductSpace ℝ V := InnerProductSpace.rclikeToReal ℂ V
-  obtain ⟨y, hy, hnorm⟩ :=
-    exists_norm_eq_iInf_of_complete_convex
-      hnonempty hclosed.isComplete hconvex (0 : V)
-  have hnorm' : ‖y‖ = ⨅ z : S, ‖(z : V)‖ := by
-    simpa using hnorm
-  have hminimal : ∀ z ∈ S, ‖y‖ ≤ ‖z‖ := by
-    intro z hz
-    rw [hnorm']
-    have hbounded : BddBelow (Set.range fun w : S ↦ ‖(w : V)‖) := by
-      refine ⟨0, ?_⟩
-      rintro _ ⟨w, rfl⟩
-      exact norm_nonneg _
-    exact ciInf_le hbounded (⟨z, hz⟩ : S)
-  refine ⟨y, hy, hminimal, ?_⟩
-  intro n
-  let U := Unitary.linearIsometryEquiv (π (n : G))
-  change U y = y
-  have hmidclosed : ∀ v ∈ S, ∀ w ∈ S, midpoint ℂ v w ∈ S := by
-    intro v hv w hw
-    have hmid : midpoint ℂ v w = midpoint ℝ v w := by
-      rw [midpoint_eq_smul_add, midpoint_eq_smul_add]
-      change ((2 : ℂ)⁻¹ • (v + w)) = ((2 : ℝ)⁻¹ • (v + w))
-      rw [← IsScalarTower.algebraMap_smul ℂ ((2 : ℝ)⁻¹) (v + w)]
-      norm_num
-    rw [hmid]
-    exact hconvex.midpoint_mem hv hw
-  exact unitaryOrbit_linearIsometry_fixes_minimizer S hmidclosed U
-    (unitarySubgroup_preserves_closedConvexOrbit π N x n) hy hminimal
-
-theorem unitary_closedConvexOrbit_minimizer_fixed
-    (π : UnitaryRepresentation G V) (N : Subgroup G) (x : V) :
-    ∃ y ∈ closedConvexHull ℝ
-        (Set.range fun n : N ↦ (π (n : G) : V →L[ℂ] V) x),
-      ∀ n : N, (π (n : G) : V →L[ℂ] V) y = y := by
-  obtain ⟨y, hy, _, hfixed⟩ :=
-    unitary_closedConvexOrbit_norm_minimizer_fixed π N x
-  exact ⟨y, hy, hfixed⟩
-
 end ConnesRigidity
 
 end
@@ -32923,37 +24107,7 @@ section
 
 namespace ConnesRigidity
 
-open ConnesRigidity
-
 noncomputable section
-
-universe u
-
-variable {G : Type u} [Group G]
-variable {V : Type u} [NormedAddCommGroup V]
-  [InnerProductSpace ℂ V] [CompleteSpace V]
-
-theorem unitary_exists_nonzero_fixed_of_uniform_displacement
-    (π : UnitaryRepresentation G V) (N : Subgroup G)
-    (ξ : V) (hξ : ‖ξ‖ = 1) (c : ℝ) (hc : c < 1)
-    (hdisp : ∀ n : N,
-      ‖(π (n : G) : V →L[ℂ] V) ξ - ξ‖ ≤ c) :
-    ∃ η : V, η ≠ 0 ∧
-      ∀ n : N, (π (n : G) : V →L[ℂ] V) η = η := by
-  obtain ⟨η, hη, hfixed⟩ :=
-    unitary_closedConvexOrbit_minimizer_fixed π N ξ
-  refine ⟨η, ?_, hfixed⟩
-  exact unitaryOrbit_closedConvexHull_ne_zero π N ξ c hξ hc hdisp η hη
-
-theorem unitary_exists_nonzero_fixed_of_uniform_displacement_lt
-    (π : UnitaryRepresentation G V) (N : Subgroup G)
-    (ξ : V) (hξ : ‖ξ‖ = 1) (c : ℝ) (hc : c < 1)
-    (hdisp : ∀ n : N,
-      ‖(π (n : G) : V →L[ℂ] V) ξ - ξ‖ < c) :
-    ∃ η : V, η ≠ 0 ∧
-      ∀ n : N, (π (n : G) : V →L[ℂ] V) η = η :=
-  unitary_exists_nonzero_fixed_of_uniform_displacement
-    π N ξ hξ c hc (fun n ↦ (hdisp n).le)
 
 end
 
@@ -33100,40 +24254,6 @@ theorem HasUniformRelativeKazhdanDisplacement.mono
   exact hbound W inferInstance inferInstance inferInstance π ξ hunit hξ
     ⟨m, hMN m.property⟩
 
-theorem HasUniformRelativeKazhdanDisplacement.hasRelativeKazhdanPropertyT
-    {N : Subgroup G}
-    (hN : HasUniformRelativeKazhdanDisplacement G N) :
-    HasRelativeKazhdanPropertyT G N := by
-  intro W _ _ _ π hπ
-  obtain ⟨F, δ, hδ, hbound⟩ := hN (1 / 2 : ℝ) (by norm_num)
-  obtain ⟨ξ, hξ, hsmall⟩ := hπ F δ hδ
-  have huniform :=
-    hbound W inferInstance inferInstance inferInstance π ξ hξ hsmall
-  exact unitary_exists_nonzero_fixed_of_uniform_displacement_lt
-    π N ξ hξ (1 / 2 : ℝ) (by norm_num) huniform
-
-theorem hasRelativeKazhdanPropertyT_sup_of_elementwise_commute
-    {N₁ N₂ : Subgroup G}
-    (h₁ : HasUniformRelativeKazhdanDisplacement G N₁)
-    (h₂ : HasUniformRelativeKazhdanDisplacement G N₂)
-    (hcomm : ∀ g ∈ N₁, ∀ h ∈ N₂, Commute g h) :
-    HasRelativeKazhdanPropertyT G (N₁ ⊔ N₂) :=
-  (h₁.sup_of_elementwise_commute h₂ hcomm).hasRelativeKazhdanPropertyT
-
-theorem integralElementaryRoot_relativePropertyT_of_two_commuting_embeddings
-    (f₁ f₂ : integralElementaryRankTwoGroup →* integralElementaryGroup)
-    (hroot : ShalomIntegralPolynomialRelativePair)
-    (hcomm :
-      ∀ g ∈ integralElementaryRankTwoTranslationSubgroup.map f₁,
-        ∀ h ∈ integralElementaryRankTwoTranslationSubgroup.map f₂,
-          Commute g h) :
-    HasRelativeKazhdanPropertyT integralElementaryGroup
-      ((integralElementaryRankTwoTranslationSubgroup.map f₁) ⊔
-        (integralElementaryRankTwoTranslationSubgroup.map f₂)) := by
-  have huniform := shalom_uniformPolynomialTranslationDisplacement hroot
-  exact hasRelativeKazhdanPropertyT_sup_of_elementwise_commute
-    (huniform.map f₁) (huniform.map f₂) hcomm
-
 end ConnesRigidity
 
 end
@@ -33147,87 +24267,6 @@ namespace ConnesRigidity
 open ConnesRigidity
 
 universe u
-
-theorem HasRelativeKazhdanPropertyT.map
-    {G H : CountableDiscreteGroup.{u}} {N : Subgroup G}
-    (hN : HasRelativeKazhdanPropertyT G N) (f : G →* H) :
-    HasRelativeKazhdanPropertyT H (N.map f) := by
-  intro W _ _ _ π hπ
-  obtain ⟨ξ, hξ, hfixed⟩ :=
-    hN W inferInstance inferInstance inferInstance (π.comp f)
-      (UnitaryRepresentation.hasAlmostInvariantUnitVectors_comp π f hπ)
-  refine ⟨ξ, hξ, ?_⟩
-  rintro ⟨_, ⟨g, hg, rfl⟩⟩
-  exact hfixed ⟨g, hg⟩
-
-theorem HasRelativeKazhdanPropertyT.map_mono
-    {G H : CountableDiscreteGroup.{u}} {N : Subgroup G} {M : Subgroup H}
-    (hN : HasRelativeKazhdanPropertyT G N) (f : G →* H)
-    (hM : M ≤ N.map f) :
-    HasRelativeKazhdanPropertyT H M :=
-  (hN.map f).mono hM
-
-theorem hasRelativeKazhdanPropertyT_of_surjective
-    (G H : CountableDiscreteGroup.{u}) (N : Subgroup G)
-    (f : G →* H) (_hf : Function.Surjective f)
-    (hN : HasRelativeKazhdanPropertyT G N) :
-    HasRelativeKazhdanPropertyT H (N.map f) :=
-  hN.map f
-
-theorem hasRelativeKazhdanPropertyT_iff_of_mulEquiv
-    (G H : CountableDiscreteGroup.{u}) (e : G ≃* H)
-    (N : Subgroup G) :
-    HasRelativeKazhdanPropertyT G N ↔
-      HasRelativeKazhdanPropertyT H (N.map e.toMonoidHom) := by
-  constructor
-  · intro hN
-    exact hN.map e.toMonoidHom
-  · intro hN
-    have hback := hN.map e.symm.toMonoidHom
-    have hsubgroup :
-        (N.map e.toMonoidHom).map e.symm.toMonoidHom = N := by
-      rw [Subgroup.map_map]
-      have he : e.symm.toMonoidHom.comp e.toMonoidHom = MonoidHom.id G := by
-        ext g
-        exact e.symm_apply_apply g
-      rw [he, Subgroup.map_id]
-    rwa [hsubgroup] at hback
-
-theorem HasRelativeKazhdanPropertyT.conjugate
-    {G : CountableDiscreteGroup.{u}} {N : Subgroup G}
-    (hN : HasRelativeKazhdanPropertyT G N) (g : G) :
-    HasRelativeKazhdanPropertyT G
-      (N.map (MulAut.conj g).toMonoidHom) :=
-  hN.map (MulAut.conj g).toMonoidHom
-
-theorem HasRelativeKazhdanPropertyT.map_conjugate
-    {G H : CountableDiscreteGroup.{u}} {N : Subgroup G}
-    (hN : HasRelativeKazhdanPropertyT G N)
-    (f : G →* H) (g : H) :
-    HasRelativeKazhdanPropertyT H
-      ((N.map f).map (MulAut.conj g).toMonoidHom) :=
-  (hN.map f).conjugate g
-
-def IntegralElementaryRankTwoRelativePropertyT : Prop :=
-  HasRelativeKazhdanPropertyT integralElementaryRankTwoGroup
-    integralElementaryRankTwoTranslationSubgroup
-
-theorem integralElementaryRoot_relativePropertyT_map
-    {G : CountableDiscreteGroup.{0}}
-    (f : integralElementaryRankTwoGroup →* G)
-    (hroot : IntegralElementaryRankTwoRelativePropertyT) :
-    HasRelativeKazhdanPropertyT G
-      (integralElementaryRankTwoTranslationSubgroup.map f) :=
-  hroot.map f
-
-theorem integralElementaryRoot_relativePropertyT_of_le_map
-    {G : CountableDiscreteGroup.{0}}
-    (f : integralElementaryRankTwoGroup →* G)
-    (N : Subgroup G)
-    (hN : N ≤ integralElementaryRankTwoTranslationSubgroup.map f)
-    (hroot : IntegralElementaryRankTwoRelativePropertyT) :
-    HasRelativeKazhdanPropertyT G N :=
-  hroot.map_mono f hN
 
 section ActualParabolicEmbedding
 
@@ -33897,32 +24936,6 @@ theorem cornulierK₂_hasUniformRelativeKazhdanDisplacement
       (huniform.map integralRankTwoRowEmbedding12)
       cornulierRowPlanes_commute
 
-theorem cornulierK₁_hasRelativeKazhdanPropertyT
-    (hroot : ShalomIntegralPolynomialRelativePair) :
-    HasRelativeKazhdanPropertyT integralElementaryGroup cornulierK₁ := by
-  rw [← cornulierColumnPlanes_sup_eq_K₁]
-  exact integralElementaryRoot_relativePropertyT_of_two_commuting_embeddings
-    integralRankTwoColumnEmbedding integralRankTwoColumnEmbedding12 hroot
-    cornulierColumnPlanes_commute
-
-theorem cornulierK₂_hasRelativeKazhdanPropertyT
-    (hroot : ShalomIntegralPolynomialRelativePair) :
-    HasRelativeKazhdanPropertyT integralElementaryGroup cornulierK₂ := by
-  rw [← cornulierRowPlanes_sup_eq_K₂]
-  exact integralElementaryRoot_relativePropertyT_of_two_commuting_embeddings
-    integralRankTwoRowEmbedding01 integralRankTwoRowEmbedding12 hroot
-    cornulierRowPlanes_commute
-
-theorem cornulierK₁_hasRelativePropertyT
-    (hroot : ShalomIntegralPolynomialRelativePair) :
-    HasRelativeKazhdanPropertyT integralElementaryGroup cornulierK₁ :=
-  cornulierK₁_hasRelativeKazhdanPropertyT hroot
-
-theorem cornulierK₂_hasRelativePropertyT
-    (hroot : ShalomIntegralPolynomialRelativePair) :
-    HasRelativeKazhdanPropertyT integralElementaryGroup cornulierK₂ :=
-  cornulierK₂_hasRelativeKazhdanPropertyT hroot
-
 end ConnesRigidity
 
 end
@@ -33951,11 +24964,6 @@ def cornulierHilbertLength (α : AffineHilbertAction G V)
     (α : AffineHilbertAction G V) (x : V) :
     cornulierHilbertLength α x 1 = 0 := by
   simp [cornulierHilbertLength]
-
-theorem cornulierHilbertLength_nonneg
-    (α : AffineHilbertAction G V) (x : V) (g : G) :
-    0 ≤ cornulierHilbertLength α x g :=
-  norm_nonneg _
 
 theorem cornulierHilbertLength_mul_le
     (α : AffineHilbertAction G V) (x : V) (g h : G) :
@@ -33994,12 +25002,6 @@ def CornulierHilbertLengthBoundedOn
     (α : AffineHilbertAction G V) (x : V) (N : Subgroup G) : Prop :=
   ∃ C : ℝ, ∀ g : N, cornulierHilbertLength α x (g : G) ≤ C
 
-theorem cornulierHilbertLengthBoundedOn_of_fixed
-    (α : AffineHilbertAction G V) (N : Subgroup G)
-    (x y : V) (hy : IsAffineFixed α N y) :
-    CornulierHilbertLengthBoundedOn α x N :=
-  ⟨2 * ‖x - y‖, cornulierHilbertLength_le_of_fixed α N x y hy⟩
-
 end AffineLengths
 
 def HasCornulierCorelativePropertyFH
@@ -34021,28 +25023,6 @@ def HasCornulierRelativeAffineFixedPoint
     (α : AffineHilbertAction G V),
       ∃ x : V, IsAffineFixed α N x
 
-def HasCornulierRelativeBoundedHilbertOrbits
-    (G : CountableDiscreteGroup.{u}) (N : Subgroup G) : Prop :=
-  ∀ (V : Type u)
-    (_ : NormedAddCommGroup V)
-    (_ : InnerProductSpace ℂ V)
-    (_ : CompleteSpace V)
-    (α : AffineHilbertAction G V) (x : V),
-      CornulierHilbertLengthBoundedOn α x N
-
-theorem cornulier_relativeAffineFixedPoint_iff_boundedOrbits
-    (G : CountableDiscreteGroup.{u}) (N : Subgroup G) :
-    HasCornulierRelativeAffineFixedPoint G N ↔
-      HasCornulierRelativeBoundedHilbertOrbits G N := by
-  constructor
-  · intro h V _ _ _ α x
-    obtain ⟨y, hy⟩ := h V inferInstance inferInstance inferInstance α
-    exact cornulierHilbertLengthBoundedOn_of_fixed α N x y hy
-  · intro h V _ _ _ α
-    apply affine_subgroup_fixedPoint_of_bounded_orbit α N 0
-    simpa [CornulierHilbertLengthBoundedOn, cornulierHilbertLength] using
-      h V inferInstance inferInstance inferInstance α 0
-
 theorem cornulier_corelative_iff_affineOrbitBound
     (G : CountableDiscreteGroup.{u}) (N : Subgroup G) :
     HasCornulierCorelativePropertyFH G N ↔
@@ -34058,36 +25038,6 @@ theorem cornulier_corelative_iff_affineOrbitBound
       (by simpa [CornulierHilbertLengthBoundedOn, cornulierHilbertLength]
         using hN)
     exact ⟨C, fun g => hC (g : G)⟩
-
-def CornulierRelativeKazhdanToAffineFixed
-    (G : CountableDiscreteGroup.{u}) (N : Subgroup G) : Prop :=
-  HasRelativeKazhdanPropertyT G N →
-    HasCornulierRelativeAffineFixedPoint G N
-
-def CornulierRelativeDelormeGuichardet : Prop :=
-  ∀ N : Subgroup integralElementaryGroup,
-    CornulierRelativeKazhdanToAffineFixed integralElementaryGroup N
-
-def CornulierStableRangeFactorization : Prop :=
-  IntegralPolynomialStableRangeThree → CornulierBoundedFactorization
-
-theorem cornulier_stableRangeFactorization :
-    CornulierStableRangeFactorization :=
-  cornulierBoundedFactorization_of_stableRange
-
-def CornulierOppositeRootRelativePropertyT : Prop :=
-  HasRelativeKazhdanPropertyT integralElementaryGroup cornulierK₁ ∧
-    HasRelativeKazhdanPropertyT integralElementaryGroup cornulierK₂
-
-theorem cornulierOppositeRootRelativePropertyT_of_shalom
-    (hroot : ShalomIntegralPolynomialRelativePair) :
-    CornulierOppositeRootRelativePropertyT :=
-  ⟨cornulierK₁_hasRelativePropertyT hroot,
-    cornulierK₂_hasRelativePropertyT hroot⟩
-
-theorem cornulier_elementary_finitelyGenerated :
-    Group.FG integralElementaryGroup :=
-  integralElementaryGroup_finitelyGenerated
 
 theorem cornulier_elementary_isPerfect :
     Group.IsPerfect integralElementaryGroup :=
@@ -34176,51 +25126,6 @@ theorem cornulier_finiteOppositeRoots_subset
       exact Or.inr (cornulierRoot_mem_K₂ j h a)
     · rw [dif_neg h] at hj
       simpa using hj
-
-theorem cornulierFiniteOppositeRoots_card_le :
-    cornulierFiniteOppositeRoots.card ≤ 12 := by
-  classical
-  let left : Index → Finset integralElementaryGroup := fun i =>
-    if h : i ≠ cornulierLast then
-      ({(1 : IntegralPolynomial), Polynomial.X} :
-        Finset IntegralPolynomial).image
-          (cornulierRoot i cornulierLast h)
-    else ∅
-  let right : Index → Finset integralElementaryGroup := fun j =>
-    if h : cornulierLast ≠ j then
-      ({(1 : IntegralPolynomial), Polynomial.X} :
-        Finset IntegralPolynomial).image
-          (cornulierRoot cornulierLast j h)
-    else ∅
-  have hleft (i : Index) :
-      (left i).card ≤ if i = cornulierLast then 0 else 2 := by
-    by_cases h : i = cornulierLast
-    · subst i
-      simp [left]
-    · simp only [left, dif_pos h, if_neg h]
-      exact Finset.card_image_le.trans Finset.card_le_two
-  have hright (j : Index) :
-      (right j).card ≤ if cornulierLast = j then 0 else 2 := by
-    by_cases h : cornulierLast = j
-    · subst j
-      simp [right]
-    · simp only [right, dif_pos h, if_neg h]
-      exact Finset.card_image_le.trans Finset.card_le_two
-  calc
-    cornulierFiniteOppositeRoots.card =
-        ((Finset.univ.biUnion left) ∪
-          (Finset.univ.biUnion right)).card := rfl
-    _ ≤ (Finset.univ.biUnion left).card +
-          (Finset.univ.biUnion right).card := Finset.card_union_le _ _
-    _ ≤ (∑ i : Index, (left i).card) +
-          (∑ j : Index, (right j).card) :=
-      Nat.add_le_add Finset.card_biUnion_le Finset.card_biUnion_le
-    _ ≤ (∑ i : Index, if i = cornulierLast then 0 else 2) +
-          (∑ j : Index, if cornulierLast = j then 0 else 2) := by
-      exact Nat.add_le_add
-        (Finset.sum_le_sum fun i _ => hleft i)
-        (Finset.sum_le_sum fun j _ => hright j)
-    _ = 12 := by decide
 
 theorem cornulierRoot_mem_finiteOppositeRoots_closure
     (i j : Index) (hij : i ≠ j) (a : IntegralPolynomial)
@@ -34352,38 +25257,6 @@ theorem cornulier_proposition4_corelativeFH
           2 * ‖x - x₁‖ + C + 2 * ‖x - x₂‖ := by
       linarith
 
-theorem cornulier_proposition4_of_relativePropertyT
-    (hfactor : CornulierBoundedFactorization)
-    (hrelative : CornulierOppositeRootRelativePropertyT)
-    (hleft : CornulierRelativeKazhdanToAffineFixed
-      integralElementaryGroup cornulierK₁)
-    (hright : CornulierRelativeKazhdanToAffineFixed
-      integralElementaryGroup cornulierK₂) :
-    HasCornulierCorelativePropertyFH integralElementaryGroup cornulierH :=
-  cornulier_proposition4_corelativeFH hfactor
-    (hleft hrelative.1) (hright hrelative.2)
-
-theorem cornulier_proposition4
-    (hrelative : CornulierOppositeRootRelativePropertyT)
-    (hleft : CornulierRelativeKazhdanToAffineFixed
-      integralElementaryGroup cornulierK₁)
-    (hright : CornulierRelativeKazhdanToAffineFixed
-      integralElementaryGroup cornulierK₂) :
-    HasCornulierCorelativePropertyFH integralElementaryGroup cornulierH :=
-  cornulier_proposition4_of_relativePropertyT
-    cornulierBoundedFactorization hrelative hleft hright
-
-theorem cornulier_proposition4_of_shalom
-    (hroot : ShalomIntegralPolynomialRelativePair)
-    (hleft : CornulierRelativeKazhdanToAffineFixed
-      integralElementaryGroup cornulierK₁)
-    (hright : CornulierRelativeKazhdanToAffineFixed
-      integralElementaryGroup cornulierK₂) :
-    HasCornulierCorelativePropertyFH integralElementaryGroup cornulierH :=
-  cornulier_proposition4
-    (cornulierOppositeRootRelativePropertyT_of_shalom hroot)
-    hleft hright
-
 theorem cornulier_relativeAffineFixedPoints_of_shalom_gaussian
     (hShalomPair : ShalomIntegralPolynomialRelativePair) :
     HasCornulierRelativeAffineFixedPoint integralElementaryGroup cornulierK₁ ∧
@@ -34404,86 +25277,6 @@ theorem cornulier_proposition4_of_shalom_gaussian
   exact cornulier_proposition4_corelativeFH
     cornulierBoundedFactorization hleft hright
 
-theorem cornulier_normalizedMinimizer_false
-    (hrelative : CornulierOppositeRootRelativePropertyT)
-    (hleft : CornulierRelativeKazhdanToAffineFixed
-      integralElementaryGroup cornulierK₁)
-    (hright : CornulierRelativeKazhdanToAffineFixed
-      integralElementaryGroup cornulierK₂)
-    (V : Type) [NormedAddCommGroup V]
-    [InnerProductSpace ℂ V] [CompleteSpace V]
-    (α : AffineHilbertAction integralElementaryGroup V)
-    (hnormal : CornulierUltralimit.AffineUniformGeneratorDisplacement
-      α cornulierFiniteOppositeRoots)
-    (x₁ x₂ : V)
-    (hmin : IsMinimizingAffinePair α cornulierK₁ cornulierK₂ x₁ x₂)
-    (hno : ∀ x : V,
-      (affineLinearRepresentation α).IsInvariant x → x = 0) :
-    False :=
-  cornulier_normalized_minimizing_action_false
-    cornulierH cornulierK₁ cornulierK₂ cornulierFiniteOppositeRoots
-    cornulier_oppositeRoots_generate
-    cornulierH_le_normalizer_K₁ cornulierH_le_normalizer_K₂
-    ((cornulier_corelative_iff_affineOrbitBound
-      integralElementaryGroup cornulierH).mp
-        (cornulier_proposition4 hrelative hleft hright))
-    α hnormal x₁ x₂ hmin hno
-
-def CornulierNormalizedExtremalActionPrinciple : Prop :=
-  ¬ HasKazhdanPropertyT integralElementaryGroup →
-    ∃ (V : Type)
-      (_ : NormedAddCommGroup V)
-      (_ : InnerProductSpace ℂ V)
-      (_ : CompleteSpace V)
-      (α : AffineHilbertAction integralElementaryGroup V)
-      (x₁ x₂ : V),
-      CornulierUltralimit.AffineUniformGeneratorDisplacement
-        α cornulierFiniteOppositeRoots ∧
-      IsMinimizingAffinePair α cornulierK₁ cornulierK₂ x₁ x₂ ∧
-      (∀ x : V,
-        (affineLinearRepresentation α).IsInvariant x → x = 0)
-
-theorem cornulier_elementaryPropertyT
-    (hShalomPair : ShalomIntegralPolynomialRelativePair)
-    (hAffineDG : CornulierRelativeDelormeGuichardet)
-    (hExtremal : CornulierNormalizedExtremalActionPrinciple) :
-    HasKazhdanPropertyT integralElementaryGroup := by
-  by_contra hnot
-  obtain ⟨V, hV, hinner, hcomplete, α, x₁, x₂,
-    hnormal, hmin, hno⟩ := hExtremal hnot
-  letI : NormedAddCommGroup V := hV
-  letI : InnerProductSpace ℂ V := hinner
-  letI : CompleteSpace V := hcomplete
-  exact cornulier_normalizedMinimizer_false
-    (cornulierOppositeRootRelativePropertyT_of_shalom hShalomPair)
-    (hAffineDG cornulierK₁) (hAffineDG cornulierK₂)
-    V α hnormal x₁ x₂ hmin hno
-
-theorem cornulier_elementaryPropertyT_of_gaussian
-    (hShalomPair : ShalomIntegralPolynomialRelativePair)
-    (hExtremal : CornulierNormalizedExtremalActionPrinciple) :
-    HasKazhdanPropertyT integralElementaryGroup := by
-  by_contra hnot
-  obtain ⟨V, hV, hinner, hcomplete, α, x₁, x₂,
-    hnormal, hmin, hno⟩ := hExtremal hnot
-  letI : NormedAddCommGroup V := hV
-  letI : InnerProductSpace ℂ V := hinner
-  letI : CompleteSpace V := hcomplete
-  exact cornulier_normalized_minimizing_action_false
-    cornulierH cornulierK₁ cornulierK₂ cornulierFiniteOppositeRoots
-    cornulier_oppositeRoots_generate
-    cornulierH_le_normalizer_K₁ cornulierH_le_normalizer_K₂
-    ((cornulier_corelative_iff_affineOrbitBound
-      integralElementaryGroup cornulierH).mp
-      (cornulier_proposition4_of_shalom_gaussian hShalomPair))
-    α hnormal x₁ x₂ hmin hno
-
-theorem cornulier_fullLatticePropertyT_of_elementary
-    (hSuslin : SuslinElementaryGeneration)
-    (hElementary : HasKazhdanPropertyT integralElementaryGroup) :
-    ErshovJaikinUniversalLatticePropertyT :=
-  universalLatticePropertyT_of_elementary hSuslin hElementary
-
 theorem cornulier_fullLatticePropertyT_of_relativeSuslin
     (hSuslinRelative : SuslinRelativeElementaryGeneration)
     (hElementary : HasKazhdanPropertyT integralElementaryGroup) :
@@ -34491,24 +25284,6 @@ theorem cornulier_fullLatticePropertyT_of_relativeSuslin
   universalLatticePropertyT_of_elementary
     (suslinElementaryGeneration_iff_relative.mpr hSuslinRelative)
     hElementary
-
-theorem universalLatticePropertyT_of_cornulier
-    (hSuslinRelative : SuslinRelativeElementaryGeneration)
-    (hShalomPair : ShalomIntegralPolynomialRelativePair)
-    (hAffineDG : CornulierRelativeDelormeGuichardet)
-    (hExtremal : CornulierNormalizedExtremalActionPrinciple) :
-    ErshovJaikinUniversalLatticePropertyT :=
-  cornulier_fullLatticePropertyT_of_relativeSuslin hSuslinRelative
-    (cornulier_elementaryPropertyT hShalomPair hAffineDG hExtremal)
-
-theorem universalLatticePropertyT_of_cornulier_gaussian
-    (hSuslinRelative : SuslinRelativeElementaryGeneration)
-    (hShalomPair : ShalomIntegralPolynomialRelativePair)
-    (hExtremal : CornulierNormalizedExtremalActionPrinciple) :
-    ErshovJaikinUniversalLatticePropertyT :=
-  cornulier_fullLatticePropertyT_of_relativeSuslin hSuslinRelative
-    (cornulier_elementaryPropertyT_of_gaussian
-      hShalomPair hExtremal)
 
 end ConnesRigidity
 
@@ -34784,27 +25559,6 @@ theorem exists_markedAffinePairDisplacement_uniform_bound
     (α n) K₁ K₂ S hgen hS (x n) (y n)
     (hx n) (hy n) C (hC n) q
 
-theorem cornulier_markedAffinePairDisplacement_uniform_bound
-    (C : ℝ)
-    {W : ℕ → Type}
-    [∀ n, NormedAddCommGroup (W n)]
-    [∀ n, InnerProductSpace ℂ (W n)]
-    [∀ n, CompleteSpace (W n)]
-    (α : ∀ n, AffineHilbertAction integralElementaryGroup (W n))
-    (x y : ∀ n, W n)
-    (hx : ∀ n, IsAffineFixed (α n) cornulierK₁ (x n))
-    (hy : ∀ n, IsAffineFixed (α n) cornulierK₂ (y n))
-    (hC : ∀ n, ‖x n - y n‖ ≤ C) :
-    ∃ B : ((integralElementaryGroup × Bool) ×
-      (integralElementaryGroup × Bool)) → ℝ,
-      ∀ n q,
-        ‖CornulierUltralimit.markedAffinePairDisplacement
-          (α n) (x n) (y n) q‖ ≤ B q := by
-  exact exists_markedAffinePairDisplacement_uniform_bound
-    cornulierK₁ cornulierK₂ cornulierFiniteOppositeRoots
-    cornulier_finiteOppositeRoots_closure_eq_top
-    cornulier_finiteOppositeRoots_subset C α x y hx hy hC
-
 end ConnesRigidity
 
 end
@@ -34827,24 +25581,6 @@ def HasAffineFixedPointProperty (G : CountableDiscreteGroup.{u}) : Prop :=
     (α : AffineHilbertAction G V),
       ∃ x : V, ∀ g : G, α g x = x
 
-theorem exists_affineAction_without_fixed_of_no_invariants
-    (G : CountableDiscreteGroup.{u})
-    {V : Type u} [NormedAddCommGroup V]
-    [InnerProductSpace ℂ V] [CompleteSpace V]
-    (π : UnitaryRepresentation G V)
-    (hπ : π.HasAlmostInvariantUnitVectors)
-    (hno : ∀ ξ : V, π.IsInvariant ξ → ξ = 0) :
-    ∃ α : AffineHilbertAction G (lp (fun _ : ℕ => V) 2),
-      ¬ ∃ x : lp (fun _ : ℕ => V) 2, ∀ g : G, α g x = x := by
-  obtain ⟨v, hv, hsum⟩ := exists_almostInvariantUnitSequence_summable π hπ
-  refine ⟨diagonalAffineAction π v hsum, ?_⟩
-  rintro ⟨x, hx⟩
-  obtain ⟨ξ, hξ, hfixed⟩ :=
-    affineDiagonal_nonzero_invariant_of_fixed π v hv
-      (diagonalAffineAction π v hsum)
-      (diagonalAffineAction_apply π v hsum) x hx
-  exact hξ (hno ξ hfixed)
-
 theorem hasKazhdanPropertyT_of_affine_fixed_points
     (G : CountableDiscreteGroup.{u})
     (hfixed : HasAffineFixedPointProperty G) :
@@ -34857,13 +25593,6 @@ theorem hasKazhdanPropertyT_of_affine_fixed_points
     inferInstance inferInstance inferInstance α
   exact affineDiagonal_nonzero_invariant_of_fixed π v hv α
     (diagonalAffineAction_apply π v hsum) x hx
-
-theorem not_affine_fixed_points_of_not_hasKazhdanPropertyT
-    (G : CountableDiscreteGroup.{u})
-    (hnot : ¬ HasKazhdanPropertyT G) :
-    ¬ HasAffineFixedPointProperty G := by
-  intro hfixed
-  exact hnot (hasKazhdanPropertyT_of_affine_fixed_points G hfixed)
 
 end
 
@@ -35089,19 +25818,6 @@ theorem exists_cornulierNormalizedExtremalAction_with_infimum
   exact isMinimizingAffinePair_of_normalized_infimum K₁ K₂ S β
     hlimitNormalized x' y' hleft hright hlimit
 
-theorem exists_cornulierNormalizedExtremalAction
-    {G : Type u} [Group G]
-    (K₁ K₂ : Subgroup G) (S : Finset G)
-    (hgen : Subgroup.closure (S : Set G) = ⊤)
-    (hS : ∀ g ∈ S, g ∈ K₁ ∨ g ∈ K₂)
-    (hne : Nonempty (CornulierNormalizedMarkedAction G K₁ K₂ S)) :
-    ∃ a : CornulierNormalizedMarkedAction G K₁ K₂ S,
-      IsMinimizingAffinePair a.action K₁ K₂ a.leftPoint a.rightPoint := by
-  obtain ⟨a, _, hmin⟩ :=
-    exists_cornulierNormalizedExtremalAction_with_infimum
-      K₁ K₂ S hgen hS hne
-  exact ⟨a, hmin⟩
-
 theorem isMinimizingAffinePair_of_normalized_nonexpansive_image
     {G H W : Type u} [Group G]
     [NormedAddCommGroup H] [InnerProductSpace ℂ H] [CompleteSpace H]
@@ -35145,245 +25861,7 @@ noncomputable section
 
 namespace ConnesRigidity
 
-open ConnesRigidity Filter Topology
-open scoped BigOperators ComplexOrder InnerProductSpace Topology
-
-universe u
-
-def gaussianBlockDiagonal {I : Type u} (A : ℕ → Matrix I I ℂ) :
-    Matrix (ℕ × I) (ℕ × I) ℂ :=
-  fun p q => if p.1 = q.1 then A p.1 p.2 q.2 else 0
-
-@[simp] theorem gaussianBlockDiagonal_same {I : Type u}
-    (A : ℕ → Matrix I I ℂ) (n : ℕ) (g h : I) :
-    gaussianBlockDiagonal A (n, g) (n, h) = A n g h := by
-  simp [gaussianBlockDiagonal]
-
-theorem gaussianBlockDiagonal_posSemidef {I : Type u}
-    (A : ℕ → Matrix I I ℂ)
-    (hA : ∀ n, (A n).PosSemidef) :
-    (gaussianBlockDiagonal A).PosSemidef := by
-  classical
-  constructor
-  · apply Matrix.IsHermitian.ext
-    rintro ⟨n, i⟩ ⟨m, j⟩
-    change star (if m = n then A m j i else 0) =
-      if n = m then A n i j else 0
-    by_cases h : n = m
-    · subst m
-      simp [(hA n).isHermitian.apply]
-    · simp [h, Ne.symm h]
-  · intro c
-    have hcurry (n : ℕ) := (hA n).2 (c.curry n)
-    change 0 ≤
-      c.sum fun p z => c.sum fun q w =>
-        star z * (if p.1 = q.1 then A p.1 p.2 q.2 else 0) * w
-    have houter := Finsupp.sum_curry_index c
-      (fun (n : ℕ) (i : I) (z : ℂ) =>
-        c.sum fun q w =>
-          star z * (if n = q.1 then A n i q.2 else 0) * w)
-    rw [← houter]
-    have hinner (n : ℕ) (i : I) (z : ℂ) :=
-      Finsupp.sum_curry_index c
-        (fun (m : ℕ) (j : I) (w : ℂ) =>
-          star z * (if n = m then A n i j else 0) * w)
-    simp_rw [← hinner]
-    simp only [mul_ite, ite_mul, mul_zero, zero_mul]
-    change 0 ≤ c.curry.sum fun n f =>
-      f.sum fun i z => c.curry.sum fun m g =>
-        g.sum fun j w => if n = m then star z * A n i j * w else 0
-    simp only [Finsupp.sum, Finset.sum_ite_irrel, Finset.sum_const_zero,
-      Finset.sum_ite_eq]
-    apply Finset.sum_nonneg
-    intro n hn
-    by_cases h : ∃ i : I, c (n, i) ≠ 0
-    · simpa [Finsupp.sum, h] using hcurry n
-    · simp [h]
-
-def gaussianBlockAction (G : Type u) [Group G] :
-    G →* Equiv.Perm (ℕ × G) where
-  toFun g := (Equiv.refl ℕ).prodCongr (Equiv.mulLeft g)
-  map_one' := by
-    apply Equiv.ext
-    rintro ⟨n, g⟩
-    change (n, (1 : G) * g) = (n, g)
-    simp
-  map_mul' a b := by
-    apply Equiv.ext
-    rintro ⟨n, g⟩
-    change (n, (a * b) * g) = (n, a * (b * g))
-    rw [mul_assoc]
-
-theorem gaussianBlockDiagonal_action_invariant
-    {G : Type u} [Group G] (A : ℕ → Matrix G G ℂ)
-    (hinv : ∀ n a g h, A n (a * g) (a * h) = A n g h)
-    (a : G) (p q : ℕ × G) :
-    gaussianBlockDiagonal A (gaussianBlockAction G a p)
-      (gaussianBlockAction G a q) = gaussianBlockDiagonal A p q := by
-  obtain ⟨n, g⟩ := p
-  obtain ⟨m, h⟩ := q
-  change (if n = m then A n (a * g) (a * h) else 0) =
-    if n = m then A n g h else 0
-  split_ifs with hnm
-  · exact hinv n a g h
-  · rfl
-
-abbrev GaussianBlockHilbert {G : Type u}
-    (A : ℕ → Matrix G G ℂ)
-    [Fact (CornulierUltralimit.scalarOperatorKernel
-      (gaussianBlockDiagonal A)).PosSemidef] :=
-  RKHS.OfKernel
-    (CornulierUltralimit.scalarOperatorKernel (gaussianBlockDiagonal A))
-
-def gaussianBlockRepresentation
-    {G : Type u} [Group G] (A : ℕ → Matrix G G ℂ)
-    [Fact (CornulierUltralimit.scalarOperatorKernel
-      (gaussianBlockDiagonal A)).PosSemidef]
-    (hinv : ∀ n a g h, A n (a * g) (a * h) = A n g h) :
-    UnitaryRepresentation G (GaussianBlockHilbert A) :=
-  Unitary.linearIsometryEquiv.symm.toMonoidHom.comp
-    (CornulierUltralimit.actionKernelUnitaryRepresentation
-      (gaussianBlockDiagonal A) (gaussianBlockAction G)
-      (gaussianBlockDiagonal_action_invariant A hinv))
-
-def gaussianBlockVector
-    {G : Type u} (A : ℕ → Matrix G G ℂ)
-    [Fact (CornulierUltralimit.scalarOperatorKernel
-      (gaussianBlockDiagonal A)).PosSemidef]
-    (n : ℕ) (g : G) : GaussianBlockHilbert A :=
-  RKHS.kerFun (GaussianBlockHilbert A) (n, g) (1 : ℂ)
-
-theorem gaussianBlockVector_inner
-    {G : Type u} (A : ℕ → Matrix G G ℂ)
-    [Fact (CornulierUltralimit.scalarOperatorKernel
-      (gaussianBlockDiagonal A)).PosSemidef]
-    (n m : ℕ) (g h : G) :
-    ⟪gaussianBlockVector A n g, gaussianBlockVector A m h⟫_ℂ =
-      gaussianBlockDiagonal A (n, g) (m, h) := by
-  rw [gaussianBlockVector, gaussianBlockVector, RKHS.kerFun_inner,
-    RKHS.kerFun_apply, RKHS.OfKernel.kernel_ofKernel]
-  simp [CornulierUltralimit.scalarOperatorKernel,
-    ContinuousLinearMap.toSpanSingleton_apply]
-
-theorem gaussianBlockVector_norm
-    {G : Type u} (A : ℕ → Matrix G G ℂ)
-    [Fact (CornulierUltralimit.scalarOperatorKernel
-      (gaussianBlockDiagonal A)).PosSemidef]
-    (hdiag : ∀ n g, A n g g = 1)
-    (n : ℕ) (g : G) :
-    ‖gaussianBlockVector A n g‖ = 1 := by
-  have hsq : ‖gaussianBlockVector A n g‖ ^ 2 = 1 := by
-    rw [norm_sq_eq_re_inner (𝕜 := ℂ), gaussianBlockVector_inner,
-      gaussianBlockDiagonal_same, hdiag]
-    norm_num
-  nlinarith [norm_nonneg (gaussianBlockVector A n g)]
-
-theorem gaussianBlockRepresentation_vector
-    {G : Type u} [Group G] (A : ℕ → Matrix G G ℂ)
-    [Fact (CornulierUltralimit.scalarOperatorKernel
-      (gaussianBlockDiagonal A)).PosSemidef]
-    (hinv : ∀ n a g h, A n (a * g) (a * h) = A n g h)
-    (a : G) (n : ℕ) (g : G) :
-    (gaussianBlockRepresentation A hinv a :
-      GaussianBlockHilbert A →L[ℂ] GaussianBlockHilbert A)
-        (gaussianBlockVector A n g) =
-      gaussianBlockVector A n (a * g) := by
-  change
-    CornulierUltralimit.actionKernelUnitaryRepresentation
-      (gaussianBlockDiagonal A) (gaussianBlockAction G)
-      (gaussianBlockDiagonal_action_invariant A hinv) a
-      (RKHS.kerFun (GaussianBlockHilbert A) (n, g) (1 : ℂ)) =
-        RKHS.kerFun (GaussianBlockHilbert A) (n, a * g) (1 : ℂ)
-  exact CornulierUltralimit.actionKernelUnitaryRepresentation_kerFun_one
-    (gaussianBlockDiagonal A) (gaussianBlockAction G)
-    (gaussianBlockDiagonal_action_invariant A hinv) a (n, g)
-
-def gaussianBlockScale (n : ℕ) : ℝ := 1 / ((n : ℝ) + 1)
-
-theorem gaussianBlockScale_pos (n : ℕ) : 0 < gaussianBlockScale n := by
-  unfold gaussianBlockScale
-  positivity
-
-theorem gaussianBlockScale_tendsto_zero :
-    Tendsto gaussianBlockScale atTop (𝓝 0) :=
-  tendsto_one_div_add_atTop_nhds_zero_nat (𝕜 := ℝ)
-
 section AffineGaussian
-
-variable {G V : Type u} [Group G] [NormedAddCommGroup V]
-  [InnerProductSpace ℂ V] [CompleteSpace V]
-
-def affineGaussianBlocks (α : AffineHilbertAction G V) (x : V)
-    (n : ℕ) : Matrix G G ℂ :=
-  gaussianKernel (fun g : G => α g x) (gaussianBlockScale n)
-
-theorem affineGaussianBlocks_posSemidef
-    (α : AffineHilbertAction G V) (x : V) (n : ℕ) :
-    (affineGaussianBlocks α x n).PosSemidef :=
-  gaussianKernel_posSemidef (fun g : G => α g x)
-    (le_of_lt (gaussianBlockScale_pos n))
-
-@[simp] theorem affineGaussianBlocks_diag
-    (α : AffineHilbertAction G V) (x : V) (n : ℕ) (g : G) :
-    affineGaussianBlocks α x n g g = 1 :=
-  gaussianKernel_diag (fun h : G => α h x) (gaussianBlockScale n) g
-
-theorem affineGaussianBlocks_invariant
-    (α : AffineHilbertAction G V) (x : V)
-    (n : ℕ) (a g h : G) :
-    affineGaussianBlocks α x n (a * g) (a * h) =
-      affineGaussianBlocks α x n g h := by
-  have hg : α (a * g) x = α a (α g x) := by
-    rw [map_mul]
-    rfl
-  have hh : α (a * h) x = α a (α h x) := by
-    rw [map_mul]
-    rfl
-  have hdist := (α a).dist_map (α g x) (α h x)
-  rw [dist_eq_norm, dist_eq_norm] at hdist
-  simp only [affineGaussianBlocks, gaussianKernel_apply, hg, hh, hdist]
-
-noncomputable instance affineGaussianBlockKernelFact
-    (α : AffineHilbertAction G V) (x : V) :
-    Fact (CornulierUltralimit.scalarOperatorKernel
-      (gaussianBlockDiagonal (affineGaussianBlocks α x))).PosSemidef :=
-  ⟨CornulierUltralimit.scalarOperatorKernel_posSemidef
-    (gaussianBlockDiagonal (affineGaussianBlocks α x))
-    (gaussianBlockDiagonal_posSemidef (affineGaussianBlocks α x)
-      (affineGaussianBlocks_posSemidef α x))⟩
-
-abbrev AffineGaussianBlockHilbert
-    (α : AffineHilbertAction G V) (x : V) :=
-  GaussianBlockHilbert (affineGaussianBlocks α x)
-
-def affineGaussianBlockRepresentation
-    (α : AffineHilbertAction G V) (x : V) :
-    UnitaryRepresentation G (AffineGaussianBlockHilbert α x) :=
-  gaussianBlockRepresentation (affineGaussianBlocks α x)
-    (affineGaussianBlocks_invariant α x)
-
-def affineGaussianBlockVector
-    (α : AffineHilbertAction G V) (x : V)
-    (n : ℕ) (g : G) : AffineGaussianBlockHilbert α x :=
-  gaussianBlockVector (affineGaussianBlocks α x) n g
-
-theorem affineGaussianBlockVector_norm
-    (α : AffineHilbertAction G V) (x : V)
-    (n : ℕ) (g : G) :
-    ‖affineGaussianBlockVector α x n g‖ = 1 :=
-  gaussianBlockVector_norm (affineGaussianBlocks α x)
-    (affineGaussianBlocks_diag α x) n g
-
-theorem affineGaussianBlockRepresentation_vector
-    (α : AffineHilbertAction G V) (x : V)
-    (a : G) (n : ℕ) (g : G) :
-    (affineGaussianBlockRepresentation α x a :
-      AffineGaussianBlockHilbert α x →L[ℂ]
-        AffineGaussianBlockHilbert α x)
-        (affineGaussianBlockVector α x n g) =
-      affineGaussianBlockVector α x n (a * g) :=
-  gaussianBlockRepresentation_vector (affineGaussianBlocks α x)
-    (affineGaussianBlocks_invariant α x) a n g
 
 end AffineGaussian
 
@@ -35994,23 +26472,6 @@ theorem affineInvariantOrthogonalProjection_nonexpansive
     ← Submodule.starProjection_orthogonal_val y, ← map_sub]
   exact Mᗮ.norm_starProjection_apply_le _
 
-theorem affineInvariantOrthogonalProjection_displacement_eq
-    (hreal : ∀ φ : G →* Multiplicative ℝ,
-      ∀ g : G, Multiplicative.toAdd (φ g) = 0)
-    (α : AffineHilbertAction G V) (g : G) (x : V) :
-    ‖affineOrthogonalAction hreal α g
-          (affineInvariantOrthogonalProjection α x) -
-        affineInvariantOrthogonalProjection α x‖ =
-      ‖α g x - x‖ := by
-  rw [← affineInvariantOrthogonalProjection_equivariant hreal α g x]
-  change ‖(α g x - (normalFixedSubmodule (⊤ : Subgroup G)
-      (affineLinearRepresentation α)).starProjection (α g x)) -
-    (x - (normalFixedSubmodule (⊤ : Subgroup G)
-      (affineLinearRepresentation α)).starProjection x)‖ = _
-  rw [affineInvariantLinearProjection_action hreal α g x]
-  congr 1
-  abel
-
 theorem affineOrthogonalAction_normalized
     (hreal : ∀ φ : G →* Multiplicative ℝ,
       ∀ g : G, Multiplicative.toAdd (φ g) = 0)
@@ -36361,26 +26822,6 @@ theorem shalom_conditioned_variation_lt_one_fourth
     _ < 1 / 4 :=
       shalom_normalized_restriction_variation_lt_one_fourth hε hsmall
 
-theorem spectralTorusWindow_conditioned_variation_lt_one_fourth
-    (μ : ProbabilityMeasure (DiscreteCharacterSpace A)) (a b : A)
-    {ε : ℝ} (hε : 0 ≤ ε) (hsmall : ε ≤ (1 / 10 : ℝ))
-    (ha : spectralDetectionEnergy μ a ≤ ε ^ 2)
-    (hb : spectralDetectionEnergy μ b ≤ ε ^ 2)
-    (s t : Set (DiscreteCharacterSpace A))
-    (hvariation : |(μ : Measure (DiscreteCharacterSpace A)).real s -
-      (μ : Measure (DiscreteCharacterSpace A)).real t| ≤ 2 * ε) :
-    let hU := spectralTorusWindow_measureReal_pos μ a b hsmall hε ha hb
-    |(conditionedProbability μ (spectralTorusWindow a b) hU :
-        Measure (DiscreteCharacterSpace A)).real s -
-      (conditionedProbability μ (spectralTorusWindow a b) hU :
-        Measure (DiscreteCharacterSpace A)).real t| < (1 / 4 : ℝ) := by
-  dsimp
-  apply shalom_conditioned_variation_lt_one_fourth μ
-    (spectralTorusWindow_measureReal_pos μ a b hsmall hε ha hb)
-    (spectralTorusWindow_measurable a b) hε hsmall
-    (spectralTorusWindow_compl_measureReal_le_sq μ a b ha hb)
-    s t hvariation
-
 end ConnesRigidity
 
 end
@@ -36399,34 +26840,12 @@ local instance shalomCircleMeasurable : MeasurableSpace Circle := borel Circle
 
 local instance shalomCircleBorel : BorelSpace Circle := ⟨rfl⟩
 
-def circleArgCoordinates (z : Circle × Circle) : ℝ × ℝ :=
-  (Complex.arg (z.1 : ℂ), Complex.arg (z.2 : ℂ))
-
-theorem measurable_circle_arg :
-    Measurable (fun z : Circle ↦ Complex.arg (z : ℂ)) := by
-  apply Complex.measurable_arg.comp
-  exact (show Continuous (fun z : Circle ↦ (z : ℂ)) from
-    continuous_subtype_val).measurable
-
-theorem measurable_circleArgCoordinates : Measurable circleArgCoordinates :=
-  (measurable_circle_arg.comp measurable_fst).prodMk
-    (measurable_circle_arg.comp measurable_snd)
-
 theorem circle_re_pos_iff_arg_mem_Ioo (z : Circle) :
     0 < (z : ℂ).re ↔
       -(Real.pi / 2) < Complex.arg (z : ℂ) ∧
         Complex.arg (z : ℂ) < Real.pi / 2 := by
   simpa [abs_lt, z.coe_ne_zero] using
     (Complex.abs_arg_lt_pi_div_two_iff (z := (z : ℂ))).symm
-
-theorem circle_re_pos_iff_abs_arg_lt (z : Circle) :
-    0 < (z : ℂ).re ↔ |Complex.arg (z : ℂ)| < Real.pi / 2 := by
-  simpa [z.coe_ne_zero] using
-    (Complex.abs_arg_lt_pi_div_two_iff (z := (z : ℂ))).symm
-
-theorem circle_re_nonneg_iff_abs_arg_le (z : Circle) :
-    0 ≤ (z : ℂ).re ↔ |Complex.arg (z : ℂ)| ≤ Real.pi / 2 :=
-  (Complex.abs_arg_le_pi_div_two_iff (z := (z : ℂ))).symm
 
 theorem circle_arg_mul_of_no_wrap_le (z w : Circle)
     (hlower : -Real.pi < Complex.arg (z : ℂ) + Complex.arg (w : ℂ))
@@ -36472,12 +26891,6 @@ theorem circle_arg_mul_of_re_pos (z w : Circle)
   obtain ⟨hwlo, hwhi⟩ := (circle_re_pos_iff_arg_mem_Ioo w).mp hw
   exact circle_arg_mul_of_no_wrap z w (by linarith) (by linarith)
 
-theorem circle_arg_inv_of_re_pos (z : Circle)
-    (hz : 0 < (z : ℂ).re) :
-    Complex.arg ((z⁻¹ : Circle) : ℂ) = -Complex.arg (z : ℂ) := by
-  obtain ⟨_, hupper⟩ := (circle_re_pos_iff_arg_mem_Ioo z).mp hz
-  exact circle_arg_inv_of_lt_pi z (by nlinarith [Real.pi_pos])
-
 theorem circle_arg_div_of_re_pos (z w : Circle)
     (hz : 0 < (z : ℂ).re) (hw : 0 < (w : ℂ).re) :
     Complex.arg ((z / w : Circle) : ℂ) =
@@ -36511,16 +26924,6 @@ theorem spectralTorusWindow_mem_iff_re_pos (a b : A)
       0 < (((χ (Multiplicative.ofAdd a) : Circle) : ℂ).re) ∧
         0 < (((χ (Multiplicative.ofAdd b) : Circle) : ℂ).re) := by
   simp [spectralTorusWindow, spectralNonpositiveRealSet, not_le]
-
-theorem spectralTorusWindow_mem_iff_arg (a b : A)
-    (χ : DiscreteCharacterSpace A) :
-    χ ∈ spectralTorusWindow a b ↔
-      |(spectralArgCoordinates a b χ).1| < Real.pi / 2 ∧
-        |(spectralArgCoordinates a b χ).2| < Real.pi / 2 := by
-  rw [spectralTorusWindow_mem_iff_re_pos]
-  exact and_congr
-    (circle_re_pos_iff_abs_arg_lt (χ (Multiplicative.ofAdd a)))
-    (circle_re_pos_iff_abs_arg_lt (χ (Multiplicative.ofAdd b)))
 
 theorem spectralArg_add_of_window (a b : A)
     (χ : DiscreteCharacterSpace A) (hχ : χ ∈ spectralTorusWindow a b) :
@@ -36655,13 +27058,6 @@ theorem integerDual_spectralArgCoordinates_origin_preimage :
   ext χ
   simp [integerDual_spectralArgCoordinates_eq_zero_iff]
 
-theorem integerDual_spectralArgCoordinates_origin_measurable :
-    MeasurableSet
-      (spectralArgCoordinates integerDualCoordinateZero
-        integerDualCoordinateOne ⁻¹' {(0, 0)}) := by
-  rw [integerDual_spectralArgCoordinates_origin_preimage]
-  exact measurableSet_singleton _
-
 end ConnesRigidity
 
 end
@@ -36714,129 +27110,6 @@ theorem shalom_three_sector_mass_gap
     linarith [neg_le_abs (w - a)]
   norm_num at hu' hv' hw'
   linarith
-
-theorem shalom_four_sector_probability_gap
-    {Ω : Type*} [MeasurableSpace Ω]
-    (μ : Measure Ω) [IsProbabilityMeasure μ]
-    (A B C D U V W Z : Set Ω)
-    (_hA : MeasurableSet A) (hB : MeasurableSet B)
-    (hC : MeasurableSet C) (hD : MeasurableSet D)
-    (hAB : Disjoint A B) (hAC : Disjoint A C)
-    (hAD : Disjoint A D) (hBC : Disjoint B C)
-    (hBD : Disjoint B D) (hCD : Disjoint C D)
-    (hcover : A ∪ B ∪ C ∪ D = Set.univ)
-    (hU : U ⊆ A) (hV : V ⊆ B)
-    (hW : W ⊆ D) (hZ : Z ⊆ C) :
-    (1 / 4 : ℝ) ≤ |μ.real U - μ.real (A ∪ B)| ∨
-      (1 / 4 : ℝ) ≤ |μ.real V - μ.real (A ∪ B)| ∨
-      (1 / 4 : ℝ) ≤ |μ.real W - μ.real (D ∪ C)| ∨
-      (1 / 4 : ℝ) ≤ |μ.real Z - μ.real (D ∪ C)| := by
-  have hAB_C : Disjoint (A ∪ B) C :=
-    disjoint_union_left.mpr ⟨hAC, hBC⟩
-  have hABC_D : Disjoint (A ∪ B ∪ C) D :=
-    disjoint_union_left.mpr
-      ⟨disjoint_union_left.mpr ⟨hAD, hBD⟩, hCD⟩
-  have hmass : μ.real A + μ.real B + μ.real C + μ.real D = 1 := by
-    calc
-      μ.real A + μ.real B + μ.real C + μ.real D =
-          μ.real (A ∪ B ∪ C ∪ D) := by
-            rw [measureReal_union hABC_D hD,
-              measureReal_union hAB_C hC,
-              measureReal_union hAB hB]
-      _ = 1 := by rw [hcover, probReal_univ]
-  have hABmass : μ.real (A ∪ B) = μ.real A + μ.real B :=
-    measureReal_union hAB hB
-  have hDCmass : μ.real (D ∪ C) = μ.real D + μ.real C :=
-    measureReal_union hCD.symm hC
-  rw [hABmass, hDCmass]
-  exact shalom_four_sector_mass_gap
-    (μ.real A) (μ.real B) (μ.real C) (μ.real D)
-    (μ.real U) (μ.real V) (μ.real W) (μ.real Z) hmass
-    (measureReal_mono hU) (measureReal_mono hV)
-    (measureReal_mono hW) (measureReal_mono hZ)
-
-theorem shalom_three_sector_probability_gap
-    {Ω : Type*} [MeasurableSpace Ω]
-    (μ : Measure Ω) [IsProbabilityMeasure μ]
-    (A B C U V W : Set Ω)
-    (_hA : MeasurableSet A) (hB : MeasurableSet B)
-    (hC : MeasurableSet C)
-    (hAB : Disjoint A B) (hAC : Disjoint A C)
-    (hBC : Disjoint B C)
-    (hcover : A ∪ B ∪ C = Set.univ)
-    (hU : U ⊆ C) (hV : V ⊆ A) (hW : W ⊆ B) :
-    (1 / 5 : ℝ) ≤ |μ.real U - μ.real (A ∪ B)| ∨
-      (1 / 5 : ℝ) ≤ |μ.real V - μ.real (C ∪ B)| ∨
-      (1 / 5 : ℝ) ≤ |μ.real W - μ.real A| := by
-  have hAB_C : Disjoint (A ∪ B) C :=
-    disjoint_union_left.mpr ⟨hAC, hBC⟩
-  have hmass : μ.real A + μ.real B + μ.real C = 1 := by
-    calc
-      μ.real A + μ.real B + μ.real C = μ.real (A ∪ B ∪ C) := by
-        rw [measureReal_union hAB_C hC, measureReal_union hAB hB]
-      _ = 1 := by rw [hcover, probReal_univ]
-  have hABmass : μ.real (A ∪ B) = μ.real A + μ.real B :=
-    measureReal_union hAB hB
-  have hCBmass : μ.real (C ∪ B) = μ.real C + μ.real B :=
-    measureReal_union hBC.symm hB
-  rw [hABmass, hCBmass]
-  exact shalom_three_sector_mass_gap
-    (μ.real A) (μ.real B) (μ.real C)
-    (μ.real U) (μ.real V) (μ.real W) hmass
-    (measureReal_mono hU) (measureReal_mono hV)
-    (measureReal_mono hW)
-
-theorem shalom_four_sector_action_gap
-    {Ω G : Type*} [MeasurableSpace Ω]
-    (μ : Measure Ω) [IsProbabilityMeasure μ]
-    (act : G → Ω → Ω) (tpos spos tneg sneg : G)
-    (A B C D : Set Ω)
-    (hA : MeasurableSet A) (hB : MeasurableSet B)
-    (hC : MeasurableSet C) (hD : MeasurableSet D)
-    (hAB : Disjoint A B) (hAC : Disjoint A C)
-    (hAD : Disjoint A D) (hBC : Disjoint B C)
-    (hBD : Disjoint B D) (hCD : Disjoint C D)
-    (hcover : A ∪ B ∪ C ∪ D = Set.univ)
-    (htpos : act tpos '' (A ∪ B) ⊆ A)
-    (hspos : act spos '' (A ∪ B) ⊆ B)
-    (htneg : act tneg '' (D ∪ C) ⊆ D)
-    (hsneg : act sneg '' (D ∪ C) ⊆ C) :
-    ∃ g ∈ ({tpos, spos, tneg, sneg} : Set G),
-      ∃ s : Set Ω, MeasurableSet s ∧
-        (1 / 4 : ℝ) ≤ |μ.real (act g '' s) - μ.real s| := by
-  rcases shalom_four_sector_probability_gap μ
-      A B C D
-      (act tpos '' (A ∪ B)) (act spos '' (A ∪ B))
-      (act tneg '' (D ∪ C)) (act sneg '' (D ∪ C))
-      hA hB hC hD hAB hAC hAD hBC hBD hCD hcover
-      htpos hspos htneg hsneg with h | h | h | h
-  · exact ⟨tpos, by simp, A ∪ B, hA.union hB, h⟩
-  · exact ⟨spos, by simp, A ∪ B, hA.union hB, h⟩
-  · exact ⟨tneg, by simp, D ∪ C, hD.union hC, h⟩
-  · exact ⟨sneg, by simp, D ∪ C, hD.union hC, h⟩
-
-theorem shalom_three_sector_action_gap
-    {Ω G : Type*} [MeasurableSpace Ω]
-    (μ : Measure Ω) [IsProbabilityMeasure μ]
-    (act : G → Ω → Ω) (t s n : G)
-    (A B C : Set Ω)
-    (hA : MeasurableSet A) (hB : MeasurableSet B)
-    (hC : MeasurableSet C)
-    (hAB : Disjoint A B) (hAC : Disjoint A C)
-    (hBC : Disjoint B C)
-    (hcover : A ∪ B ∪ C = Set.univ)
-    (ht : act t '' (A ∪ B) ⊆ C)
-    (hs : act s '' (C ∪ B) ⊆ A)
-    (hn : act n '' A ⊆ B) :
-    ∃ g ∈ ({t, s, n} : Set G),
-      ∃ U : Set Ω, MeasurableSet U ∧
-        (1 / 5 : ℝ) ≤ |μ.real (act g '' U) - μ.real U| := by
-  rcases shalom_three_sector_probability_gap μ
-      A B C (act t '' (A ∪ B)) (act s '' (C ∪ B)) (act n '' A)
-      hA hB hC hAB hAC hBC hcover ht hs hn with h | h | h
-  · exact ⟨t, by simp, A ∪ B, hA.union hB, h⟩
-  · exact ⟨s, by simp, C ∪ B, hC.union hB, h⟩
-  · exact ⟨n, by simp, A, hA, h⟩
 
 end ConnesRigidity
 
@@ -37103,64 +27376,6 @@ theorem exists_kernel_fixed_of_joint_atom_pos
     trivialCharacterProjection_ne_zero_of_joint_atom_pos
       E π x hxnorm hx, ?_⟩
   exact trivialCharacterProjection_kernel_fixed E π x
-
-theorem hasRelativeKazhdanPropertyT_of_fourierAtomCertificate_unconditional
-    {E : SplitAbelianExtension A G H}
-    (certificate : RelativeFourierAtomCertificate E) :
-    HasRelativeKazhdanPropertyT G E.inclusion.range := by
-  classical
-  intro V _ _ _ ρ hρ
-  let Φ := jointPositiveSpectralFunctional E ρ
-  let testing : Finset G :=
-    certificate.shears.image E.splitting ∪
-      certificate.translations.image
-        (fun a => E.inclusion (Multiplicative.ofAdd a))
-  obtain ⟨x, hx, hsmall⟩ :=
-    hρ testing (certificate.gap / 2)
-      (div_pos certificate.gap_pos (by norm_num))
-  let μ := Φ.probabilityMeasure x hx
-  have hshears :
-      ∀ h ∈ certificate.shears,
-        ∀ s : Set (DiscreteCharacterSpace A), MeasurableSet s →
-          |((μ : Measure (DiscreteCharacterSpace A)).map
-              (dualCharacterAction E.action h)).real s -
-            (μ : Measure (DiscreteCharacterSpace A)).real s| <
-              certificate.gap := by
-    intro h hh s hs
-    have hmem : E.splitting h ∈ testing := by
-      apply Finset.mem_union_left
-      exact Finset.mem_image.mpr ⟨h, hh, rfl⟩
-    have hbound :=
-      abs_jointScalarMeasure_map_measureReal_sub_le E ρ x hx h hs
-    have hdisplacement := hsmall (E.splitting h) hmem
-    change
-      |((Φ.measure x).map (dualCharacterAction E.action h)).real s -
-        (Φ.measure x).real s| < certificate.gap
-    linarith
-  have htranslations :
-      ∀ a ∈ certificate.translations,
-        spectralDetectionEnergy μ a < certificate.gap ^ 2 := by
-    intro a ha
-    have hmem : E.inclusion (Multiplicative.ofAdd a) ∈ testing := by
-      apply Finset.mem_union_right
-      exact Finset.mem_image.mpr ⟨a, ha, rfl⟩
-    have hdisplacement :=
-      hsmall (E.inclusion (Multiplicative.ofAdd a)) hmem
-    change
-      (∫ χ : DiscreteCharacterSpace A,
-        ‖((χ (Multiplicative.ofAdd a) : Circle) : ℂ) - 1‖ ^ 2
-          ∂(Φ.measure x)) < certificate.gap ^ 2
-    rw [Φ.measure_energy x a]
-    have hnorm := norm_nonneg
-      ((ρ (E.inclusion (Multiplicative.ofAdd a)) : V →L[ℂ] V) x - x)
-    nlinarith [certificate.gap_pos]
-  obtain ⟨y, hy, hyfixed⟩ := exists_kernel_fixed_of_joint_atom_pos E ρ x hx
-    (certificate.positive_atom μ hshears htranslations)
-  refine ⟨y, hy, ?_⟩
-  intro n
-  obtain ⟨a, ha⟩ := n.property
-  rw [← ha]
-  exact hyfixed (Multiplicative.toAdd a)
 
 end ConnesRigidity
 
@@ -37453,48 +27668,6 @@ theorem shalomSectorD_measurable : MeasurableSet shalomSectorD := by
     (continuous_fst.mul continuous_snd)).measurableSet.inter
     (isClosed_le continuous_fst.abs continuous_snd.abs).measurableSet
 
-theorem shalomPuncturedA_measurable : MeasurableSet shalomPuncturedA :=
-  shalomSectorA_measurable.preimage measurable_subtype_coe
-
-theorem shalomPuncturedB_measurable : MeasurableSet shalomPuncturedB :=
-  shalomSectorB_measurable.preimage measurable_subtype_coe
-
-theorem shalomPuncturedC_measurable : MeasurableSet shalomPuncturedC :=
-  shalomSectorC_measurable.preimage measurable_subtype_coe
-
-theorem shalomPuncturedD_measurable : MeasurableSet shalomPuncturedD :=
-  shalomSectorD_measurable.preimage measurable_subtype_coe
-
-theorem shalomPuncturedA_B_disjoint : Disjoint shalomPuncturedA shalomPuncturedB := by
-  rw [Set.disjoint_left]
-  rintro ⟨⟨x, y⟩, hne⟩ hA hB
-  exact (not_lt_of_ge hB.2 hA.2)
-
-theorem shalomPuncturedA_C_disjoint : Disjoint shalomPuncturedA shalomPuncturedC := by
-  rw [Set.disjoint_left]
-  rintro ⟨⟨x, y⟩, hne⟩ hA hC
-  exact (not_lt_of_ge hA.2.le hC.2)
-
-theorem shalomPuncturedA_D_disjoint : Disjoint shalomPuncturedA shalomPuncturedD := by
-  rw [Set.disjoint_left]
-  rintro ⟨⟨x, y⟩, hne⟩ hA hD
-  exact (not_lt_of_ge hA.1 hD.1)
-
-theorem shalomPuncturedB_C_disjoint : Disjoint shalomPuncturedB shalomPuncturedC := by
-  rw [Set.disjoint_left]
-  rintro ⟨⟨x, y⟩, hne⟩ hB hC
-  exact (not_lt_of_ge hC.1 hB.1)
-
-theorem shalomPuncturedB_D_disjoint : Disjoint shalomPuncturedB shalomPuncturedD := by
-  rw [Set.disjoint_left]
-  rintro ⟨⟨x, y⟩, hne⟩ hB hD
-  linarith [hB.1, hD.1]
-
-theorem shalomPuncturedC_D_disjoint : Disjoint shalomPuncturedC shalomPuncturedD := by
-  rw [Set.disjoint_left]
-  rintro ⟨⟨x, y⟩, hne⟩ hC hD
-  exact not_lt_of_ge hD.2 hC.2
-
 theorem shalomPunctured_cover :
     shalomPuncturedA ∪ shalomPuncturedB ∪ shalomPuncturedC ∪
       shalomPuncturedD = Set.univ := by
@@ -37718,58 +27891,6 @@ theorem spectralArgCoordinates_dualCharacterAction_sneg
     _ = shalomSneg (spectralArgCoordinates a b χ) := by
       simpa [shalomSneg] using spectralArgCoordinates_sneg a b χ hχ
 
-theorem spectralTorusWindow_dualCharacterAction_tpos_iff
-    (action : H →* Multiplicative (AddAut A)) (h : H)
-    (a b : A)
-    (ha : (Multiplicative.toAdd (action h⁻¹)) a = a)
-    (hb : (Multiplicative.toAdd (action h⁻¹)) b = b - a)
-    (χ : DiscreteCharacterSpace A)
-    (hχ : χ ∈ spectralTorusWindow a b) :
-    dualCharacterAction action h χ ∈ spectralTorusWindow a b ↔
-      |(shalomTpos (spectralArgCoordinates a b χ)).1| < Real.pi / 2 ∧
-        |(shalomTpos (spectralArgCoordinates a b χ)).2| < Real.pi / 2 := by
-  rw [spectralTorusWindow_mem_iff_arg,
-    spectralArgCoordinates_dualCharacterAction_tpos action h a b ha hb χ hχ]
-
-theorem spectralTorusWindow_dualCharacterAction_spos_iff
-    (action : H →* Multiplicative (AddAut A)) (h : H)
-    (a b : A)
-    (ha : (Multiplicative.toAdd (action h⁻¹)) a = a - b)
-    (hb : (Multiplicative.toAdd (action h⁻¹)) b = b)
-    (χ : DiscreteCharacterSpace A)
-    (hχ : χ ∈ spectralTorusWindow a b) :
-    dualCharacterAction action h χ ∈ spectralTorusWindow a b ↔
-      |(shalomSpos (spectralArgCoordinates a b χ)).1| < Real.pi / 2 ∧
-        |(shalomSpos (spectralArgCoordinates a b χ)).2| < Real.pi / 2 := by
-  rw [spectralTorusWindow_mem_iff_arg,
-    spectralArgCoordinates_dualCharacterAction_spos action h a b ha hb χ hχ]
-
-theorem spectralTorusWindow_dualCharacterAction_tneg_iff
-    (action : H →* Multiplicative (AddAut A)) (h : H)
-    (a b : A)
-    (ha : (Multiplicative.toAdd (action h⁻¹)) a = a)
-    (hb : (Multiplicative.toAdd (action h⁻¹)) b = b + a)
-    (χ : DiscreteCharacterSpace A)
-    (hχ : χ ∈ spectralTorusWindow a b) :
-    dualCharacterAction action h χ ∈ spectralTorusWindow a b ↔
-      |(shalomTneg (spectralArgCoordinates a b χ)).1| < Real.pi / 2 ∧
-        |(shalomTneg (spectralArgCoordinates a b χ)).2| < Real.pi / 2 := by
-  rw [spectralTorusWindow_mem_iff_arg,
-    spectralArgCoordinates_dualCharacterAction_tneg action h a b ha hb χ hχ]
-
-theorem spectralTorusWindow_dualCharacterAction_sneg_iff
-    (action : H →* Multiplicative (AddAut A)) (h : H)
-    (a b : A)
-    (ha : (Multiplicative.toAdd (action h⁻¹)) a = a + b)
-    (hb : (Multiplicative.toAdd (action h⁻¹)) b = b)
-    (χ : DiscreteCharacterSpace A)
-    (hχ : χ ∈ spectralTorusWindow a b) :
-    dualCharacterAction action h χ ∈ spectralTorusWindow a b ↔
-      |(shalomSneg (spectralArgCoordinates a b χ)).1| < Real.pi / 2 ∧
-        |(shalomSneg (spectralArgCoordinates a b χ)).2| < Real.pi / 2 := by
-  rw [spectralTorusWindow_mem_iff_arg,
-    spectralArgCoordinates_dualCharacterAction_sneg action h a b ha hb χ hχ]
-
 end ConnesRigidity
 
 end
@@ -37893,66 +28014,6 @@ theorem integerLowerShear_action_one :
       Pi.single (1 : Fin 2) 1
   rw [Matrix.SpecialLinearGroup.transvection_smul_single_fst]
 
-theorem integerUpperShear_spectralArgCoordinates
-    (χ : DiscreteCharacterSpace (Fin 2 → ℤ))
-    (hχ : χ ∈ spectralTorusWindow integerTranslationZero integerTranslationOne) :
-    spectralArgCoordinates integerTranslationZero integerTranslationOne
-        (dualCharacterAction
-          integerElementaryRankTwoSplitAbelianExtension.action
-          integerUpperShear χ) =
-      shalomTpos
-        (spectralArgCoordinates integerTranslationZero integerTranslationOne χ) :=
-  spectralArgCoordinates_dualCharacterAction_tpos
-    integerElementaryRankTwoSplitAbelianExtension.action
-    integerUpperShear integerTranslationZero integerTranslationOne
-    integerUpperShear_inv_action_zero integerUpperShear_inv_action_one χ hχ
-
-theorem integerLowerShear_spectralArgCoordinates
-    (χ : DiscreteCharacterSpace (Fin 2 → ℤ))
-    (hχ : χ ∈ spectralTorusWindow integerTranslationZero integerTranslationOne) :
-    spectralArgCoordinates integerTranslationZero integerTranslationOne
-        (dualCharacterAction
-          integerElementaryRankTwoSplitAbelianExtension.action
-          integerLowerShear χ) =
-      shalomSpos
-        (spectralArgCoordinates integerTranslationZero integerTranslationOne χ) :=
-  spectralArgCoordinates_dualCharacterAction_spos
-    integerElementaryRankTwoSplitAbelianExtension.action
-    integerLowerShear integerTranslationZero integerTranslationOne
-    integerLowerShear_inv_action_zero integerLowerShear_inv_action_one χ hχ
-
-theorem integerUpperShear_inv_spectralArgCoordinates
-    (χ : DiscreteCharacterSpace (Fin 2 → ℤ))
-    (hχ : χ ∈ spectralTorusWindow integerTranslationZero integerTranslationOne) :
-    spectralArgCoordinates integerTranslationZero integerTranslationOne
-        (dualCharacterAction
-          integerElementaryRankTwoSplitAbelianExtension.action
-          integerUpperShear⁻¹ χ) =
-      shalomTneg
-        (spectralArgCoordinates integerTranslationZero integerTranslationOne χ) := by
-  apply spectralArgCoordinates_dualCharacterAction_tneg
-    integerElementaryRankTwoSplitAbelianExtension.action
-    integerUpperShear⁻¹ integerTranslationZero integerTranslationOne
-  · simpa using integerUpperShear_action_zero
-  · simpa using integerUpperShear_action_one
-  · exact hχ
-
-theorem integerLowerShear_inv_spectralArgCoordinates
-    (χ : DiscreteCharacterSpace (Fin 2 → ℤ))
-    (hχ : χ ∈ spectralTorusWindow integerTranslationZero integerTranslationOne) :
-    spectralArgCoordinates integerTranslationZero integerTranslationOne
-        (dualCharacterAction
-          integerElementaryRankTwoSplitAbelianExtension.action
-          integerLowerShear⁻¹ χ) =
-      shalomSneg
-        (spectralArgCoordinates integerTranslationZero integerTranslationOne χ) := by
-  apply spectralArgCoordinates_dualCharacterAction_sneg
-    integerElementaryRankTwoSplitAbelianExtension.action
-    integerLowerShear⁻¹ integerTranslationZero integerTranslationOne
-  · simpa using integerLowerShear_action_zero
-  · simpa using integerLowerShear_action_one
-  · exact hχ
-
 end ConnesRigidity
 
 end
@@ -38005,28 +28066,6 @@ theorem shalom_conditioned_image_variation_of_map_lt_one_fourth
   apply shalom_conditioned_image_variation_lt_one_fourth μ hU
     hUmeas hε hsmall hdiscard f s
   simpa [map_measureReal_apply f.symm.measurable hs] using hvariation
-
-theorem shalom_conditioned_finset_image_variation_lt_one_fourth
-    {ι : Type*} (J : Finset ι)
-    (μ : ProbabilityMeasure Ω) {U : Set Ω}
-    (hU : 0 < (μ : Measure Ω).real U)
-    (hUmeas : MeasurableSet U)
-    {ε : ℝ} (hε : 0 ≤ ε) (hsmall : ε ≤ (1 / 10 : ℝ))
-    (hdiscard : (μ : Measure Ω).real Uᶜ ≤ ε ^ 2)
-    (act : ι → Ω ≃ᵐ Ω)
-    (hvariation : ∀ i ∈ J, ∀ s : Set Ω,
-      MeasurableSet s →
-        |((μ : Measure Ω).map (act i).symm).real s -
-          (μ : Measure Ω).real s| ≤ 2 * ε) :
-    ∀ i ∈ J, ∀ s : Set Ω, MeasurableSet s →
-      |(conditionedProbability μ U hU : Measure Ω).real
-          (act i '' s) -
-        (conditionedProbability μ U hU : Measure Ω).real s| <
-          (1 / 4 : ℝ) := by
-  intro i hi s hs
-  exact shalom_conditioned_image_variation_of_map_lt_one_fourth
-    μ hU hUmeas hε hsmall hdiscard (act i) s hs
-    (hvariation i hi s hs)
 
 universe u
 
@@ -38344,30 +28383,6 @@ def torusShearSneg : ShalomTorus ≃ₜ ShalomTorus :=
 @[simp] theorem torusShearSneg_symm :
     torusShearSneg.symm = torusShearSpos := by
   rfl
-
-theorem torusShearTpos_measurable : Measurable torusShearTpos :=
-  torusShearTpos.continuous.measurable
-
-theorem torusShearSpos_measurable : Measurable torusShearSpos :=
-  torusShearSpos.continuous.measurable
-
-theorem torusShearTneg_measurable : Measurable torusShearTneg :=
-  torusShearTneg.continuous.measurable
-
-theorem torusShearSneg_measurable : Measurable torusShearSneg :=
-  torusShearSneg.continuous.measurable
-
-def torusRightWindow : Set ShalomTorus :=
-  {p | 0 < (p.1 : ℂ).re ∧ 0 < (p.2 : ℂ).re}
-
-theorem torusRightWindow_isOpen : IsOpen torusRightWindow := by
-  exact (isOpen_lt continuous_const
-    (Complex.continuous_re.comp (continuous_subtype_val.comp continuous_fst))).inter
-    (isOpen_lt continuous_const
-      (Complex.continuous_re.comp (continuous_subtype_val.comp continuous_snd)))
-
-theorem torusRightWindow_measurable : MeasurableSet torusRightWindow :=
-  torusRightWindow_isOpen.measurableSet
 
 universe u
 
@@ -38709,24 +28724,6 @@ open ConnesRigidity MeasureTheory Set
 
 variable {Ω Ξ : Type*} [MeasurableSpace Ω] [MeasurableSpace Ξ]
 
-theorem conditionedProbability_measureReal_zero_of_zero
-    (μ : ProbabilityMeasure Ω) {U s : Set Ω}
-    (hU : 0 < (μ : Measure Ω).real U)
-    (hUmeas : MeasurableSet U)
-    (hs : (μ : Measure Ω).real s = 0) :
-    (conditionedProbability μ U hU : Measure Ω).real s = 0 := by
-  rw [conditionedProbability_measureReal μ hU hUmeas s]
-  rw [measureReal_mono_null (μ := (μ : Measure Ω)) inter_subset_left hs]
-  simp
-
-theorem conditionedProbability_singleton_zero_of_zero
-    (μ : ProbabilityMeasure Ω) {U : Set Ω}
-    (hU : 0 < (μ : Measure Ω).real U)
-    (hUmeas : MeasurableSet U)
-    (x : Ω) (hx : (μ : Measure Ω).real {x} = 0) :
-    (conditionedProbability μ U hU : Measure Ω).real {x} = 0 :=
-  conditionedProbability_measureReal_zero_of_zero μ hU hUmeas hx
-
 theorem conditionedProbability_punctured_window_measureReal_one
     (μ : ProbabilityMeasure Ω) {U s : Set Ω}
     (hU : 0 < (μ : Measure Ω).real U)
@@ -38738,133 +28735,11 @@ theorem conditionedProbability_punctured_window_measureReal_one
   rw [measureReal_sdiff_null hs]
   exact div_self (ne_of_gt hU)
 
-theorem conditionedProbability_pushforward_singleton_zero
-    [MeasurableSingletonClass Ξ]
-    (μ : ProbabilityMeasure Ω) {U : Set Ω}
-    (hU : 0 < (μ : Measure Ω).real U)
-    (hUmeas : MeasurableSet U)
-    (f : Ω → Ξ) (hf : Measurable f)
-    (x : Ξ)
-    (hx : (μ : Measure Ω).real (f ⁻¹' {x}) = 0) :
-    (((conditionedProbability μ U hU).map hf.aemeasurable :
-      ProbabilityMeasure Ξ) : Measure Ξ).real {x} = 0 := by
-  change ((conditionedProbability μ U hU : Measure Ω).map f).real {x} = 0
-  rw [map_measureReal_apply hf (measurableSet_singleton x)]
-  exact conditionedProbability_measureReal_zero_of_zero μ hU hUmeas hx
-
-theorem conditionedProbability_pushforward_singleton_compl_one
-    [MeasurableSingletonClass Ξ]
-    (μ : ProbabilityMeasure Ω) {U : Set Ω}
-    (hU : 0 < (μ : Measure Ω).real U)
-    (hUmeas : MeasurableSet U)
-    (f : Ω → Ξ) (hf : Measurable f)
-    (x : Ξ)
-    (hx : (μ : Measure Ω).real (f ⁻¹' {x}) = 0) :
-    (((conditionedProbability μ U hU).map hf.aemeasurable :
-      ProbabilityMeasure Ξ) : Measure Ξ).real {x}ᶜ = 1 := by
-  let ν : ProbabilityMeasure Ξ :=
-    (conditionedProbability μ U hU).map hf.aemeasurable
-  have hzero : (ν : Measure Ξ).real {x} = 0 :=
-    conditionedProbability_pushforward_singleton_zero μ hU hUmeas f hf x hx
-  have htotal := measureReal_add_measureReal_compl
-    (μ := (ν : Measure Ξ)) (measurableSet_singleton x)
-  rw [probReal_univ, hzero] at htotal
-  simpa [ν] using htotal
-
 universe u
 
 variable {A : Type u} [AddCommGroup A] [TopologicalSpace A] [DiscreteTopology A]
 variable [MeasurableSpace (DiscreteCharacterSpace A)]
   [BorelSpace (DiscreteCharacterSpace A)]
-
-def shalomArgumentSquare : Set (ℝ × ℝ) :=
-  {p | |p.1| < Real.pi / 2 ∧ |p.2| < Real.pi / 2}
-
-theorem shalomArgumentSquare_measurable : MeasurableSet shalomArgumentSquare :=
-  (measurableSet_lt (continuous_abs.comp continuous_fst).measurable
-    measurable_const).inter
-    (measurableSet_lt (continuous_abs.comp continuous_snd).measurable
-      measurable_const)
-
-theorem spectralTorusWindow_eq_preimage_argumentSquare (a b : A) :
-    spectralTorusWindow a b =
-      spectralArgCoordinates a b ⁻¹' shalomArgumentSquare := by
-  ext χ
-  exact spectralTorusWindow_mem_iff_arg a b χ
-
-theorem conditioned_spectralArgCoordinates_square_compl_zero
-    (μ : ProbabilityMeasure (DiscreteCharacterSpace A)) (a b : A)
-    (hU : 0 < (μ : Measure (DiscreteCharacterSpace A)).real
-      (spectralTorusWindow a b)) :
-    (((conditionedProbability μ (spectralTorusWindow a b) hU).map
-      (measurable_spectralArgCoordinates a b).aemeasurable :
-        ProbabilityMeasure (ℝ × ℝ)) : Measure (ℝ × ℝ)).real
-          shalomArgumentSquareᶜ = 0 := by
-  change
-    ((conditionedProbability μ (spectralTorusWindow a b) hU :
-      Measure (DiscreteCharacterSpace A)).map
-      (spectralArgCoordinates a b)).real shalomArgumentSquareᶜ = 0
-  rw [map_measureReal_apply (measurable_spectralArgCoordinates a b)
-    shalomArgumentSquare_measurable.compl]
-  have hpre :
-      (spectralArgCoordinates a b ⁻¹' shalomArgumentSquareᶜ) ⊆
-        (spectralTorusWindow a b)ᶜ := by
-    intro χ hχ hwindow
-    exact hχ ((spectralTorusWindow_mem_iff_arg a b χ).mp hwindow)
-  exact measureReal_mono_null hpre
-    (conditionedProbability_compl_measureReal μ hU
-      (spectralTorusWindow_measurable a b))
-
-theorem conditioned_spectralArgCoordinates_square_measureReal_one
-    (μ : ProbabilityMeasure (DiscreteCharacterSpace A)) (a b : A)
-    (hU : 0 < (μ : Measure (DiscreteCharacterSpace A)).real
-      (spectralTorusWindow a b)) :
-    (((conditionedProbability μ (spectralTorusWindow a b) hU).map
-      (measurable_spectralArgCoordinates a b).aemeasurable :
-        ProbabilityMeasure (ℝ × ℝ)) : Measure (ℝ × ℝ)).real
-          shalomArgumentSquare = 1 := by
-  let ν : ProbabilityMeasure (ℝ × ℝ) :=
-    (conditionedProbability μ (spectralTorusWindow a b) hU).map
-      (measurable_spectralArgCoordinates a b).aemeasurable
-  have hzero : (ν : Measure (ℝ × ℝ)).real shalomArgumentSquareᶜ = 0 :=
-    conditioned_spectralArgCoordinates_square_compl_zero μ a b hU
-  have htotal := measureReal_add_measureReal_compl
-    (μ := (ν : Measure (ℝ × ℝ))) shalomArgumentSquare_measurable
-  rw [probReal_univ, hzero] at htotal
-  simpa [ν] using htotal
-
-theorem conditioned_spectralArgCoordinates_origin_zero
-    (μ : ProbabilityMeasure (DiscreteCharacterSpace A)) (a b : A)
-    (hU : 0 < (μ : Measure (DiscreteCharacterSpace A)).real
-      (spectralTorusWindow a b))
-    (horigin : (μ : Measure (DiscreteCharacterSpace A)).real
-      (spectralArgCoordinates a b ⁻¹' {(0, 0)}) = 0) :
-    (((conditionedProbability μ (spectralTorusWindow a b) hU).map
-      (measurable_spectralArgCoordinates a b).aemeasurable :
-        ProbabilityMeasure (ℝ × ℝ)) : Measure (ℝ × ℝ)).real
-          {(0, 0)} = 0 :=
-  conditionedProbability_pushforward_singleton_zero μ hU
-    (spectralTorusWindow_measurable a b)
-    (spectralArgCoordinates a b) (measurable_spectralArgCoordinates a b)
-    (0, 0) horigin
-
-theorem conditioned_spectralArgCoordinates_punctured_square_one
-    (μ : ProbabilityMeasure (DiscreteCharacterSpace A)) (a b : A)
-    (hU : 0 < (μ : Measure (DiscreteCharacterSpace A)).real
-      (spectralTorusWindow a b))
-    (horigin : (μ : Measure (DiscreteCharacterSpace A)).real
-      (spectralArgCoordinates a b ⁻¹' {(0, 0)}) = 0) :
-    (((conditionedProbability μ (spectralTorusWindow a b) hU).map
-      (measurable_spectralArgCoordinates a b).aemeasurable :
-        ProbabilityMeasure (ℝ × ℝ)) : Measure (ℝ × ℝ)).real
-          (shalomArgumentSquare \ {(0, 0)}) = 1 := by
-  let ν : ProbabilityMeasure (ℝ × ℝ) :=
-    (conditionedProbability μ (spectralTorusWindow a b) hU).map
-      (measurable_spectralArgCoordinates a b).aemeasurable
-  have hzero : (ν : Measure (ℝ × ℝ)).real {(0, 0)} = 0 :=
-    conditioned_spectralArgCoordinates_origin_zero μ a b hU horigin
-  rw [measureReal_sdiff_null hzero]
-  exact conditioned_spectralArgCoordinates_square_measureReal_one μ a b hU
 
 section IntegerTorus
 
@@ -38874,76 +28749,6 @@ local instance atomIntegerDualMeasurable :
 
 local instance atomIntegerDualBorel :
     BorelSpace (DiscreteCharacterSpace IntegerRankTwo) := ⟨rfl⟩
-
-theorem integerDual_conditioned_trivial_atom_zero
-    (μ : ProbabilityMeasure (DiscreteCharacterSpace IntegerRankTwo))
-    (hU : 0 < (μ : Measure (DiscreteCharacterSpace IntegerRankTwo)).real
-      (spectralTorusWindow integerDualCoordinateZero
-        integerDualCoordinateOne))
-    (hatom : (μ : Measure (DiscreteCharacterSpace IntegerRankTwo)).real
-      {1} = 0) :
-    (conditionedProbability μ
-      (spectralTorusWindow integerDualCoordinateZero
-        integerDualCoordinateOne) hU :
-      Measure (DiscreteCharacterSpace IntegerRankTwo)).real {1} = 0 :=
-  conditionedProbability_singleton_zero_of_zero μ hU
-    (spectralTorusWindow_measurable integerDualCoordinateZero
-      integerDualCoordinateOne) 1 hatom
-
-theorem integerDual_conditioned_punctured_window_one
-    (μ : ProbabilityMeasure (DiscreteCharacterSpace IntegerRankTwo))
-    (hU : 0 < (μ : Measure (DiscreteCharacterSpace IntegerRankTwo)).real
-      (spectralTorusWindow integerDualCoordinateZero
-        integerDualCoordinateOne))
-    (hatom : (μ : Measure (DiscreteCharacterSpace IntegerRankTwo)).real
-      {1} = 0) :
-    (conditionedProbability μ
-      (spectralTorusWindow integerDualCoordinateZero
-        integerDualCoordinateOne) hU :
-      Measure (DiscreteCharacterSpace IntegerRankTwo)).real
-        (spectralTorusWindow integerDualCoordinateZero
-          integerDualCoordinateOne \ {1}) = 1 :=
-  conditionedProbability_punctured_window_measureReal_one μ hU
-    (spectralTorusWindow_measurable integerDualCoordinateZero
-      integerDualCoordinateOne) hatom
-
-theorem integerDual_conditioned_chart_origin_zero
-    (μ : ProbabilityMeasure (DiscreteCharacterSpace IntegerRankTwo))
-    (hU : 0 < (μ : Measure (DiscreteCharacterSpace IntegerRankTwo)).real
-      (spectralTorusWindow integerDualCoordinateZero
-        integerDualCoordinateOne))
-    (hatom : (μ : Measure (DiscreteCharacterSpace IntegerRankTwo)).real
-      {1} = 0) :
-    (((conditionedProbability μ
-      (spectralTorusWindow integerDualCoordinateZero
-        integerDualCoordinateOne) hU).map
-      (measurable_spectralArgCoordinates integerDualCoordinateZero
-        integerDualCoordinateOne).aemeasurable :
-      ProbabilityMeasure (ℝ × ℝ)) : Measure (ℝ × ℝ)).real
-        {(0, 0)} = 0 := by
-  apply conditioned_spectralArgCoordinates_origin_zero μ
-    integerDualCoordinateZero integerDualCoordinateOne hU
-  rw [integerDual_spectralArgCoordinates_origin_preimage]
-  exact hatom
-
-theorem integerDual_conditioned_chart_punctured_square_one
-    (μ : ProbabilityMeasure (DiscreteCharacterSpace IntegerRankTwo))
-    (hU : 0 < (μ : Measure (DiscreteCharacterSpace IntegerRankTwo)).real
-      (spectralTorusWindow integerDualCoordinateZero
-        integerDualCoordinateOne))
-    (hatom : (μ : Measure (DiscreteCharacterSpace IntegerRankTwo)).real
-      {1} = 0) :
-    (((conditionedProbability μ
-      (spectralTorusWindow integerDualCoordinateZero
-        integerDualCoordinateOne) hU).map
-      (measurable_spectralArgCoordinates integerDualCoordinateZero
-        integerDualCoordinateOne).aemeasurable :
-      ProbabilityMeasure (ℝ × ℝ)) : Measure (ℝ × ℝ)).real
-        (shalomArgumentSquare \ {(0, 0)}) = 1 := by
-  apply conditioned_spectralArgCoordinates_punctured_square_one μ
-    integerDualCoordinateZero integerDualCoordinateOne hU
-  rw [integerDual_spectralArgCoordinates_origin_preimage]
-  exact hatom
 
 end IntegerTorus
 
@@ -39161,13 +28966,6 @@ theorem dualCharacterAction_preimage_eq_image_inv
       dualCharacterAction_one]
     exact hψ
 
-theorem dualCharacterAction_image_eq_preimage_inv
-    (action : H →* Multiplicative (AddAut A)) (h : H)
-    (s : Set (DiscreteCharacterSpace A)) :
-    dualCharacterAction action h '' s =
-      dualCharacterAction action h⁻¹ ⁻¹' s := by
-  simpa using (dualCharacterAction_preimage_eq_image_inv action h⁻¹ s).symm
-
 section Borel
 
 variable [MeasurableSpace (DiscreteCharacterSpace A)]
@@ -39177,23 +28975,6 @@ theorem dualCharacterAction_measurable
     (action : H →* Multiplicative (AddAut A)) (h : H) :
     Measurable (dualCharacterAction action h) :=
   (dualCharacterAction_continuous action h).measurable
-
-theorem dualCharacterAction_measurableEmbedding
-    (action : H →* Multiplicative (AddAut A)) (h : H) :
-    MeasurableEmbedding (dualCharacterAction action h) :=
-  (dualCharacterHomeomorph action h).measurableEmbedding
-
-theorem dualCharacterAction_measurableSet_image
-    (action : H →* Multiplicative (AddAut A)) (h : H)
-    {s : Set (DiscreteCharacterSpace A)} (hs : MeasurableSet s) :
-    MeasurableSet (dualCharacterAction action h '' s) :=
-  (dualCharacterAction_measurableEmbedding action h).measurableSet_image.mpr hs
-
-theorem dualCharacterAction_measurableSet_image_iff
-    (action : H →* Multiplicative (AddAut A)) (h : H)
-    {s : Set (DiscreteCharacterSpace A)} :
-    MeasurableSet (dualCharacterAction action h '' s) ↔ MeasurableSet s :=
-  (dualCharacterAction_measurableEmbedding action h).measurableSet_image
 
 theorem dualCharacterAction_map_measureReal
     (action : H →* Multiplicative (AddAut A)) (h : H)
@@ -39219,36 +29000,6 @@ theorem dualCharacterAction_image_variation_eq_map_inv
     |μ.real (dualCharacterAction action h '' s) - μ.real s| =
       |(μ.map (dualCharacterAction action h⁻¹)).real s - μ.real s| := by
   rw [dualCharacterAction_image_measureReal_eq_map_inv action h μ hs]
-
-theorem dualCharacterAction_finset_image_variation_le_of_map
-    (action : H →* Multiplicative (AddAut A))
-    (J : Finset H)
-    (hinv : ∀ h ∈ J, h⁻¹ ∈ J)
-    (μ : Measure (DiscreteCharacterSpace A)) (δ : ℝ)
-    (hvariation : ∀ h ∈ J, ∀ s : Set (DiscreteCharacterSpace A),
-      MeasurableSet s →
-        |(μ.map (dualCharacterAction action h)).real s - μ.real s| ≤ δ) :
-    ∀ h ∈ J, ∀ s : Set (DiscreteCharacterSpace A),
-      MeasurableSet s →
-        |μ.real (dualCharacterAction action h '' s) - μ.real s| ≤ δ := by
-  intro h hh s hs
-  rw [dualCharacterAction_image_variation_eq_map_inv action h μ hs]
-  exact hvariation h⁻¹ (hinv h hh) s hs
-
-theorem dualCharacterAction_finset_image_variation_lt_of_map
-    (action : H →* Multiplicative (AddAut A))
-    (J : Finset H)
-    (hinv : ∀ h ∈ J, h⁻¹ ∈ J)
-    (μ : Measure (DiscreteCharacterSpace A)) (δ : ℝ)
-    (hvariation : ∀ h ∈ J, ∀ s : Set (DiscreteCharacterSpace A),
-      MeasurableSet s →
-        |(μ.map (dualCharacterAction action h)).real s - μ.real s| < δ) :
-    ∀ h ∈ J, ∀ s : Set (DiscreteCharacterSpace A),
-      MeasurableSet s →
-        |μ.real (dualCharacterAction action h '' s) - μ.real s| < δ := by
-  intro h hh s hs
-  rw [dualCharacterAction_image_variation_eq_map_inv action h μ hs]
-  exact hvariation h⁻¹ (hinv h hh) s hs
 
 end Borel
 
@@ -39332,22 +29083,6 @@ theorem polynomialFirstNontrivial_le_coe_iff
       simp [polynomialFirstNontrivial, hex] at h
     · rintro ⟨k, _, hk⟩
       exact (hex ⟨k, hk⟩).elim
-
-theorem measurable_polynomialFirstNontrivial :
-    Measurable polynomialFirstNontrivial := by
-  classical
-  apply ENat.measurable_iff.mpr
-  intro n
-  have hn :
-      polynomialFirstNontrivial ⁻¹' {(n : ℕ∞)} =
-        {x : PolynomialCircleSequence | x n ≠ 1} ∩
-          ⋂ m : {m : ℕ // m < n}, {x : PolynomialCircleSequence | x m = 1} := by
-    ext x
-    simp [polynomialFirstNontrivial_eq_coe_iff]
-  rw [hn]
-  refine (measurableSet_eq_fun (measurable_pi_apply n) measurable_const).compl.inter ?_
-  exact MeasurableSet.iInter fun m =>
-    measurableSet_eq_fun (measurable_pi_apply m.1) measurable_const
 
 def polynomialSequenceMul
     (x y : PolynomialCircleSequence) : PolynomialCircleSequence :=
@@ -39730,54 +29465,6 @@ theorem polynomialSector_disjoint_BC :
   rintro z ⟨hB, _⟩ ⟨hC, _⟩
   exact (ne_of_lt hC) hB
 
-theorem polynomialSector_measure_gap
-    (μ : Measure PolynomialCirclePair) [IsProbabilityMeasure μ]
-    (hmass : μ.real polynomialSectorSupport = 1) :
-    (1 / 5 : ℝ) ≤
-        |μ.real (polynomialShearT '' (polynomialSectorA ∪ polynomialSectorB)) -
-          μ.real (polynomialSectorA ∪ polynomialSectorB)| ∨
-      (1 / 5 : ℝ) ≤
-        |μ.real (polynomialShearS '' (polynomialSectorC ∪ polynomialSectorB)) -
-          μ.real (polynomialSectorC ∪ polynomialSectorB)| ∨
-      (1 / 5 : ℝ) ≤
-        |μ.real (polynomialShearN '' polynomialSectorA) -
-          μ.real polynomialSectorA| := by
-  exact shalom_three_sector_supported_probability_gap μ
-    polynomialSectorSupport
-    polynomialSectorA polynomialSectorB polynomialSectorC
-    (polynomialShearT '' (polynomialSectorA ∪ polynomialSectorB))
-    (polynomialShearS '' (polynomialSectorC ∪ polynomialSectorB))
-    (polynomialShearN '' polynomialSectorA)
-    measurableSet_polynomialSectorSupport hmass
-    measurableSet_polynomialSectorA
-    measurableSet_polynomialSectorB
-    measurableSet_polynomialSectorC
-    polynomialSector_disjoint_AB
-    polynomialSector_disjoint_AC
-    polynomialSector_disjoint_BC
-    polynomialSector_cover
-    polynomialShearT_image_sector_inter_support
-    polynomialShearS_image_sector_inter_support
-    polynomialShearN_image_sector_inter_support
-
-theorem polynomialSector_action_gap
-    (μ : Measure PolynomialCirclePair) [IsProbabilityMeasure μ]
-    (hmass : μ.real polynomialSectorSupport = 1) :
-    ∃ shear ∈
-        ({polynomialShearT, polynomialShearS, polynomialShearN} :
-          Set (PolynomialCirclePair → PolynomialCirclePair)),
-      ∃ U : Set PolynomialCirclePair, MeasurableSet U ∧
-        (1 / 5 : ℝ) ≤ |μ.real (shear '' U) - μ.real U| := by
-  rcases polynomialSector_measure_gap μ hmass with h | h | h
-  · exact ⟨polynomialShearT, by simp,
-      polynomialSectorA ∪ polynomialSectorB,
-      measurableSet_polynomialSectorA.union measurableSet_polynomialSectorB, h⟩
-  · exact ⟨polynomialShearS, by simp,
-      polynomialSectorC ∪ polynomialSectorB,
-      measurableSet_polynomialSectorC.union measurableSet_polynomialSectorB, h⟩
-  · exact ⟨polynomialShearN, by simp,
-      polynomialSectorA, measurableSet_polynomialSectorA, h⟩
-
 end ConnesRigidity
 
 end
@@ -40018,20 +29705,6 @@ theorem polynomialCharacterCoefficientPair_mem_punctured
     _ ↔ χ ≠ 1 :=
       not_congr (polynomialCharacterCoefficientPair_eq_one_iff χ)
 
-theorem polynomialCharacter_constant_trivial_iff
-    (χ : PolynomialRankTwoCharacter) (i : Fin 2) :
-    (∀ z : ℤ,
-      χ (Multiplicative.ofAdd
-        (Pi.single i (Polynomial.C z) :
-          Fin 2 → IntegralPolynomial)) = 1) ↔
-      polynomialCharacterCoefficient χ i 0 = 1 := by
-  constructor
-  · intro h
-    simpa [polynomialCharacterCoefficient] using h 1
-  · intro h z
-    rw [← Polynomial.monomial_zero_left,
-      polynomialCharacter_monomial χ i 0 z, h, one_zpow]
-
 end ConnesRigidity
 
 end
@@ -40044,74 +29717,6 @@ namespace ConnesRigidity
 
 open ConnesRigidity MeasureTheory Set
 open scoped BigOperators ENNReal NNReal
-
-theorem shalom_normalized_restriction_variation_lt_one_fifth
-    {ε : ℝ} (hε : 0 ≤ ε) (hsmall : ε ≤ (1 / 20 : ℝ)) :
-    (2 * ε + ε ^ 2) / (1 - ε ^ 2) < (1 / 5 : ℝ) := by
-  have hden : 0 < 1 - ε ^ 2 := by nlinarith
-  apply (div_lt_iff₀ hden).mpr
-  nlinarith [mul_nonneg hε (sub_nonneg.mpr hsmall)]
-
-theorem shalom_conditioned_variation_lt_one_fifth
-    {Ω : Type*} [MeasurableSpace Ω]
-    (μ : ProbabilityMeasure Ω) {U : Set Ω}
-    (hU : 0 < (μ : Measure Ω).real U)
-    (hUmeas : MeasurableSet U)
-    {ε : ℝ} (hε : 0 ≤ ε) (hsmall : ε ≤ (1 / 20 : ℝ))
-    (hdiscard : (μ : Measure Ω).real Uᶜ ≤ ε ^ 2)
-    (s t : Set Ω)
-    (hvariation : |(μ : Measure Ω).real s -
-      (μ : Measure Ω).real t| ≤ 2 * ε) :
-    |(conditionedProbability μ U hU : Measure Ω).real s -
-      (conditionedProbability μ U hU : Measure Ω).real t| <
-        (1 / 5 : ℝ) := by
-  have hden : 0 < 1 - ε ^ 2 := by nlinarith
-  have hsurvive : 1 - ε ^ 2 ≤ (μ : Measure Ω).real U := by
-    have htotal := measureReal_add_measureReal_compl
-      (μ := (μ : Measure Ω)) hUmeas
-    rw [probReal_univ] at htotal
-    linarith
-  have hnum : 0 ≤ 2 * ε + ε ^ 2 := by positivity
-  calc
-    |(conditionedProbability μ U hU : Measure Ω).real s -
-      (conditionedProbability μ U hU : Measure Ω).real t| ≤
-        (|(μ : Measure Ω).real s - (μ : Measure Ω).real t| +
-          (μ : Measure Ω).real Uᶜ) / (μ : Measure Ω).real U :=
-      abs_conditionedProbability_measureReal_sub_le μ hU hUmeas s t
-    _ ≤ (2 * ε + ε ^ 2) / (μ : Measure Ω).real U := by
-      gcongr
-    _ ≤ (2 * ε + ε ^ 2) / (1 - ε ^ 2) :=
-      div_le_div_of_nonneg_left hnum hden hsurvive
-    _ < 1 / 5 :=
-      shalom_normalized_restriction_variation_lt_one_fifth hε hsmall
-
-theorem conditionedProbability_preserves_full_measure_set
-    {Ω : Type*} [MeasurableSpace Ω]
-    (μ : ProbabilityMeasure Ω) {U support : Set Ω}
-    (hU : 0 < (μ : Measure Ω).real U)
-    (hUmeas : MeasurableSet U)
-    (hsupport : MeasurableSet support)
-    (hfull : (μ : Measure Ω).real support = 1) :
-    (conditionedProbability μ U hU : Measure Ω).real support = 1 := by
-  have hcompl : (μ : Measure Ω).real supportᶜ = 0 := by
-    have htotal := measureReal_add_measureReal_compl
-      (μ := (μ : Measure Ω)) hsupport
-    rw [probReal_univ, hfull] at htotal
-    linarith
-  have hdiff : (μ : Measure Ω).real (U \ support) = 0 := by
-    have hle := measureReal_mono (μ := (μ : Measure Ω))
-      (Set.sdiff_subset_compl U support)
-    have hnonneg := measureReal_nonneg
-      (μ := (μ : Measure Ω)) (s := U \ support)
-    linarith
-  have hinter : (μ : Measure Ω).real (U ∩ support) =
-      (μ : Measure Ω).real U := by
-    have hdecomp := measureReal_inter_add_sdiff
-      (μ := (μ : Measure Ω)) (s := U) hsupport
-    linarith
-  rw [conditionedProbability_measureReal μ hU hUmeas support,
-    Set.inter_comm, hinter]
-  exact div_self (ne_of_gt hU)
 
 section IntegralPolynomialSpectralMeasure
 
@@ -40151,25 +29756,6 @@ theorem integralElementaryJointSpectralProbability_shear_map_variation
       2 * ‖(π (integralElementaryRankTwoInr h) : V →L[ℂ] V) x - x‖ := by
   exact abs_jointScalarMeasure_map_measureReal_sub_le
     integralElementaryRankTwoSplitAbelianExtension π x hx h hs
-
-theorem integralElementaryJointSpectralProbability_shear_preimage_variation
-    (π : UnitaryRepresentation integralElementaryRankTwoGroup V)
-    (x : V) (hx : ‖x‖ = 1)
-    (h : integralElementaryRankTwoActingGroup)
-    {s : Set (DiscreteCharacterSpace (Fin 2 → IntegralPolynomial))}
-    (hs : MeasurableSet s) :
-    |(integralElementaryJointSpectralProbability π x hx :
-        Measure (DiscreteCharacterSpace (Fin 2 → IntegralPolynomial))).real
-          (dualCharacterAction
-            integralElementaryRankTwoSplitAbelianExtension.action h ⁻¹' s) -
-      (integralElementaryJointSpectralProbability π x hx :
-        Measure (DiscreteCharacterSpace (Fin 2 → IntegralPolynomial))).real s| ≤
-      2 * ‖(π (integralElementaryRankTwoInr h) : V →L[ℂ] V) x - x‖ := by
-  rw [← map_measureReal_apply
-    (dualCharacterAction_continuous
-      integralElementaryRankTwoSplitAbelianExtension.action h).measurable hs]
-  exact integralElementaryJointSpectralProbability_shear_map_variation
-    π x hx h hs
 
 theorem integralElementaryJointSpectralProbability_ae_character_eq_one
     (π : UnitaryRepresentation integralElementaryRankTwoGroup V)
@@ -40242,103 +29828,6 @@ theorem integralElementaryJointSpectralProbability_polynomialCharacterNoFree
     (mem_ae_iff_prob_eq_one polynomialCharacterNoFree_measurable).mp hae
   simp [measureReal_def, hmass]
 
-theorem integralElementaryJointSpectralProbability_conditioned_polynomialCharacterNoFree
-    (π : UnitaryRepresentation integralElementaryRankTwoGroup V)
-    (x : V) (hx : ‖x‖ = 1)
-    (hfixed : ∀ i : Fin 2,
-      (π (integralElementaryRankTwoInl (Multiplicative.ofAdd
-        (Pi.single i (1 : IntegralPolynomial) :
-          Fin 2 → IntegralPolynomial))) : V →L[ℂ] V) x = x)
-    (U : Set PolynomialRankTwoCharacter)
-    (hU : 0 < (integralElementaryJointSpectralProbability π x hx :
-      Measure PolynomialRankTwoCharacter).real U)
-    (hUmeas : MeasurableSet U) :
-    (conditionedProbability
-      (integralElementaryJointSpectralProbability π x hx) U hU :
-        Measure PolynomialRankTwoCharacter).real polynomialCharacterNoFree = 1 :=
-  conditionedProbability_preserves_full_measure_set
-    (integralElementaryJointSpectralProbability π x hx)
-    hU hUmeas polynomialCharacterNoFree_measurable
-    (integralElementaryJointSpectralProbability_polynomialCharacterNoFree
-      π x hx hfixed)
-
-theorem integralElementaryJointSpectralProbability_window_compl_le
-    (π : UnitaryRepresentation integralElementaryRankTwoGroup V)
-    (x : V) (hx : ‖x‖ = 1)
-    (a b : Fin 2 → IntegralPolynomial) {ε : ℝ} (hε : 0 ≤ ε)
-    (ha : ‖(π (integralElementaryRankTwoInl (Multiplicative.ofAdd a)) :
-      V →L[ℂ] V) x - x‖ ≤ ε)
-    (hb : ‖(π (integralElementaryRankTwoInl (Multiplicative.ofAdd b)) :
-      V →L[ℂ] V) x - x‖ ≤ ε) :
-    (integralElementaryJointSpectralProbability π x hx :
-        Measure (DiscreteCharacterSpace (Fin 2 → IntegralPolynomial))).real
-      (spectralTorusWindow a b)ᶜ ≤ ε ^ 2 := by
-  apply spectralTorusWindow_compl_measureReal_le_sq
-  · rw [integralElementaryJointSpectralProbability_energy]
-    exact (sq_le_sq₀ (norm_nonneg _) hε).mpr ha
-  · rw [integralElementaryJointSpectralProbability_energy]
-    exact (sq_le_sq₀ (norm_nonneg _) hε).mpr hb
-
-theorem integralElementaryJointSpectralProbability_window_pos
-    (π : UnitaryRepresentation integralElementaryRankTwoGroup V)
-    (x : V) (hx : ‖x‖ = 1)
-    (a b : Fin 2 → IntegralPolynomial) {ε : ℝ}
-    (hε : 0 ≤ ε) (hsmall : ε ≤ (1 / 20 : ℝ))
-    (ha : ‖(π (integralElementaryRankTwoInl (Multiplicative.ofAdd a)) :
-      V →L[ℂ] V) x - x‖ ≤ ε)
-    (hb : ‖(π (integralElementaryRankTwoInl (Multiplicative.ofAdd b)) :
-      V →L[ℂ] V) x - x‖ ≤ ε) :
-    0 < (integralElementaryJointSpectralProbability π x hx :
-        Measure (DiscreteCharacterSpace (Fin 2 → IntegralPolynomial))).real
-      (spectralTorusWindow a b) := by
-  have hdiscard := integralElementaryJointSpectralProbability_window_compl_le
-    π x hx a b hε ha hb
-  have htotal := measureReal_add_measureReal_compl
-    (μ := (integralElementaryJointSpectralProbability π x hx :
-      Measure (DiscreteCharacterSpace (Fin 2 → IntegralPolynomial))))
-    (spectralTorusWindow_measurable a b)
-  rw [probReal_univ] at htotal
-  have hden : 0 < 1 - ε ^ 2 := by nlinarith
-  linarith
-
-theorem integralElementaryJointSpectralProbability_conditioned_variation
-    (π : UnitaryRepresentation integralElementaryRankTwoGroup V)
-    (x : V) (hx : ‖x‖ = 1)
-    (a b : Fin 2 → IntegralPolynomial) {ε : ℝ}
-    (hε : 0 ≤ ε) (hsmall : ε ≤ (1 / 20 : ℝ))
-    (ha : ‖(π (integralElementaryRankTwoInl (Multiplicative.ofAdd a)) :
-      V →L[ℂ] V) x - x‖ ≤ ε)
-    (hb : ‖(π (integralElementaryRankTwoInl (Multiplicative.ofAdd b)) :
-      V →L[ℂ] V) x - x‖ ≤ ε)
-    (s t : Set (DiscreteCharacterSpace (Fin 2 → IntegralPolynomial)))
-    (hvariation :
-      |(integralElementaryJointSpectralProbability π x hx :
-          Measure (DiscreteCharacterSpace (Fin 2 → IntegralPolynomial))).real s -
-        (integralElementaryJointSpectralProbability π x hx :
-          Measure (DiscreteCharacterSpace (Fin 2 → IntegralPolynomial))).real t| ≤
-        2 * ε) :
-    let hU := integralElementaryJointSpectralProbability_window_pos
-      π x hx a b hε hsmall ha hb
-    |(conditionedProbability
-          (integralElementaryJointSpectralProbability π x hx)
-          (spectralTorusWindow a b) hU :
-        Measure (DiscreteCharacterSpace (Fin 2 → IntegralPolynomial))).real s -
-      (conditionedProbability
-          (integralElementaryJointSpectralProbability π x hx)
-          (spectralTorusWindow a b) hU :
-        Measure (DiscreteCharacterSpace (Fin 2 → IntegralPolynomial))).real t| <
-      (1 / 5 : ℝ) := by
-  dsimp
-  exact shalom_conditioned_variation_lt_one_fifth
-    (integralElementaryJointSpectralProbability π x hx)
-    (integralElementaryJointSpectralProbability_window_pos
-      π x hx a b hε hsmall ha hb)
-    (spectralTorusWindow_measurable a b)
-    hε hsmall
-    (integralElementaryJointSpectralProbability_window_compl_le
-      π x hx a b hε ha hb)
-    s t hvariation
-
 end IntegralPolynomialSpectralMeasure
 
 end ConnesRigidity
@@ -40401,76 +29890,6 @@ theorem elementaryRankTwoRoot_inv_smul_single_source
   rw [elementaryRankTwoRoot_inv]
   exact elementaryRankTwoRoot_smul_single_source hij (-a) b
 
-theorem polynomialUpperShear_inv_action_zero
-    (a b : IntegralPolynomial) :
-    (Multiplicative.toAdd
-      (integralElementaryRankTwoSplitAbelianExtension.action
-        (elementaryRankTwoRoot
-          (show (0 : Fin 2) ≠ 1 by decide) a)⁻¹))
-        (Pi.single (0 : Fin 2) b) =
-      (Pi.single (0 : Fin 2) b : Fin 2 → IntegralPolynomial) := by
-  change
-    (((elementaryRankTwoRoot
-      (show (0 : Fin 2) ≠ 1 by decide) a)⁻¹ :
-        elementaryRankTwo IntegralPolynomial) :
-          Matrix.SpecialLinearGroup (Fin 2) IntegralPolynomial) •
-            (Pi.single (0 : Fin 2) b : Fin 2 → IntegralPolynomial) = _
-  exact elementaryRankTwoRoot_inv_smul_single_target
-    (show (0 : Fin 2) ≠ 1 by decide) a b
-
-theorem polynomialUpperShear_inv_action_one
-    (a b : IntegralPolynomial) :
-    (Multiplicative.toAdd
-      (integralElementaryRankTwoSplitAbelianExtension.action
-        (elementaryRankTwoRoot
-          (show (0 : Fin 2) ≠ 1 by decide) a)⁻¹))
-        (Pi.single (1 : Fin 2) b) =
-      Pi.single (1 : Fin 2) b +
-        (Pi.single (0 : Fin 2) ((-a) * b) : Fin 2 → IntegralPolynomial) := by
-  change
-    (((elementaryRankTwoRoot
-      (show (0 : Fin 2) ≠ 1 by decide) a)⁻¹ :
-        elementaryRankTwo IntegralPolynomial) :
-          Matrix.SpecialLinearGroup (Fin 2) IntegralPolynomial) •
-            (Pi.single (1 : Fin 2) b : Fin 2 → IntegralPolynomial) = _
-  exact elementaryRankTwoRoot_inv_smul_single_source
-    (show (0 : Fin 2) ≠ 1 by decide) a b
-
-theorem polynomialLowerShear_inv_action_zero
-    (a b : IntegralPolynomial) :
-    (Multiplicative.toAdd
-      (integralElementaryRankTwoSplitAbelianExtension.action
-        (elementaryRankTwoRoot
-          (show (1 : Fin 2) ≠ 0 by decide) a)⁻¹))
-        (Pi.single (0 : Fin 2) b) =
-      Pi.single (0 : Fin 2) b +
-        (Pi.single (1 : Fin 2) ((-a) * b) : Fin 2 → IntegralPolynomial) := by
-  change
-    (((elementaryRankTwoRoot
-      (show (1 : Fin 2) ≠ 0 by decide) a)⁻¹ :
-        elementaryRankTwo IntegralPolynomial) :
-          Matrix.SpecialLinearGroup (Fin 2) IntegralPolynomial) •
-            (Pi.single (0 : Fin 2) b : Fin 2 → IntegralPolynomial) = _
-  exact elementaryRankTwoRoot_inv_smul_single_source
-    (show (1 : Fin 2) ≠ 0 by decide) a b
-
-theorem polynomialLowerShear_inv_action_one
-    (a b : IntegralPolynomial) :
-    (Multiplicative.toAdd
-      (integralElementaryRankTwoSplitAbelianExtension.action
-        (elementaryRankTwoRoot
-          (show (1 : Fin 2) ≠ 0 by decide) a)⁻¹))
-        (Pi.single (1 : Fin 2) b) =
-      (Pi.single (1 : Fin 2) b : Fin 2 → IntegralPolynomial) := by
-  change
-    (((elementaryRankTwoRoot
-      (show (1 : Fin 2) ≠ 0 by decide) a)⁻¹ :
-        elementaryRankTwo IntegralPolynomial) :
-          Matrix.SpecialLinearGroup (Fin 2) IntegralPolynomial) •
-            (Pi.single (1 : Fin 2) b : Fin 2 → IntegralPolynomial) = _
-  exact elementaryRankTwoRoot_inv_smul_single_target
-    (show (1 : Fin 2) ≠ 0 by decide) a b
-
 @[simp] theorem shalomPolynomial_X_mul_X_pow (n : ℕ) :
     (Polynomial.X : IntegralPolynomial) * Polynomial.X ^ n =
       Polynomial.X ^ (n + 1) := by
@@ -40480,32 +29899,6 @@ theorem polynomialLowerShear_inv_action_one
     (-(Polynomial.X : IntegralPolynomial)) * Polynomial.X ^ n =
       -(Polynomial.X ^ (n + 1)) := by
   rw [neg_mul, shalomPolynomial_X_mul_X_pow]
-
-theorem polynomialUpperShear_X_inv_action_monomial (n : ℕ) :
-    (Multiplicative.toAdd
-      (integralElementaryRankTwoSplitAbelianExtension.action
-        (elementaryRankTwoRoot
-          (show (0 : Fin 2) ≠ 1 by decide)
-            (Polynomial.X : IntegralPolynomial))⁻¹))
-        (Pi.single (1 : Fin 2) (Polynomial.X ^ n)) =
-      Pi.single (1 : Fin 2) (Polynomial.X ^ n) +
-        (Pi.single (0 : Fin 2)
-          (-(Polynomial.X ^ (n + 1))) : Fin 2 → IntegralPolynomial) := by
-  rw [polynomialUpperShear_inv_action_one,
-    shalomPolynomial_negX_mul_X_pow]
-
-theorem polynomialLowerShear_X_inv_action_monomial (n : ℕ) :
-    (Multiplicative.toAdd
-      (integralElementaryRankTwoSplitAbelianExtension.action
-        (elementaryRankTwoRoot
-          (show (1 : Fin 2) ≠ 0 by decide)
-            (Polynomial.X : IntegralPolynomial))⁻¹))
-        (Pi.single (0 : Fin 2) (Polynomial.X ^ n)) =
-      Pi.single (0 : Fin 2) (Polynomial.X ^ n) +
-        (Pi.single (1 : Fin 2)
-          (-(Polynomial.X ^ (n + 1))) : Fin 2 → IntegralPolynomial) := by
-  rw [polynomialLowerShear_inv_action_zero,
-    shalomPolynomial_negX_mul_X_pow]
 
 end ConnesRigidity
 
@@ -40545,42 +29938,6 @@ def polynomialDualShearN
     (χ : PolynomialRankTwoCharacter) : PolynomialRankTwoCharacter :=
   dualCharacterAction integralElementaryRankTwoSplitAbelianExtension.action
     polynomialShearNActing χ
-
-theorem polynomialCharacter_coordinate_monomial_add
-    (χ : PolynomialRankTwoCharacter) (i j : Fin 2) (n m : ℕ) :
-    χ (Multiplicative.ofAdd
-      ((Pi.single j ((Polynomial.X : IntegralPolynomial) ^ n) :
-        Fin 2 → IntegralPolynomial) +
-        Pi.single i ((Polynomial.X : IntegralPolynomial) ^ m))) =
-      polynomialCharacterCoefficient χ j n *
-        polynomialCharacterCoefficient χ i m := by
-  change χ
-      ((Multiplicative.ofAdd
-        (Pi.single j ((Polynomial.X : IntegralPolynomial) ^ n) :
-          Fin 2 → IntegralPolynomial)) *
-        (Multiplicative.ofAdd
-          (Pi.single i ((Polynomial.X : IntegralPolynomial) ^ m) :
-            Fin 2 → IntegralPolynomial))) = _
-  rw [map_mul]
-  rfl
-
-theorem polynomialCharacter_coordinate_monomial_sub
-    (χ : PolynomialRankTwoCharacter) (i j : Fin 2) (n m : ℕ) :
-    χ (Multiplicative.ofAdd
-      ((Pi.single j ((Polynomial.X : IntegralPolynomial) ^ n) :
-        Fin 2 → IntegralPolynomial) -
-        Pi.single i ((Polynomial.X : IntegralPolynomial) ^ m))) =
-      polynomialCharacterCoefficient χ j n *
-        (polynomialCharacterCoefficient χ i m)⁻¹ := by
-  change χ
-      ((Multiplicative.ofAdd
-        (Pi.single j ((Polynomial.X : IntegralPolynomial) ^ n) :
-          Fin 2 → IntegralPolynomial)) *
-        (Multiplicative.ofAdd
-          (Pi.single i ((Polynomial.X : IntegralPolynomial) ^ m) :
-            Fin 2 → IntegralPolynomial))⁻¹) = _
-  rw [map_mul, map_inv]
-  rfl
 
 theorem polynomialCharacterCoefficient_dual_root_source
     {i j : Fin 2} (hij : i ≠ j) (a : IntegralPolynomial)
@@ -40952,56 +30309,6 @@ theorem polynomialCharacter_atom_pos_of_actual_sector_variation
     polynomialCharacterSector_action_gap μ hfree hatom T S N hT hS hN
   exact (not_lt_of_ge hgap) (hvariation shear hshear U hU)
 
-theorem polynomialDualShearT_image_characterSector_inter_support :
-    (polynomialDualShearT ''
-        (polynomialCharacterSectorA ∪ polynomialCharacterSectorB)) ∩
-      polynomialCharacterSectorSupport ⊆ polynomialCharacterSectorC :=
-  polynomialCharacterSector_shearT_supported polynomialDualShearT
-    polynomialCharacterCoefficientPair_polynomialDualShearT
-
-theorem polynomialDualShearS_image_characterSector_inter_support :
-    (polynomialDualShearS ''
-        (polynomialCharacterSectorC ∪ polynomialCharacterSectorB)) ∩
-      polynomialCharacterSectorSupport ⊆ polynomialCharacterSectorA :=
-  polynomialCharacterSector_shearS_supported polynomialDualShearS
-    polynomialCharacterCoefficientPair_polynomialDualShearS
-
-theorem polynomialDualShearN_image_characterSector_inter_support :
-    (polynomialDualShearN '' polynomialCharacterSectorA) ∩
-      polynomialCharacterSectorSupport ⊆ polynomialCharacterSectorB :=
-  polynomialCharacterSector_shearN_supported polynomialDualShearN
-    polynomialCharacterCoefficientPair_polynomialDualShearN
-
-theorem polynomialCharacterSector_dualShear_action_gap
-    (μ : Measure PolynomialRankTwoCharacter) [IsProbabilityMeasure μ]
-    (hfree : μ.real polynomialCharacterNoFree = 1)
-    (hatom : μ.real ({1} : Set PolynomialRankTwoCharacter) = 0) :
-    ∃ shear ∈ ({polynomialDualShearT, polynomialDualShearS,
-        polynomialDualShearN} :
-        Set (PolynomialRankTwoCharacter → PolynomialRankTwoCharacter)),
-      ∃ U : Set PolynomialRankTwoCharacter, MeasurableSet U ∧
-        (1 / 5 : ℝ) ≤ |μ.real (shear '' U) - μ.real U| :=
-  polynomialCharacterSector_action_gap μ hfree hatom
-    polynomialDualShearT polynomialDualShearS polynomialDualShearN
-    polynomialCharacterCoefficientPair_polynomialDualShearT
-    polynomialCharacterCoefficientPair_polynomialDualShearS
-    polynomialCharacterCoefficientPair_polynomialDualShearN
-
-theorem polynomialCharacter_atom_pos_of_dualShear_variation
-    (μ : Measure PolynomialRankTwoCharacter) [IsProbabilityMeasure μ]
-    (hfree : μ.real polynomialCharacterNoFree = 1)
-    (hvariation : ∀ shear ∈ ({polynomialDualShearT, polynomialDualShearS,
-        polynomialDualShearN} :
-        Set (PolynomialRankTwoCharacter → PolynomialRankTwoCharacter)),
-      ∀ U : Set PolynomialRankTwoCharacter, MeasurableSet U →
-        |μ.real (shear '' U) - μ.real U| < (1 / 5 : ℝ)) :
-    0 < μ.real ({1} : Set PolynomialRankTwoCharacter) :=
-  polynomialCharacter_atom_pos_of_actual_sector_variation μ hfree
-    polynomialDualShearT polynomialDualShearS polynomialDualShearN
-    polynomialCharacterCoefficientPair_polynomialDualShearT
-    polynomialCharacterCoefficientPair_polynomialDualShearS
-    polynomialCharacterCoefficientPair_polynomialDualShearN hvariation
-
 end ConnesRigidity
 
 end
@@ -41011,72 +30318,6 @@ section
 noncomputable section
 
 namespace ConnesRigidity
-
-open MeasureTheory Set
-
-theorem polynomialCoefficientPushforward_isProbability
-    (μ : Measure PolynomialRankTwoCharacter) [IsProbabilityMeasure μ] :
-    IsProbabilityMeasure (μ.map polynomialCharacterCoefficientPair) :=
-  μ.isProbabilityMeasure_map
-    measurable_polynomialCharacterCoefficientPair.aemeasurable
-
-theorem polynomialCoefficientPushforward_support_mass
-    (μ : Measure PolynomialRankTwoCharacter) [IsProbabilityMeasure μ]
-    (hfree : μ.real polynomialCharacterNoFree = 1)
-    (hatom : μ.real ({1} : Set PolynomialRankTwoCharacter) = 0) :
-    (μ.map polynomialCharacterCoefficientPair).real
-      polynomialSectorSupport = 1 := by
-  rw [map_measureReal_apply measurable_polynomialCharacterCoefficientPair
-    measurableSet_polynomialSectorSupport]
-  have hpre :
-      polynomialCharacterCoefficientPair ⁻¹' polynomialSectorSupport =
-        polynomialCharacterNoFree \ {1} := by
-    ext χ
-    change
-      (polynomialCharacterCoefficientPair χ ∈ polynomialNoFree ∧
-        polynomialCharacterCoefficientPair χ ∈ polynomialPunctured) ↔
-          χ ∈ polynomialCharacterNoFree ∧ χ ≠ 1
-    rw [polynomialCharacterCoefficientPair_mem_punctured,
-      polynomialCharacterNoFree_eq_preimage]
-    rfl
-  rw [hpre]
-  exact shalom_punctured_support_measureReal_eq_one μ
-    polynomialCharacterNoFree_measurable hfree 1
-    (measurableSet_singleton 1) hatom
-
-theorem polynomialCoefficientPushforward_sector_action_gap
-    (μ : Measure PolynomialRankTwoCharacter) [IsProbabilityMeasure μ]
-    (hfree : μ.real polynomialCharacterNoFree = 1)
-    (hatom : μ.real ({1} : Set PolynomialRankTwoCharacter) = 0) :
-    ∃ shear ∈
-        ({polynomialShearT, polynomialShearS, polynomialShearN} :
-          Set (PolynomialCirclePair → PolynomialCirclePair)),
-      ∃ U : Set PolynomialCirclePair, MeasurableSet U ∧
-        (1 / 5 : ℝ) ≤
-          |(μ.map polynomialCharacterCoefficientPair).real (shear '' U) -
-            (μ.map polynomialCharacterCoefficientPair).real U| := by
-  letI : IsProbabilityMeasure (μ.map polynomialCharacterCoefficientPair) :=
-    polynomialCoefficientPushforward_isProbability μ
-  exact polynomialSector_action_gap
-    (μ.map polynomialCharacterCoefficientPair)
-    (polynomialCoefficientPushforward_support_mass μ hfree hatom)
-
-theorem polynomialCharacter_atom_pos_of_sector_variation
-    (μ : Measure PolynomialRankTwoCharacter) [IsProbabilityMeasure μ]
-    (hfree : μ.real polynomialCharacterNoFree = 1)
-    (hvariation : ∀ shear ∈
-        ({polynomialShearT, polynomialShearS, polynomialShearN} :
-          Set (PolynomialCirclePair → PolynomialCirclePair)),
-      ∀ U : Set PolynomialCirclePair, MeasurableSet U →
-        |(μ.map polynomialCharacterCoefficientPair).real (shear '' U) -
-          (μ.map polynomialCharacterCoefficientPair).real U| < (1 / 5 : ℝ)) :
-    0 < μ.real ({1} : Set PolynomialRankTwoCharacter) := by
-  by_contra hnot
-  have hatom : μ.real ({1} : Set PolynomialRankTwoCharacter) = 0 :=
-    le_antisymm (le_of_not_gt hnot) measureReal_nonneg
-  obtain ⟨shear, hshear, U, hU, hgap⟩ :=
-    polynomialCoefficientPushforward_sector_action_gap μ hfree hatom
-  exact (not_lt_of_ge hgap) (hvariation shear hshear U hU)
 
 end ConnesRigidity
 
@@ -41110,24 +30351,8 @@ theorem shalomPolynomialLowerShear_inv (a : IntegralPolynomial) :
   congr 1
   exact polynomialElementaryRankTwoRoot_inv _ a
 
-theorem shalomPolynomialUpperShear_one_mem :
-    shalomPolynomialUpperShear 1 ∈ shalomPolynomialKazhdanGenerators := by
-  classical
-  simp [shalomPolynomialKazhdanGenerators, shalomPolynomialShearGenerators]
-
-theorem shalomPolynomialUpperShear_neg_one_mem :
-    shalomPolynomialUpperShear (-1) ∈ shalomPolynomialKazhdanGenerators := by
-  classical
-  simp [shalomPolynomialKazhdanGenerators, shalomPolynomialShearGenerators]
-
 theorem shalomPolynomialUpperShear_X_mem :
     shalomPolynomialUpperShear Polynomial.X ∈
-      shalomPolynomialKazhdanGenerators := by
-  classical
-  simp [shalomPolynomialKazhdanGenerators, shalomPolynomialShearGenerators]
-
-theorem shalomPolynomialUpperShear_neg_X_mem :
-    shalomPolynomialUpperShear (-Polynomial.X) ∈
       shalomPolynomialKazhdanGenerators := by
   classical
   simp [shalomPolynomialKazhdanGenerators, shalomPolynomialShearGenerators]
@@ -41137,46 +30362,11 @@ theorem shalomPolynomialLowerShear_one_mem :
   classical
   simp [shalomPolynomialKazhdanGenerators, shalomPolynomialShearGenerators]
 
-theorem shalomPolynomialLowerShear_neg_one_mem :
-    shalomPolynomialLowerShear (-1) ∈ shalomPolynomialKazhdanGenerators := by
-  classical
-  simp [shalomPolynomialKazhdanGenerators, shalomPolynomialShearGenerators]
-
 theorem shalomPolynomialLowerShear_X_mem :
     shalomPolynomialLowerShear Polynomial.X ∈
       shalomPolynomialKazhdanGenerators := by
   classical
   simp [shalomPolynomialKazhdanGenerators, shalomPolynomialShearGenerators]
-
-theorem shalomPolynomialLowerShear_neg_X_mem :
-    shalomPolynomialLowerShear (-Polynomial.X) ∈
-      shalomPolynomialKazhdanGenerators := by
-  classical
-  simp [shalomPolynomialKazhdanGenerators, shalomPolynomialShearGenerators]
-
-theorem shalomPolynomialUpperShear_X_inv_mem :
-    (shalomPolynomialUpperShear Polynomial.X)⁻¹ ∈
-      shalomPolynomialKazhdanGenerators := by
-  rw [shalomPolynomialUpperShear_inv]
-  exact shalomPolynomialUpperShear_neg_X_mem
-
-theorem shalomPolynomialLowerShear_X_inv_mem :
-    (shalomPolynomialLowerShear Polynomial.X)⁻¹ ∈
-      shalomPolynomialKazhdanGenerators := by
-  rw [shalomPolynomialLowerShear_inv]
-  exact shalomPolynomialLowerShear_neg_X_mem
-
-theorem shalomPolynomialUpperShear_one_inv_mem :
-    (shalomPolynomialUpperShear 1)⁻¹ ∈
-      shalomPolynomialKazhdanGenerators := by
-  rw [shalomPolynomialUpperShear_inv]
-  exact shalomPolynomialUpperShear_neg_one_mem
-
-theorem shalomPolynomialLowerShear_one_inv_mem :
-    (shalomPolynomialLowerShear 1)⁻¹ ∈
-      shalomPolynomialKazhdanGenerators := by
-  rw [shalomPolynomialLowerShear_inv]
-  exact shalomPolynomialLowerShear_neg_one_mem
 
 end ConnesRigidity
 
@@ -41190,36 +30380,6 @@ namespace ConnesRigidity
 
 open ConnesRigidity
 
-theorem polynomialShearTActing_mem_kazhdanGenerators :
-    integralElementaryRankTwoInr polynomialShearTActing ∈
-      shalomPolynomialKazhdanGenerators := by
-  exact shalomPolynomialLowerShear_neg_X_mem
-
-theorem polynomialShearTActing_mem :
-    integralElementaryRankTwoInr polynomialShearTActing ∈
-      shalomPolynomialKazhdanGenerators :=
-  polynomialShearTActing_mem_kazhdanGenerators
-
-theorem polynomialShearSActing_mem_kazhdanGenerators :
-    integralElementaryRankTwoInr polynomialShearSActing ∈
-      shalomPolynomialKazhdanGenerators := by
-  exact shalomPolynomialUpperShear_neg_X_mem
-
-theorem polynomialShearSActing_mem :
-    integralElementaryRankTwoInr polynomialShearSActing ∈
-      shalomPolynomialKazhdanGenerators :=
-  polynomialShearSActing_mem_kazhdanGenerators
-
-theorem polynomialShearNActing_mem_kazhdanGenerators :
-    integralElementaryRankTwoInr polynomialShearNActing ∈
-      shalomPolynomialKazhdanGenerators := by
-  exact shalomPolynomialLowerShear_neg_one_mem
-
-theorem polynomialShearNActing_mem :
-    integralElementaryRankTwoInr polynomialShearNActing ∈
-      shalomPolynomialKazhdanGenerators :=
-  polynomialShearNActing_mem_kazhdanGenerators
-
 theorem polynomialShearTActing_inv_mem_kazhdanGenerators :
     integralElementaryRankTwoInr (polynomialShearTActing⁻¹) ∈
       shalomPolynomialKazhdanGenerators := by
@@ -41227,11 +30387,6 @@ theorem polynomialShearTActing_inv_mem_kazhdanGenerators :
   change (shalomPolynomialLowerShear (-Polynomial.X))⁻¹ ∈ _
   rw [shalomPolynomialLowerShear_inv]
   simpa using shalomPolynomialLowerShear_X_mem
-
-theorem polynomialShearTActing_inv_mem :
-    integralElementaryRankTwoInr (polynomialShearTActing⁻¹) ∈
-      shalomPolynomialKazhdanGenerators :=
-  polynomialShearTActing_inv_mem_kazhdanGenerators
 
 theorem polynomialShearSActing_inv_mem_kazhdanGenerators :
     integralElementaryRankTwoInr (polynomialShearSActing⁻¹) ∈
@@ -41241,11 +30396,6 @@ theorem polynomialShearSActing_inv_mem_kazhdanGenerators :
   rw [shalomPolynomialUpperShear_inv]
   simpa using shalomPolynomialUpperShear_X_mem
 
-theorem polynomialShearSActing_inv_mem :
-    integralElementaryRankTwoInr (polynomialShearSActing⁻¹) ∈
-      shalomPolynomialKazhdanGenerators :=
-  polynomialShearSActing_inv_mem_kazhdanGenerators
-
 theorem polynomialShearNActing_inv_mem_kazhdanGenerators :
     integralElementaryRankTwoInr (polynomialShearNActing⁻¹) ∈
       shalomPolynomialKazhdanGenerators := by
@@ -41253,33 +30403,6 @@ theorem polynomialShearNActing_inv_mem_kazhdanGenerators :
   change (shalomPolynomialLowerShear (-1))⁻¹ ∈ _
   rw [shalomPolynomialLowerShear_inv]
   simpa using shalomPolynomialLowerShear_one_mem
-
-theorem polynomialShearNActing_inv_mem :
-    integralElementaryRankTwoInr (polynomialShearNActing⁻¹) ∈
-      shalomPolynomialKazhdanGenerators :=
-  polynomialShearNActing_inv_mem_kazhdanGenerators
-
-noncomputable def polynomialValuationActingShears :
-    Finset integralElementaryRankTwoActingGroup := by
-  classical
-  exact {polynomialShearTActing, polynomialShearSActing,
-    polynomialShearNActing}
-
-theorem polynomialValuationActingShears_mem_kazhdanGenerators
-    (h : integralElementaryRankTwoActingGroup)
-    (hh : h ∈ polynomialValuationActingShears) :
-    integralElementaryRankTwoInr h ∈ shalomPolynomialKazhdanGenerators ∧
-      integralElementaryRankTwoInr h⁻¹ ∈ shalomPolynomialKazhdanGenerators := by
-  classical
-  simp only [polynomialValuationActingShears, Finset.mem_insert,
-    Finset.mem_singleton] at hh
-  rcases hh with rfl | rfl | rfl
-  · exact ⟨polynomialShearTActing_mem_kazhdanGenerators,
-      polynomialShearTActing_inv_mem_kazhdanGenerators⟩
-  · exact ⟨polynomialShearSActing_mem_kazhdanGenerators,
-      polynomialShearSActing_inv_mem_kazhdanGenerators⟩
-  · exact ⟨polynomialShearNActing_mem_kazhdanGenerators,
-      polynomialShearNActing_inv_mem_kazhdanGenerators⟩
 
 end ConnesRigidity
 
@@ -41293,60 +30416,8 @@ namespace ConnesRigidity
 
 open ConnesRigidity MeasureTheory Set
 
-def PolynomialSpectralShearVariation
-    (μ : Measure PolynomialRankTwoCharacter) : Prop :=
-  ∀ shear ∈
-      ({polynomialShearT, polynomialShearS, polynomialShearN} :
-        Set (PolynomialCirclePair → PolynomialCirclePair)),
-    ∀ U : Set PolynomialCirclePair, MeasurableSet U →
-      |(μ.map polynomialCharacterCoefficientPair).real (shear '' U) -
-        (μ.map polynomialCharacterCoefficientPair).real U| < (1 / 5 : ℝ)
-
 variable {W : Type} [NormedAddCommGroup W]
   [InnerProductSpace ℂ W] [CompleteSpace W]
-
-theorem polynomialTrivialAtom_pos_of_constantFixed_sectorVariation
-    (π : UnitaryRepresentation integralElementaryRankTwoGroup W)
-    (η : W) (hη : ‖η‖ = 1)
-    (hfixed : ∀ i : Fin 2,
-      (π (integralElementaryRankTwoInl (Multiplicative.ofAdd
-        (Pi.single i (1 : IntegralPolynomial) :
-          Fin 2 → IntegralPolynomial))) : W →L[ℂ] W) η = η)
-    (hvariation : PolynomialSpectralShearVariation
-      (integralElementaryJointSpectralProbability π η hη :
-        Measure PolynomialRankTwoCharacter)) :
-    0 < spectralTrivialAtom
-      (integralElementaryJointSpectralProbability π η hη) := by
-  let μ := integralElementaryJointSpectralProbability π η hη
-  have hfree : (μ : Measure PolynomialRankTwoCharacter).real
-      polynomialCharacterNoFree = 1 :=
-    integralElementaryJointSpectralProbability_polynomialCharacterNoFree
-      π η hη hfixed
-  exact polynomialCharacter_atom_pos_of_sector_variation
-    (μ : Measure PolynomialRankTwoCharacter) hfree hvariation
-
-theorem polynomialKernelFixed_of_constantFixed_sectorVariation
-    (π : UnitaryRepresentation integralElementaryRankTwoGroup W)
-    (η : W) (hη : ‖η‖ = 1)
-    (hfixed : ∀ i : Fin 2,
-      (π (integralElementaryRankTwoInl (Multiplicative.ofAdd
-        (Pi.single i (1 : IntegralPolynomial) :
-          Fin 2 → IntegralPolynomial))) : W →L[ℂ] W) η = η)
-    (hvariation : PolynomialSpectralShearVariation
-      (integralElementaryJointSpectralProbability π η hη :
-        Measure PolynomialRankTwoCharacter)) :
-    ∃ ζ : W, ζ ≠ 0 ∧
-      ∀ n : integralElementaryRankTwoTranslationSubgroup,
-        (π (n : integralElementaryRankTwoGroup) : W →L[ℂ] W) ζ = ζ := by
-  have hatom := polynomialTrivialAtom_pos_of_constantFixed_sectorVariation
-    π η hη hfixed hvariation
-  obtain ⟨ζ, hζ, hζfixed⟩ := exists_kernel_fixed_of_joint_atom_pos
-    integralElementaryRankTwoSplitAbelianExtension π η hη hatom
-  refine ⟨ζ, hζ, ?_⟩
-  intro n
-  obtain ⟨a, ha⟩ := n.property
-  rw [← ha]
-  exact hζfixed (Multiplicative.toAdd a)
 
 theorem polynomialTrivialAtom_pos_of_constantFixed_smallShears_of_covariance
     (π : UnitaryRepresentation integralElementaryRankTwoGroup W)
@@ -41446,41 +30517,6 @@ theorem polynomialKernelFixed_of_constantFixed_smallShears_of_covariance
   rw [← ha]
   exact hζfixed (Multiplicative.toAdd a)
 
-theorem polynomialTrivialAtom_pos_of_constantFixed_smallShears
-    (π : UnitaryRepresentation integralElementaryRankTwoGroup W)
-    (η : W) (hη : ‖η‖ = 1)
-    (hfixed : ∀ i : Fin 2,
-      (π (integralElementaryRankTwoInl (Multiplicative.ofAdd
-        (Pi.single i (1 : IntegralPolynomial) :
-          Fin 2 → IntegralPolynomial))) : W →L[ℂ] W) η = η)
-    (hsmall : ∀ g ∈ shalomPolynomialKazhdanGenerators,
-      ‖(π g : W →L[ℂ] W) η - η‖ < (1 / 10 : ℝ)) :
-    0 < spectralTrivialAtom
-      (integralElementaryJointSpectralProbability π η hη) :=
-  polynomialTrivialAtom_pos_of_constantFixed_smallShears_of_covariance
-    π η hη hfixed hsmall
-    polynomialCharacterCoefficientPair_polynomialDualShearT
-    polynomialCharacterCoefficientPair_polynomialDualShearS
-    polynomialCharacterCoefficientPair_polynomialDualShearN
-
-theorem polynomialKernelFixed_of_constantFixed_smallShears
-    (π : UnitaryRepresentation integralElementaryRankTwoGroup W)
-    (η : W) (hη : ‖η‖ = 1)
-    (hfixed : ∀ i : Fin 2,
-      (π (integralElementaryRankTwoInl (Multiplicative.ofAdd
-        (Pi.single i (1 : IntegralPolynomial) :
-          Fin 2 → IntegralPolynomial))) : W →L[ℂ] W) η = η)
-    (hsmall : ∀ g ∈ shalomPolynomialKazhdanGenerators,
-      ‖(π g : W →L[ℂ] W) η - η‖ < (1 / 10 : ℝ)) :
-    ∃ ζ : W, ζ ≠ 0 ∧
-      ∀ n : integralElementaryRankTwoTranslationSubgroup,
-        (π (n : integralElementaryRankTwoGroup) : W →L[ℂ] W) ζ = ζ :=
-  polynomialKernelFixed_of_constantFixed_smallShears_of_covariance
-    π η hη hfixed hsmall
-    polynomialCharacterCoefficientPair_polynomialDualShearT
-    polynomialCharacterCoefficientPair_polynomialDualShearS
-    polynomialCharacterCoefficientPair_polynomialDualShearN
-
 end ConnesRigidity
 
 end
@@ -41512,12 +30548,6 @@ def shalomConstantVector : (Fin 2 → ℤ) →+ (Fin 2 → IntegralPolynomial) w
       (Pi.single i (Polynomial.C a) : Fin 2 → IntegralPolynomial) := by
   ext j
   by_cases h : i = j <;> simp [shalomConstantVector, h]
-
-theorem shalomConstantVector_injective :
-    Function.Injective shalomConstantVector := by
-  intro v w h
-  funext i
-  exact Polynomial.C_injective (congrFun h i)
 
 def shalomConstantSpecialLinear :
     Matrix.SpecialLinearGroup (Fin 2) ℤ →*
@@ -41580,17 +30610,6 @@ def shalomConstantActing :
   apply Subtype.ext
   exact shalomConstantSpecialLinear_transvection hij a
 
-theorem shalomConstantActing_injective :
-    Function.Injective shalomConstantActing := by
-  intro g h hgh
-  apply Subtype.ext
-  apply Matrix.SpecialLinearGroup.ext
-  intro i j
-  apply Polynomial.C_injective
-  exact congrArg
-    (fun q : elementaryRankTwo IntegralPolynomial =>
-      (q : Matrix.SpecialLinearGroup (Fin 2) IntegralPolynomial) i j) hgh
-
 theorem shalomConstantVector_action
     (g : elementaryRankTwo ℤ) (v : Fin 2 → ℤ) :
     shalomConstantVector
@@ -41630,19 +30649,6 @@ def shalomConstantEmbedding :
       integralElementaryRankTwoGroup :=
   SemidirectProduct.map shalomConstantMultiplicative
     shalomConstantActing shalomConstantAction_natural
-
-theorem shalomConstantEmbedding_injective :
-    Function.Injective shalomConstantEmbedding := by
-  intro g h hgh
-  apply SemidirectProduct.ext
-  · apply Multiplicative.toAdd.injective
-    apply shalomConstantVector_injective
-    exact congrArg
-      (fun q : ElementaryRankTwoSemidirect IntegralPolynomial =>
-        Multiplicative.toAdd q.left) hgh
-  · apply shalomConstantActing_injective
-    exact congrArg
-      (fun q : ElementaryRankTwoSemidirect IntegralPolynomial => q.right) hgh
 
 @[simp] theorem shalomConstantEmbedding_inl (v : Fin 2 → ℤ) :
     shalomConstantEmbedding
@@ -41703,39 +30709,6 @@ theorem shalomConstantEmbedding_injective :
         (integerElementaryRankTwoInr integerLowerShear) =
       shalomPolynomialLowerShear 1 := by
   simpa [integerLowerShear] using shalomConstantEmbedding_lowerShear 1
-
-theorem shalomConstantEmbedding_translationSubgroup_map_le :
-    integerElementaryRankTwoTranslationSubgroup.map
-        shalomConstantEmbedding ≤
-      integralElementaryRankTwoTranslationSubgroup := by
-  rintro _ ⟨_, ⟨v, rfl⟩, rfl⟩
-  exact ⟨shalomConstantMultiplicative v,
-    (SemidirectProduct.map_inl shalomConstantMultiplicative
-      shalomConstantActing shalomConstantAction_natural v).symm⟩
-
-theorem shalomConstantEmbedding_translationSubgroup_comap :
-    integralElementaryRankTwoTranslationSubgroup.comap
-        shalomConstantEmbedding =
-      integerElementaryRankTwoTranslationSubgroup := by
-  ext g
-  constructor
-  · rintro ⟨v, hv⟩
-    have hright : shalomConstantActing g.right = 1 := by
-      have hright' := congrArg
-        (fun q : ElementaryRankTwoSemidirect IntegralPolynomial =>
-          q.right) hv
-      change 1 = shalomConstantActing g.right at hright'
-      exact hright'.symm
-    have hg : g.right = 1 := by
-      apply shalomConstantActing_injective
-      simpa using hright
-    refine ⟨g.left, ?_⟩
-    apply SemidirectProduct.ext
-    · rfl
-    · exact hg.symm
-  · intro hg
-    exact shalomConstantEmbedding_translationSubgroup_map_le
-      ⟨g, hg, rfl⟩
 
 end ConnesRigidity
 
@@ -42089,26 +31062,6 @@ open ConnesRigidity MeasureTheory Set
 
 noncomputable section
 
-theorem polynomialSector_no_approximately_invariant_probability
-    (μ : Measure PolynomialCirclePair) [IsProbabilityMeasure μ]
-    (hmass : μ.real polynomialSectorSupport = 1)
-    (hT : ∀ U : Set PolynomialCirclePair, MeasurableSet U →
-      |μ.real (polynomialShearT '' U) - μ.real U| < (1 / 5 : ℝ))
-    (hS : ∀ U : Set PolynomialCirclePair, MeasurableSet U →
-      |μ.real (polynomialShearS '' U) - μ.real U| < (1 / 5 : ℝ))
-    (hN : ∀ U : Set PolynomialCirclePair, MeasurableSet U →
-      |μ.real (polynomialShearN '' U) - μ.real U| < (1 / 5 : ℝ)) :
-    False := by
-  obtain ⟨shear, hshear, U, hU, hgap⟩ :=
-    polynomialSector_action_gap μ hmass
-  rcases hshear with hT' | hS' | hN'
-  · subst shear
-    exact (not_lt_of_ge hgap) (hT U hU)
-  · subst shear
-    exact (not_lt_of_ge hgap) (hS U hU)
-  · subst shear
-    exact (not_lt_of_ge hgap) (hN U hU)
-
 theorem shalom_normalizedConstantFixedVector
     (W : Type) [NormedAddCommGroup W]
       [InnerProductSpace ℂ W] [CompleteSpace W]
@@ -42176,24 +31129,6 @@ namespace ConnesRigidity
 
 open ConnesRigidity
 
-theorem cornulier_normalizedMarkedAction_impossible_of_shalomPair
-    (hShalomPair : ShalomIntegralPolynomialRelativePair) :
-    ¬ Nonempty
-      (CornulierNormalizedMarkedAction integralElementaryGroup
-        cornulierK₁ cornulierK₂ cornulierFiniteOppositeRoots) := by
-  exact cornulier_normalizedMarkedAction_false
-    integralElementaryGroup cornulierH cornulierK₁ cornulierK₂
-    cornulierFiniteOppositeRoots
-    cornulier_finiteOppositeRoots_closure_eq_top
-    cornulier_finiteOppositeRoots_subset
-    cornulier_oppositeRoots_generate
-    cornulierH_le_normalizer_K₁
-    cornulierH_le_normalizer_K₂
-    (fun φ g => cornulier_realCharacter_eq_zero φ g)
-    ((cornulier_corelative_iff_affineOrbitBound
-      integralElementaryGroup cornulierH).mp
-      (cornulier_proposition4_of_shalom_gaussian hShalomPair))
-
 theorem integralElementaryGroup_propertyT_of_shalomPair
     (hShalomPair : ShalomIntegralPolynomialRelativePair) :
     HasKazhdanPropertyT integralElementaryGroup := by
@@ -42212,13 +31147,6 @@ theorem integralElementaryGroup_propertyT_of_shalomPair
       integralElementaryGroup cornulierH).mp
       (cornulier_proposition4_of_shalom_gaussian hShalomPair))
     hleft hright
-
-theorem universalLatticePropertyT_of_shalomPair
-    (hSuslinRelative : SuslinRelativeElementaryGeneration)
-    (hShalomPair : ShalomIntegralPolynomialRelativePair) :
-    ErshovJaikinUniversalLatticePropertyT :=
-  cornulier_fullLatticePropertyT_of_relativeSuslin hSuslinRelative
-    (integralElementaryGroup_propertyT_of_shalomPair hShalomPair)
 
 theorem integralElementaryGroup_propertyT :
     HasKazhdanPropertyT integralElementaryGroup :=
@@ -42243,79 +31171,6 @@ namespace ConnesRigidity
 
 open ConnesRigidity
 
-theorem suslinRelativeElementaryGeneration_of_local_dilation
-    (hlocal : ∀ (g : IntegralSpecialLinearGroup),
-      g ∈ suslinAugmentationKernel →
-        ∀ (m : Ideal ℤ) [m.IsMaximal],
-          Matrix.SpecialLinearGroup.map
-            (Polynomial.mapRingHom
-              (algebraMap ℤ (Localization.AtPrime m))) g ∈
-            localGlobalElementarySubgroup
-              (Polynomial (Localization.AtPrime m)))
-    (hincrement : ∀ (g : IntegralSpecialLinearGroup),
-      g ∈ suslinAugmentationKernel →
-        ∀ d : ℤ, suslinAwayElementary g d →
-          ∃ N : ℕ, ∀ a c : ℤ,
-            suslinPolynomialDilate (a + c * d ^ N) g *
-              (suslinPolynomialDilate a g)⁻¹ ∈
-                integralElementarySubgroup) :
-    SuslinRelativeElementaryGeneration :=
-  suslinRelativeElementaryGeneration_of_maximal_local_powered_increments
-    hlocal hincrement
-
-theorem suslinElementaryGeneration_of_local_dilation
-    (hlocal : ∀ (g : IntegralSpecialLinearGroup),
-      g ∈ suslinAugmentationKernel →
-        ∀ (m : Ideal ℤ) [m.IsMaximal],
-          Matrix.SpecialLinearGroup.map
-            (Polynomial.mapRingHom
-              (algebraMap ℤ (Localization.AtPrime m))) g ∈
-            localGlobalElementarySubgroup
-              (Polynomial (Localization.AtPrime m)))
-    (hincrement : ∀ (g : IntegralSpecialLinearGroup),
-      g ∈ suslinAugmentationKernel →
-        ∀ d : ℤ, suslinAwayElementary g d →
-          ∃ N : ℕ, ∀ a c : ℤ,
-            suslinPolynomialDilate (a + c * d ^ N) g *
-              (suslinPolynomialDilate a g)⁻¹ ∈
-                integralElementarySubgroup) :
-    SuslinElementaryGeneration :=
-  suslinElementaryGeneration_iff_relative.mpr
-    (suslinRelativeElementaryGeneration_of_local_dilation hlocal hincrement)
-
-theorem universalLatticePropertyT_of_local_dilation
-    (hlocal : ∀ (g : IntegralSpecialLinearGroup),
-      g ∈ suslinAugmentationKernel →
-        ∀ (m : Ideal ℤ) [m.IsMaximal],
-          Matrix.SpecialLinearGroup.map
-            (Polynomial.mapRingHom
-              (algebraMap ℤ (Localization.AtPrime m))) g ∈
-            localGlobalElementarySubgroup
-              (Polynomial (Localization.AtPrime m)))
-    (hincrement : ∀ (g : IntegralSpecialLinearGroup),
-      g ∈ suslinAugmentationKernel →
-        ∀ d : ℤ, suslinAwayElementary g d →
-          ∃ N : ℕ, ∀ a c : ℤ,
-            suslinPolynomialDilate (a + c * d ^ N) g *
-              (suslinPolynomialDilate a g)⁻¹ ∈
-                integralElementarySubgroup) :
-    ErshovJaikinUniversalLatticePropertyT :=
-  universalLatticePropertyT_of_suslinRelative
-    (suslinRelativeElementaryGeneration_of_local_dilation hlocal hincrement)
-
-theorem universalLatticePropertyT_of_maximal_local_elementary
-    (hlocal : ∀ (g : IntegralSpecialLinearGroup),
-      g ∈ suslinAugmentationKernel →
-        ∀ (m : Ideal ℤ) [m.IsMaximal],
-          Matrix.SpecialLinearGroup.map
-            (Polynomial.mapRingHom
-              (algebraMap ℤ (Localization.AtPrime m))) g ∈
-            localGlobalElementarySubgroup
-              (Polynomial (Localization.AtPrime m))) :
-    ErshovJaikinUniversalLatticePropertyT :=
-  universalLatticePropertyT_of_suslinRelative
-    (suslinRelativeElementaryGeneration_of_maximal_local_elementary hlocal)
-
 theorem suslinRelativeElementaryGeneration :
     SuslinRelativeElementaryGeneration := by
   apply suslinRelativeElementaryGeneration_of_maximal_local_elementary
@@ -42324,15 +31179,6 @@ theorem suslinRelativeElementaryGeneration :
     (Matrix.SpecialLinearGroup.map
       (Polynomial.mapRingHom
         (algebraMap ℤ (Localization.AtPrime m))) g)
-
-theorem suslinElementaryGeneration : SuslinElementaryGeneration :=
-  suslinElementaryGeneration_iff_relative.mpr
-    suslinRelativeElementaryGeneration
-
-theorem universalLatticePropertyT :
-    ErshovJaikinUniversalLatticePropertyT :=
-  universalLatticePropertyT_of_suslinRelative
-    suslinRelativeElementaryGeneration
 
 end ConnesRigidity
 
@@ -42427,46 +31273,6 @@ theorem conj_mem_vonNeumannClosure_image_iff
   rw [conj_image_centralizer e S]
   exact conj_mem_centralizer_image_iff e
     (StarSubalgebra.centralizer ℂ S : Set (H →L[ℂ] H)) T
-
-def vonNeumannClosureConjStarAlgEquiv
-    {H K : Type*}
-    [NormedAddCommGroup H] [InnerProductSpace ℂ H] [CompleteSpace H]
-    [NormedAddCommGroup K] [InnerProductSpace ℂ K] [CompleteSpace K]
-    (e : H ≃ₗᵢ[ℂ] K)
-    (S : Set (H →L[ℂ] H)) :
-    (vonNeumannClosure S).toStarSubalgebra ≃⋆ₐ[ℂ]
-      (vonNeumannClosure
-        (e.conjStarAlgEquiv '' S)).toStarSubalgebra where
-  toFun x :=
-    ⟨e.conjStarAlgEquiv x,
-      (conj_mem_vonNeumannClosure_image_iff
-        e S x).mpr x.prop⟩
-  invFun y :=
-    ⟨e.conjStarAlgEquiv.symm y, by
-      apply (conj_mem_vonNeumannClosure_image_iff
-        e S (e.conjStarAlgEquiv.symm y)).mp
-      rw [e.conjStarAlgEquiv.apply_symm_apply]
-      exact y.prop⟩
-  left_inv x := by
-    apply Subtype.ext
-    exact e.conjStarAlgEquiv.symm_apply_apply x
-  right_inv y := by
-    apply Subtype.ext
-    exact e.conjStarAlgEquiv.apply_symm_apply y
-  map_mul' x y := by
-    apply Subtype.ext
-    exact map_mul e.conjStarAlgEquiv
-      (x : H →L[ℂ] H) (y : H →L[ℂ] H)
-  map_add' x y := by
-    apply Subtype.ext
-    exact map_add e.conjStarAlgEquiv
-      (x : H →L[ℂ] H) (y : H →L[ℂ] H)
-  map_star' x := by
-    apply Subtype.ext
-    exact map_star e.conjStarAlgEquiv (x : H →L[ℂ] H)
-  map_smul' c x := by
-    apply Subtype.ext
-    exact map_smul e.conjStarAlgEquiv c (x : H →L[ℂ] H)
 
 theorem isProjectionSupremum_image_starAlgEquiv
     {A : Type u} {B : Type v}
@@ -42595,72 +31401,6 @@ theorem crossedHaarHilbertEquiv_mem_algebra_iff
   exact (conj_mem_vonNeumannClosure_image_iff
     (crossedHaarHilbertEquiv e) (crossedGeneratorSet X) T).symm
 
-def crossedProductStarAlgEquiv
-    {X : HaarProbabilityAction Γ Ω}
-    {Y : HaarProbabilityAction Γ Ξ}
-    (e : EquivariantHaarEquiv X Y) :
-    (crossedProductModel X).algebra.toStarSubalgebra ≃⋆ₐ[ℂ]
-      (crossedProductModel Y).algebra.toStarSubalgebra where
-  toFun T :=
-    ⟨(crossedHaarHilbertEquiv e).conjStarAlgEquiv T,
-      (crossedHaarHilbertEquiv_mem_algebra_iff e T).mp T.property⟩
-  invFun T :=
-    ⟨(crossedHaarHilbertEquiv e).conjStarAlgEquiv.symm T, by
-      apply (crossedHaarHilbertEquiv_mem_algebra_iff e
-        ((crossedHaarHilbertEquiv e).conjStarAlgEquiv.symm T)).mpr
-      rw [(crossedHaarHilbertEquiv e).conjStarAlgEquiv.apply_symm_apply]
-      exact T.property⟩
-  left_inv T := by
-    apply Subtype.ext
-    exact (crossedHaarHilbertEquiv e).conjStarAlgEquiv.symm_apply_apply T
-  right_inv T := by
-    apply Subtype.ext
-    exact (crossedHaarHilbertEquiv e).conjStarAlgEquiv.apply_symm_apply T
-  map_mul' S T := by
-    apply Subtype.ext
-    exact map_mul (crossedHaarHilbertEquiv e).conjStarAlgEquiv
-      (S : crossedHilbert X →L[ℂ] crossedHilbert X)
-      (T : crossedHilbert X →L[ℂ] crossedHilbert X)
-  map_add' S T := by
-    apply Subtype.ext
-    exact map_add (crossedHaarHilbertEquiv e).conjStarAlgEquiv
-      (S : crossedHilbert X →L[ℂ] crossedHilbert X)
-      (T : crossedHilbert X →L[ℂ] crossedHilbert X)
-  map_star' T := by
-    apply Subtype.ext
-    exact map_star (crossedHaarHilbertEquiv e).conjStarAlgEquiv
-      (T : crossedHilbert X →L[ℂ] crossedHilbert X)
-  map_smul' c T := by
-    apply Subtype.ext
-    exact map_smul (crossedHaarHilbertEquiv e).conjStarAlgEquiv c
-      (T : crossedHilbert X →L[ℂ] crossedHilbert X)
-
-def equivariantCrossedProduct
-    {X : HaarProbabilityAction Γ Ω}
-    {Y : HaarProbabilityAction Γ Ξ}
-    (e : EquivariantHaarEquiv X Y) :
-    EquivariantCrossedProductTheorem e
-      (crossedProductModel X) (crossedProductModel Y) where
-  toStarAlgEquiv := crossedProductStarAlgEquiv e
-  normal := starAlgEquiv_isNormal (crossedProductStarAlgEquiv e)
-  trace_preserving := by
-    intro T
-    change
-      inner ℂ (crossedVacuum Y)
-        ((crossedHaarHilbertEquiv e).conjStarAlgEquiv
-          (T : crossedHilbert X →L[ℂ] crossedHilbert X)
-          (crossedVacuum Y)) =
-        inner ℂ (crossedVacuum X)
-          ((T : crossedHilbert X →L[ℂ] crossedHilbert X)
-            (crossedVacuum X))
-    rw [← crossedHaarHilbertEquiv_vacuum e]
-    simp only [LinearIsometryEquiv.conjStarAlgEquiv_apply_apply,
-      LinearIsometryEquiv.symm_apply_apply]
-    exact (crossedHaarHilbertEquiv e).inner_map_map
-      (crossedVacuum X)
-      ((T : crossedHilbert X →L[ℂ] crossedHilbert X)
-        (crossedVacuum X))
-
 end
 
 end ConnesRigidity
@@ -42676,18 +31416,6 @@ open scoped BigOperators
 open ConnesRigidity.FeedbackBooleanPolynomial
 
 variable {α ι ζ : Type*}
-
-abbrev BinaryQuadraticPolynomial (ι : Type*) [Fintype ι] [LinearOrder ι] :=
-  ConnesRigidity.FeedbackBooleanPolynomial.BinaryQuadraticPolynomial ι
-
-theorem quadratic_support_quarter
-    [Fintype ι] [LinearOrder ι]
-    (P : BinaryQuadraticPolynomial ι)
-    (hP : ∃ x, P.eval x ≠ 0) :
-    Fintype.card (ι → ZMod 2) ≤
-      4 * ((Finset.univ : Finset (ι → ZMod 2)).filter
-        (fun x ↦ P.eval x ≠ 0)).card := by
-  exact P.four_mul_support_card_ge_of_eval_nonzero hP
 
 theorem nonprimitive_card
     [DecidableEq α]
@@ -42735,24 +31463,6 @@ theorem primitive_detecting_seventh
     hprimitive_subset hdetecting_subset hambient hprimitive hquarter
   omega
 
-theorem primitive_density
-    [DecidableEq α]
-    (ambient primitive : Finset α) (k : ℕ)
-    (hk : 0 < k)
-    (hambient : ambient.card = 8 * k)
-    (hprimitive : primitive.card = 7 * k + 1) :
-    (primitive.card : ℚ) / (ambient.card : ℚ) =
-      (7 : ℚ) / 8 + 1 / (ambient.card : ℚ) := by
-  have hambient_pos : 0 < ambient.card := by omega
-  have hambient_ne : (ambient.card : ℚ) ≠ 0 := by
-    exact_mod_cast Nat.ne_of_gt hambient_pos
-  have hcard : (ambient.card : ℚ) = 8 * (k : ℚ) := by
-    exact_mod_cast hambient
-  have hprim : (primitive.card : ℚ) = 7 * (k : ℚ) + 1 := by
-    exact_mod_cast hprimitive
-  rw [hcard, hprim] at *
-  field_simp
-
 theorem cube_card_eq_eight_mul_scale
     (N : ℕ) (hN : 0 < N) :
     2 ^ (4 * N) = 8 * 2 ^ (4 * N - 3) := by
@@ -42760,188 +31470,6 @@ theorem cube_card_eq_eight_mul_scale
   rw [hexponent, pow_add]
   norm_num
   omega
-
-theorem primitive_detecting_card_at_level
-    [DecidableEq α]
-    (ambient primitive detecting : Finset α) (N : ℕ)
-    (hN : 0 < N)
-    (hprimitive_subset : primitive ⊆ ambient)
-    (hdetecting_subset : detecting ⊆ ambient)
-    (hambient : ambient.card = 2 ^ (4 * N))
-    (hprimitive : primitive.card = 7 * 2 ^ (4 * N - 3) + 1)
-    (hquarter : ambient.card ≤ 4 * detecting.card) :
-    2 ^ (4 * N - 3) + 1 ≤ (detecting ∩ primitive).card := by
-  apply primitive_detecting_card ambient primitive detecting
-    (2 ^ (4 * N - 3)) hprimitive_subset hdetecting_subset
-  · rw [hambient, cube_card_eq_eight_mul_scale N hN]
-  · exact hprimitive
-  · exact hquarter
-
-theorem quadratic_primitive_detecting_seventh
-    [Fintype ι] [LinearOrder ι]
-    (P : BinaryQuadraticPolynomial ι)
-    (hP : ∃ x, P.eval x ≠ 0)
-    (primitive : Finset (ι → ZMod 2)) (k : ℕ)
-    (hambient : Fintype.card (ι → ZMod 2) = 8 * k)
-    (hprimitive : primitive.card = 7 * k + 1) :
-    primitive.card ≤
-      7 * (((Finset.univ : Finset (ι → ZMod 2)).filter
-        (fun x ↦ P.eval x ≠ 0)) ∩ primitive).card := by
-  classical
-  apply primitive_detecting_seventh
-    (Finset.univ : Finset (ι → ZMod 2)) primitive
-    ((Finset.univ : Finset (ι → ZMod 2)).filter
-      (fun x ↦ P.eval x ≠ 0)) k
-  · exact Finset.subset_univ primitive
-  · exact Finset.filter_subset _ _
-  · simpa using hambient
-  · exact hprimitive
-  · simpa using quadratic_support_quarter P hP
-
-theorem weighted_detection_sum_comm
-    [DecidableEq ι] [DecidableEq ζ]
-    (primitive : Finset ι) (active : Finset ζ)
-    (detect : ζ → ι → Prop) [DecidableRel detect]
-    (weight : ζ → ℚ) :
-    (∑ z ∈ active,
-      weight z * ((primitive.filter (detect z)).card : ℚ)) =
-      ∑ v ∈ primitive,
-        ∑ z ∈ active.filter (fun z ↦ detect z v), weight z := by
-  classical
-  calc
-    (∑ z ∈ active,
-      weight z * ((primitive.filter (detect z)).card : ℚ)) =
-        ∑ z ∈ active, ∑ v ∈ primitive,
-          if detect z v then weight z else 0 := by
-            apply Finset.sum_congr rfl
-            intro z _
-            calc
-              weight z * ((primitive.filter (detect z)).card : ℚ) =
-                  ∑ _v ∈ primitive.filter (detect z), weight z := by
-                    simp [mul_comm]
-              _ = ∑ v ∈ primitive,
-                  if detect z v then weight z else 0 := by
-                    rw [Finset.sum_filter]
-    _ = ∑ v ∈ primitive, ∑ z ∈ active,
-          if detect z v then weight z else 0 := by
-            rw [Finset.sum_comm]
-    _ = ∑ v ∈ primitive,
-        ∑ z ∈ active.filter (fun z ↦ detect z v), weight z := by
-          simp [Finset.sum_filter]
-
-theorem weighted_detection_gap
-    [DecidableEq ι] [DecidableEq ζ]
-    (primitive : Finset ι) (active : Finset ζ)
-    (detect : ζ → ι → Prop) [DecidableRel detect]
-    (weight : ζ → ℚ) (p : ℚ)
-    (hprimitive : primitive.Nonempty)
-    (hweight : ∀ z ∈ active, 0 ≤ weight z)
-    (hpointwise : ∀ z ∈ active,
-      primitive.card ≤ 7 * (primitive.filter (detect z)).card)
-    (huniform : ∀ v ∈ primitive,
-      (∑ z ∈ active.filter (fun z ↦ detect z v), weight z) = p) :
-    (1 / 7 : ℚ) * (∑ z ∈ active, weight z) ≤ p := by
-  classical
-  have hprimitive_pos : (0 : ℚ) < primitive.card := by
-    exact_mod_cast Finset.card_pos.mpr hprimitive
-  have hweighted :
-      (primitive.card : ℚ) * (∑ z ∈ active, weight z) ≤
-        7 * (∑ z ∈ active,
-          weight z * ((primitive.filter (detect z)).card : ℚ)) := by
-    calc
-      (primitive.card : ℚ) * (∑ z ∈ active, weight z) =
-          ∑ z ∈ active, (primitive.card : ℚ) * weight z := by
-            rw [Finset.mul_sum]
-      _ ≤ ∑ z ∈ active,
-          7 * (weight z * ((primitive.filter (detect z)).card : ℚ)) := by
-            apply Finset.sum_le_sum
-            intro z hz
-            have hcard : (primitive.card : ℚ) ≤
-                7 * ((primitive.filter (detect z)).card : ℚ) := by
-              exact_mod_cast hpointwise z hz
-            have hnonneg := hweight z hz
-            nlinarith
-      _ = 7 * (∑ z ∈ active,
-          weight z * ((primitive.filter (detect z)).card : ℚ)) := by
-            rw [Finset.mul_sum]
-  rw [weighted_detection_sum_comm primitive active detect weight] at hweighted
-  have huniform_sum :
-      (∑ v ∈ primitive,
-        ∑ z ∈ active.filter (fun z ↦ detect z v), weight z) =
-          (primitive.card : ℚ) * p := by
-    calc
-      (∑ v ∈ primitive,
-        ∑ z ∈ active.filter (fun z ↦ detect z v), weight z) =
-          ∑ _v ∈ primitive, p := by
-            apply Finset.sum_congr rfl
-            intro v hv
-            exact huniform v hv
-      _ = (primitive.card : ℚ) * p := by simp
-  rw [huniform_sum] at hweighted
-  have hcancel : (∑ z ∈ active, weight z) ≤ 7 * p := by
-    nlinarith
-  nlinarith
-
-def bitEnergy (bit : ZMod 2) : ℚ :=
-  if bit = 0 then 0 else 4
-
-theorem four_le_bitEnergy_add
-    (first second : ZMod 2)
-    (hdetect : first ≠ 0 ∨ second ≠ 0) :
-    (4 : ℚ) ≤ bitEnergy first + bitEnergy second := by
-  rcases hdetect with hfirst | hsecond
-  · simp [bitEnergy, hfirst]
-    split_ifs <;> norm_num
-  · simp [bitEnergy, hsecond]
-    split_ifs <;> norm_num
-
-theorem spectral_sum_ge_four_mul_detecting_mass
-    [DecidableEq ζ]
-    (active : Finset ζ) (first second : ζ → ZMod 2)
-    (weight : ζ → ℚ)
-    (hweight : ∀ z ∈ active, 0 ≤ weight z) :
-    4 * (∑ z ∈ active.filter
-      (fun z ↦ first z ≠ 0 ∨ second z ≠ 0), weight z) ≤
-      ∑ z ∈ active,
-        weight z * (bitEnergy (first z) + bitEnergy (second z)) := by
-  classical
-  calc
-    4 * (∑ z ∈ active.filter
-      (fun z ↦ first z ≠ 0 ∨ second z ≠ 0), weight z) =
-        ∑ z ∈ active,
-          if first z ≠ 0 ∨ second z ≠ 0 then 4 * weight z else 0 := by
-            rw [Finset.mul_sum]
-            simp [Finset.sum_filter, mul_comm]
-    _ ≤ ∑ z ∈ active,
-        weight z * (bitEnergy (first z) + bitEnergy (second z)) := by
-          apply Finset.sum_le_sum
-          intro z hz
-          split_ifs with hdetect
-          · have henergy := four_le_bitEnergy_add (first z) (second z) hdetect
-            have hnonneg := hweight z hz
-            nlinarith
-          · have hfirst : first z = 0 := by
-              by_contra hfirst
-              exact hdetect (Or.inl hfirst)
-            have hsecond : second z = 0 := by
-              by_contra hsecond
-              exact hdetect (Or.inr hsecond)
-            simp [bitEnergy, hfirst, hsecond]
-
-theorem spectral_coefficient_four_sevenths
-    [DecidableEq ζ]
-    (active : Finset ζ) (first second : ζ → ZMod 2)
-    (weight : ζ → ℚ) (outsideMass : ℚ)
-    (hweight : ∀ z ∈ active, 0 ≤ weight z)
-    (hgap : (1 / 7 : ℚ) * outsideMass ≤
-      ∑ z ∈ active.filter
-        (fun z ↦ first z ≠ 0 ∨ second z ≠ 0), weight z) :
-    (4 / 7 : ℚ) * outsideMass ≤
-      ∑ z ∈ active,
-        weight z * (bitEnergy (first z) + bitEnergy (second z)) := by
-  have henergy := spectral_sum_ge_four_mul_detecting_mass
-    active first second weight hweight
-  nlinarith
 
 end ConnesRigidity.DetectionGap
 
@@ -42952,181 +31480,6 @@ section
 namespace ConnesRigidity
 
 noncomputable section
-
-open Module
-
-private abbrev squareBasisIndex := Lex (Fin 4 × ℕ)
-
-private def squareBasis : Basis squareBasisIndex F V :=
-  (Pi.basis fun _ : Fin 4 ↦ Polynomial.basisMonomials F).reindex
-    ((Equiv.sigmaEquivProd (Fin 4) ℕ).trans toLex)
-
-private def tensorBasis : Basis (squareBasisIndex × squareBasisIndex) F T :=
-  squareBasis.tensorProduct squareBasis
-
-def tensorSwap : T ≃ₗ[F] T := TensorProduct.comm F V V
-
-private def coefficientFilter
-    (p : squareBasisIndex × squareBasisIndex → Prop) [DecidablePred p] :
-    ((squareBasisIndex × squareBasisIndex) →₀ F) →ₗ[F]
-      ((squareBasisIndex × squareBasisIndex) →₀ F) where
-  toFun f := f.filter p
-  map_add' f g := by
-    ext i
-    simp [Finsupp.filter_apply]
-  map_smul' c f := by
-    ext i
-    simp [Finsupp.filter_apply]
-
-private def tensorProjection
-    (p : squareBasisIndex × squareBasisIndex → Prop) [DecidablePred p] : T →ₗ[F] T :=
-  tensorBasis.repr.symm.toLinearMap.comp
-    ((coefficientFilter p).comp tensorBasis.repr.toLinearMap)
-
-private theorem tensorProjection_repr
-    (p : squareBasisIndex × squareBasisIndex → Prop) [DecidablePred p]
-    (w : T) (i : squareBasisIndex × squareBasisIndex) :
-    tensorBasis.repr (tensorProjection p w) i =
-      if p i then tensorBasis.repr w i else 0 := by
-  simp [tensorProjection, coefficientFilter, Finsupp.filter_apply]
-
-private theorem tensorProjection_basis
-    (p : squareBasisIndex × squareBasisIndex → Prop) [DecidablePred p]
-    (i : squareBasisIndex × squareBasisIndex) :
-    tensorProjection p (tensorBasis i) =
-      if p i then tensorBasis i else 0 := by
-  apply tensorBasis.repr.injective
-  ext j
-  by_cases hpi : p i
-  · simp only [if_pos hpi]
-    rw [tensorProjection_repr]
-    by_cases hij : j = i
-    · subst j
-      simp [hpi]
-    · simp [hij]
-  · simp only [if_neg hpi, map_zero, Finsupp.zero_apply]
-    rw [tensorProjection_repr]
-    by_cases hpj : p j
-    · have hji : j ≠ i := by
-        intro hji
-        subst j
-        exact hpi hpj
-      simp [hpj, hji]
-    · simp [hpj]
-
-private theorem tensorSwap_repr (w : T) (i j : squareBasisIndex) :
-    tensorBasis.repr (tensorSwap w) (i, j) = tensorBasis.repr w (j, i) := by
-  let left : T →ₗ[F] F :=
-    (Finsupp.lapply (i, j)).comp
-      (tensorBasis.repr.toLinearMap.comp tensorSwap.toLinearMap)
-  let right : T →ₗ[F] F :=
-    (Finsupp.lapply (j, i)).comp tensorBasis.repr.toLinearMap
-  have h : left = right := by
-    apply tensorBasis.ext
-    rintro ⟨a, b⟩
-    by_cases hbi : b = i <;> by_cases haj : a = j <;>
-      simp [left, right, tensorBasis, tensorSwap, hbi, haj]
-  exact DFunLike.congr_fun h w
-
-private def upperSymmetrizer : T →ₗ[F] T :=
-  tensorProjection (fun p ↦ p.1 ≤ p.2) +
-    tensorSwap.toLinearMap.comp (tensorProjection (fun p ↦ p.1 < p.2))
-
-private def symmetricGenerator
-    (p : squareBasisIndex × squareBasisIndex) : T :=
-  if p.1 = p.2 then square (squareBasis p.1)
-  else if p.1 < p.2 then
-    squareBasis p.1 ⊗ₜ[F] squareBasis p.2 +
-      squareBasis p.2 ⊗ₜ[F] squareBasis p.1
-  else 0
-
-private theorem upperSymmetrizer_basis
-    (p : squareBasisIndex × squareBasisIndex) :
-    upperSymmetrizer (tensorBasis p) = symmetricGenerator p := by
-  rcases p with ⟨i, j⟩
-  rcases lt_trichotomy i j with h | h | h
-  · simp only [upperSymmetrizer, LinearMap.add_apply, LinearMap.comp_apply]
-    rw [tensorProjection_basis, tensorProjection_basis]
-    simp [symmetricGenerator, h,
-      le_of_lt h, (ne_of_lt h), tensorSwap, tensorBasis]
-  · subst j
-    simp only [upperSymmetrizer, LinearMap.add_apply, LinearMap.comp_apply]
-    rw [tensorProjection_basis, tensorProjection_basis]
-    simp [symmetricGenerator,
-      square, tensorSwap, tensorBasis]
-  · have hne : i ≠ j := ne_of_gt h
-    have hnotle : ¬ i ≤ j := not_le_of_gt h
-    have hnotlt : ¬ i < j := not_lt_of_gt h
-    change upperSymmetrizer (tensorBasis (i, j)) = _
-    simp only [upperSymmetrizer, LinearMap.add_apply, LinearMap.comp_apply]
-    rw [tensorProjection_basis, tensorProjection_basis]
-    simp [symmetricGenerator, hne,
-      hnotle, hnotlt]
-
-private theorem upperSymmetrizer_mem (w : T) : upperSymmetrizer w ∈ B := by
-  have heq : upperSymmetrizer = tensorBasis.constr F symmetricGenerator := by
-    apply tensorBasis.ext
-    intro p
-    simpa using upperSymmetrizer_basis p
-  rw [heq]
-  have hle : LinearMap.range (tensorBasis.constr F symmetricGenerator) ≤ B := by
-    rw [Basis.constr_range, Submodule.span_le]
-    rintro _ ⟨p, rfl⟩
-    unfold symmetricGenerator
-    split_ifs with hdiag hupper
-    · exact square_mem _
-    · exact symmetric_tmul_mem _ _
-    · exact B.zero_mem
-  exact hle ⟨w, rfl⟩
-
-def tensorSwapFixed : Submodule F T :=
-  LinearMap.ker (tensorSwap.toLinearMap - LinearMap.id)
-
-@[simp] theorem mem_tensorSwapFixed (w : T) :
-    w ∈ tensorSwapFixed ↔ tensorSwap w = w := by
-  simp [tensorSwapFixed, sub_eq_zero]
-
-@[simp] theorem tensorSwap_square (v : V) : tensorSwap (square v) = square v := by
-  simp [tensorSwap, square]
-
-theorem B_le_tensorSwapFixed : B ≤ tensorSwapFixed := by
-  rw [B, Submodule.span_le]
-  rintro _ ⟨v, rfl⟩
-  exact (mem_tensorSwapFixed _).2 (tensorSwap_square v)
-
-private theorem upperSymmetrizer_eq_of_fixed {w : T}
-    (hw : tensorSwap w = w) : upperSymmetrizer w = w := by
-  apply tensorBasis.repr.injective
-  ext ⟨i, j⟩
-  have hs : tensorBasis.repr w (j, i) = tensorBasis.repr w (i, j) := by
-    have h := congrArg (fun z : T ↦ tensorBasis.repr z (i, j)) hw
-    simpa only [tensorSwap_repr] using h
-  simp only [upperSymmetrizer, LinearMap.add_apply, LinearMap.comp_apply,
-    map_add, Finsupp.add_apply]
-  change
-    tensorBasis.repr (tensorProjection (fun p ↦ p.1 ≤ p.2) w) (i, j) +
-      tensorBasis.repr
-        (tensorSwap (tensorProjection (fun p ↦ p.1 < p.2) w)) (i, j) =
-      tensorBasis.repr w (i, j)
-  rw [tensorProjection_repr, tensorSwap_repr, tensorProjection_repr]
-  by_cases hij : i ≤ j
-  · have hnot : ¬ j < i := not_lt_of_ge hij
-    simp [hij, hnot]
-  · have hlt : j < i := lt_of_not_ge hij
-    simp [hij, hlt, hs]
-
-theorem tensorSwapFixed_le_B : tensorSwapFixed ≤ B := by
-  intro w hw
-  have hfixed := (mem_tensorSwapFixed w).1 hw
-  rw [← upperSymmetrizer_eq_of_fixed hfixed]
-  exact upperSymmetrizer_mem w
-
-theorem dividedSquare_eq_tensorSwapFixed : B = tensorSwapFixed :=
-  le_antisymm B_le_tensorSwapFixed tensorSwapFixed_le_B
-
-theorem mem_B_iff_tensorSwap (w : T) :
-    w ∈ B ↔ tensorSwap w = w := by
-  rw [dividedSquare_eq_tensorSwapFixed, mem_tensorSwapFixed]
 
 end
 
@@ -43191,11 +31544,6 @@ theorem characterBit_add (χ : DiscreteCharacterSpace D) (d₁ d₂ : D) :
       rw [characterBit_spec, characterBit_spec]
     _ = ZMod.toCircle (characterBit χ d₁ + characterBit χ d₂) :=
       (ZMod.toCircle.map_add_eq_mul _ _).symm
-
-noncomputable def characterBitAddHom (χ : DiscreteCharacterSpace D) : D →+ F where
-  toFun := characterBit χ
-  map_zero' := characterBit_zero χ
-  map_add' := characterBit_add χ
 
 noncomputable def characterBitLinear (χ : DiscreteCharacterSpace D) : D →ₗ[F] F where
   toFun := characterBit χ
@@ -43883,66 +32231,6 @@ noncomputable section
 
 namespace ConnesRigidity
 
-variable {A : Type} [CommRing A]
-
-open scoped commutatorElement
-
-def elementaryRankTwoActingSubgroup (A : Type) [CommRing A] :
-    Subgroup (ElementaryRankTwoSemidirect A) :=
-  (SemidirectProduct.inr : elementaryRankTwo A →*
-    ElementaryRankTwoSemidirect A).range
-
-theorem elementaryRankTwoTranslationSubgroup_normal_generic
-    (A : Type) [CommRing A] :
-    (elementaryRankTwoTranslationSubgroup A).Normal := by
-  change (SemidirectProduct.inl : Multiplicative (Fin 2 → A) →*
-    ElementaryRankTwoSemidirect A).range.Normal
-  rw [SemidirectProduct.range_inl_eq_ker_rightHom]
-  infer_instance
-
-theorem elementaryRankTwo_translation_le_mixed_commutator :
-    elementaryRankTwoTranslationSubgroup A ≤
-      ⁅elementaryRankTwoActingSubgroup A,
-        elementaryRankTwoTranslationSubgroup A⁆ := by
-  rintro _ ⟨v, rfl⟩
-  let w := Multiplicative.toAdd v
-  have hw : w = Pi.single (0 : Fin 2) (w 0) +
-      Pi.single (1 : Fin 2) (w 1) := by
-    ext i
-    fin_cases i <;> simp
-  have hv : v = Multiplicative.ofAdd (Pi.single (0 : Fin 2) (w 0)) *
-      Multiplicative.ofAdd (Pi.single (1 : Fin 2) (w 1)) := by
-    apply Multiplicative.toAdd.injective
-    exact hw
-  rw [hv, map_mul]
-  apply Subgroup.mul_mem
-  · rw [← one_mul (w 0), ← elementaryRankTwo_root_commutator
-      (show (0 : Fin 2) ≠ 1 by decide) (1 : A) (w 0)]
-    exact Subgroup.commutator_mem_commutator
-      ⟨elementaryRankTwoRoot (show (0 : Fin 2) ≠ 1 by decide) (1 : A), rfl⟩
-      ⟨Multiplicative.ofAdd (Pi.single (1 : Fin 2) (w 0)), rfl⟩
-  · rw [← one_mul (w 1), ← elementaryRankTwo_root_commutator
-      (show (1 : Fin 2) ≠ 0 by decide) (1 : A) (w 1)]
-    exact Subgroup.commutator_mem_commutator
-      ⟨elementaryRankTwoRoot (show (1 : Fin 2) ≠ 0 by decide) (1 : A), rfl⟩
-      ⟨Multiplicative.ofAdd (Pi.single (0 : Fin 2) (w 1)), rfl⟩
-
-theorem elementaryRankTwo_mixed_commutator_eq_translation :
-    ⁅elementaryRankTwoActingSubgroup A,
-      elementaryRankTwoTranslationSubgroup A⁆ =
-      elementaryRankTwoTranslationSubgroup A := by
-  letI : (elementaryRankTwoTranslationSubgroup A).Normal :=
-    elementaryRankTwoTranslationSubgroup_normal_generic A
-  exact le_antisymm
-    (Subgroup.commutator_le_right _ _)
-    elementaryRankTwo_translation_le_mixed_commutator
-
-theorem integralElementaryRankTwo_mixed_commutator_eq_translation :
-    ⁅elementaryRankTwoActingSubgroup IntegralPolynomial,
-      elementaryRankTwoTranslationSubgroup IntegralPolynomial⁆ =
-      elementaryRankTwoTranslationSubgroup IntegralPolynomial :=
-  elementaryRankTwo_mixed_commutator_eq_translation
-
 end ConnesRigidity
 
 end
@@ -43951,160 +32239,7 @@ section
 
 namespace ConnesRigidity
 
-open ConnesRigidity
-open scoped NNReal ENNReal
-
-universe u
-
 noncomputable section
-
-def regularGenerator (G : CountableDiscreteGroup.{u}) (g : G) :
-    GroupVonNeumannAlgebra G := by
-  refine ⟨(leftRegularRepresentation G g : GroupL2 G →L[ℂ] GroupL2 G), ?_⟩
-  change
-    (leftRegularRepresentation G g : GroupL2 G →L[ℂ] GroupL2 G) ∈
-      StarSubalgebra.centralizer ℂ
-        (StarSubalgebra.centralizer ℂ
-          (Set.range fun h : G ↦
-            (leftRegularRepresentation G h : GroupL2 G →L[ℂ] GroupL2 G)) :
-              Set (GroupL2 G →L[ℂ] GroupL2 G))
-  rw [← SetLike.mem_coe, StarSubalgebra.coe_centralizer_centralizer]
-  exact Set.subset_centralizer_centralizer
-    (Or.inl ⟨g, rfl⟩)
-
-@[simp] theorem regularGenerator_coe (G : CountableDiscreteGroup.{u}) (g : G) :
-    (regularGenerator G g : GroupL2 G →L[ℂ] GroupL2 G) =
-      (leftRegularRepresentation G g : GroupL2 G →L[ℂ] GroupL2 G) := rfl
-
-@[simp] theorem regularGenerator_mul (G : CountableDiscreteGroup.{u}) (g h : G) :
-    regularGenerator G (g * h) = regularGenerator G g * regularGenerator G h := by
-  apply Subtype.ext
-  change
-    (leftRegularRepresentation G (g * h) : GroupL2 G →L[ℂ] GroupL2 G) =
-      (leftRegularRepresentation G g : GroupL2 G →L[ℂ] GroupL2 G) *
-        (leftRegularRepresentation G h : GroupL2 G →L[ℂ] GroupL2 G)
-  exact congrArg
-    (fun U : unitary (GroupL2 G →L[ℂ] GroupL2 G) ↦
-      (U : GroupL2 G →L[ℂ] GroupL2 G))
-    ((leftRegularRepresentation G).map_mul g h)
-
-@[simp] theorem regularGenerator_one (G : CountableDiscreteGroup.{u}) :
-    regularGenerator G 1 = 1 := by
-  apply Subtype.ext
-  change
-    (leftRegularRepresentation G 1 : GroupL2 G →L[ℂ] GroupL2 G) = 1
-  exact congrArg
-    (fun U : unitary (GroupL2 G →L[ℂ] GroupL2 G) ↦
-      (U : GroupL2 G →L[ℂ] GroupL2 G))
-    ((leftRegularRepresentation G).map_one)
-
-@[simp] theorem regularGenerator_star (G : CountableDiscreteGroup.{u}) (g : G) :
-    star (regularGenerator G g) = regularGenerator G g⁻¹ := by
-  apply Subtype.ext
-  change
-    star (leftRegularRepresentation G g : GroupL2 G →L[ℂ] GroupL2 G) =
-      (leftRegularRepresentation G g⁻¹ : GroupL2 G →L[ℂ] GroupL2 G)
-  rw [← Unitary.coe_star, Unitary.star_eq_inv, ← map_inv]
-
-theorem regularGenerator_vacuum (G : CountableDiscreteGroup.{u}) (g : G) :
-    (regularGenerator G g : GroupL2 G →L[ℂ] GroupL2 G) (delta G 1) =
-      delta G g := by
-  classical
-  ext h
-  change (delta G 1) (g⁻¹ * h) = (delta G g) h
-  by_cases hh : h = g
-  · subst h
-    simp [delta, lp.single_apply, Pi.single_apply]
-  · have hne : g⁻¹ * h ≠ 1 := by
-      intro heq
-      apply hh
-      calc
-        h = g * (g⁻¹ * h) := by simp
-        _ = g := by simp [heq]
-    simp [delta, lp.single_apply, Pi.single_apply, hh, hne, eq_comm]
-
-def fourierCoefficient (G : CountableDiscreteGroup.{u})
-    (z : GroupVonNeumannAlgebra G) (g : G) : ℂ :=
-  ((z : GroupL2 G →L[ℂ] GroupL2 G) (delta G 1)) g
-
-theorem fourierCoefficient_square_summable
-    (G : CountableDiscreteGroup.{u}) (z : GroupVonNeumannAlgebra G) :
-    Summable fun g : G ↦ ‖fourierCoefficient G z g‖ ^ (2 : ℝ) := by
-  simpa [fourierCoefficient] using
-    (lp.memℓp ((z : GroupL2 G →L[ℂ] GroupL2 G) (delta G 1))).summable
-      (by norm_num : 0 < (2 : ℝ≥0∞).toReal)
-
-@[simp] theorem fourierCoefficient_regularGenerator
-    (G : CountableDiscreteGroup.{u}) (g h : G) :
-    fourierCoefficient G (regularGenerator G g) h = (delta G g) h := by
-  rw [fourierCoefficient, regularGenerator_vacuum]
-
-@[simp] theorem fourierCoefficient_regularGenerator_self
-    (G : CountableDiscreteGroup.{u}) (g : G) :
-    fourierCoefficient G (regularGenerator G g) g = 1 := by
-  classical
-  simp [fourierCoefficient_regularGenerator, delta, lp.single_apply]
-
-theorem fourierCoefficient_regularGenerator_of_ne
-    (G : CountableDiscreteGroup.{u}) {g h : G} (hh : h ≠ g) :
-    fourierCoefficient G (regularGenerator G g) h = 0 := by
-  classical
-  simp [fourierCoefficient_regularGenerator, delta, lp.single_apply, hh]
-
-theorem fourierCoefficient_eq_zero_of_infinite_constant
-    (G : CountableDiscreteGroup.{u}) (z : GroupVonNeumannAlgebra G)
-    (S : Set G) (hS : S.Infinite) (g : G)
-    (hconstant : ∀ h ∈ S, fourierCoefficient G z h = fourierCoefficient G z g) :
-    fourierCoefficient G z g = 0 := by
-  by_contra hnonzero
-  have hpositive : 0 < ‖fourierCoefficient G z g‖ ^ (2 : ℝ) := by
-    positivity
-  have hrestricted :
-      Summable fun _ : S ↦ ‖fourierCoefficient G z g‖ ^ (2 : ℝ) := by
-    have hsummable := (fourierCoefficient_square_summable G z).subtype
-      (fun h : G ↦ h ∈ S)
-    exact hsummable.congr fun h ↦ congrArg
-      (fun c : ℂ ↦ ‖c‖ ^ (2 : ℝ)) (hconstant h h.property)
-  have hfinite : Finite S := Finite.of_summable_const hpositive hrestricted
-  exact hS (Set.finite_coe_iff.mp hfinite)
-
-def fourierLinearMap (G : CountableDiscreteGroup.{u}) :
-    GroupVonNeumannAlgebra G →ₗ[ℂ] (G → ℂ) where
-  toFun z := fourierCoefficient G z
-  map_add' z w := by
-    ext g
-    rfl
-  map_smul' c z := by
-    ext g
-    rfl
-
-theorem fourierLinearMap_regularGenerator
-    (G : CountableDiscreteGroup.{u}) (g : G) :
-    fourierLinearMap G (regularGenerator G g) =
-      (by classical exact Pi.single g (1 : ℂ)) := by
-  classical
-  funext h
-  change ((regularGenerator G g : GroupL2 G →L[ℂ] GroupL2 G)
-    (delta G 1)) h = (Pi.single g (1 : ℂ) : G → ℂ) h
-  rw [regularGenerator_vacuum]
-  rfl
-
-theorem regularGenerator_linearIndependent
-    (G : CountableDiscreteGroup.{u}) :
-    LinearIndependent ℂ (regularGenerator G) := by
-  classical
-  apply LinearIndependent.of_comp (fourierLinearMap G)
-  simpa [Function.comp_def, fourierLinearMap_regularGenerator] using
-    (Pi.linearIndependent_single_one G ℂ)
-
-theorem groupVonNeumannAlgebra_not_finiteDimensional_of_infinite
-    (G : CountableDiscreteGroup.{u}) (hG : Infinite G) :
-    ¬ FiniteDimensional ℂ (GroupVonNeumannAlgebra G) := by
-  letI : Infinite G := hG
-  intro hfinite
-  letI := hfinite
-  exact Module.Finite.not_linearIndependent_of_infinite
-    (regularGenerator G) (regularGenerator_linearIndependent G)
 
 end
 
@@ -44167,11 +32302,6 @@ theorem shiftKernelPontryaginDual_card (n : ℕ) :
   rw [shiftKernelPontryaginDual_card_eq_shiftKernel_card]
   exact shiftKernel_card n
 
-theorem shiftKernelAdditivePontryaginDual_card (n : ℕ) :
-    Nat.card (Additive (PontryaginDual (Multiplicative (shiftKernel n)))) =
-      2 ^ (4 * n) := by
-  simpa using shiftKernelPontryaginDual_card n
-
 end
 
 end ConnesRigidity
@@ -44182,101 +32312,9 @@ section
 
 namespace ConnesRigidity
 
-open ConnesRigidity
-
-universe u
-
 namespace ExactIndexEmbedding
 
-variable {G H : CountableDiscreteGroup.{u}} {d : ℕ}
-
-theorem exists_subgroup_index_eq_and_mulEquiv
-    (e : ExactIndexEmbedding G H d) :
-    ∃ S : Subgroup H, S.index = d ∧ Nonempty (G ≃* S) :=
-  ⟨e.hom.range, e.index_eq, ⟨e.rangeEquiv⟩⟩
-
-theorem exists_finiteIndex_subgroup_index_eq_and_mulEquiv
-    (e : ExactIndexEmbedding G H d) (hd : d ≠ 0) :
-    ∃ S : Subgroup H,
-      S.index = d ∧ S.FiniteIndex ∧ Nonempty (G ≃* S) :=
-  ⟨e.hom.range, e.index_eq, e.range_finiteIndex hd, ⟨e.rangeEquiv⟩⟩
-
-theorem abstractlyCommensurable
-    (e : ExactIndexEmbedding G H d) (hd : d ≠ 0) :
-    AbstractlyCommensurable G H := by
-  refine ⟨⊤, e.hom.range, inferInstance, e.range_finiteIndex hd, ?_⟩
-  exact ⟨(Subgroup.topEquiv : (⊤ : Subgroup G) ≃* G).trans e.rangeEquiv⟩
-
 end ExactIndexEmbedding
-
-theorem abstractlyCommensurable_symm
-    {G H : CountableDiscreteGroup.{u}}
-    (h : AbstractlyCommensurable G H) :
-    AbstractlyCommensurable H G := by
-  obtain ⟨S, T, hS, hT, ⟨e⟩⟩ := h
-  exact ⟨T, S, hT, hS, ⟨e.symm⟩⟩
-
-theorem abstractlyCommensurable_refl (G : CountableDiscreteGroup.{u}) :
-    AbstractlyCommensurable G G :=
-  ⟨⊤, ⊤, inferInstance, inferInstance, ⟨MulEquiv.refl _⟩⟩
-
-theorem abstractlyCommensurable_of_common_finiteIndex_homs
-    {B G H : CountableDiscreteGroup.{u}}
-    (f : B →* G) (g : B →* H)
-    (hf : Function.Injective f) (hg : Function.Injective g)
-    (hfIndex : f.range.FiniteIndex)
-    (hgIndex : g.range.FiniteIndex) :
-    AbstractlyCommensurable G H := by
-  refine ⟨f.range, g.range, hfIndex, hgIndex, ?_⟩
-  exact ⟨(MonoidHom.ofInjective hf).symm.trans
-    (MonoidHom.ofInjective hg)⟩
-
-theorem carryIndex_ne_zero (n : ℕ) :
-    2 ^ (4 * n) ≠ (0 : ℕ) :=
-  pow_ne_zero _ (by decide)
-
-theorem carryEmbedding_finiteIndex
-    {B G : CountableDiscreteGroup.{u}}
-    (n : ℕ) (f : B →* G)
-    (hindex : f.range.index = 2 ^ (4 * n)) :
-    f.range.FiniteIndex := by
-  apply Subgroup.finiteIndex_iff.mpr
-  rw [hindex]
-  exact carryIndex_ne_zero n
-
-theorem carryEmbedding_exists_subgroup
-    {B G : CountableDiscreteGroup.{u}}
-    (n : ℕ) (f : B →* G)
-    (hf : Function.Injective f)
-    (hindex : f.range.index = 2 ^ (4 * n)) :
-    ∃ S : Subgroup G,
-      S.index = 2 ^ (4 * n) ∧
-      S.FiniteIndex ∧ Nonempty (B ≃* S) := by
-  let e : ExactIndexEmbedding B G (2 ^ (4 * n)) :=
-    ⟨f, hf, hindex⟩
-  exact e.exists_finiteIndex_subgroup_index_eq_and_mulEquiv
-    (carryIndex_ne_zero n)
-
-theorem carryFamily_pairwise_commensurable
-    {B : CountableDiscreteGroup.{u}}
-    (Γ : ℕ → CountableDiscreteGroup.{u})
-    (f : ∀ n, B →* Γ n)
-    (hf : ∀ n, Function.Injective (f n))
-    (hindex : ∀ n, (f n).range.index = 2 ^ (4 * n)) :
-    ∀ m n, AbstractlyCommensurable (Γ m) (Γ n) := by
-  intro m n
-  exact abstractlyCommensurable_of_common_finiteIndex_homs
-    (f m) (f n) (hf m) (hf n)
-    (carryEmbedding_finiteIndex m (f m) (hindex m))
-    (carryEmbedding_finiteIndex n (f n) (hindex n))
-
-theorem PaperFamilyInput.exists_exact_index_subgroup
-    (F : PaperFamilyInput.{u}) (n : ℕ) :
-    ∃ S : Subgroup (F.Gamma n),
-      S.index = 2 ^ (4 * n) ∧
-      S.FiniteIndex ∧ Nonempty (F.Gamma 0 ≃* S) :=
-  (F.embeddings n).exists_finiteIndex_subgroup_index_eq_and_mulEquiv
-    (carryIndex_ne_zero n)
 
 end ConnesRigidity
 
@@ -44427,13 +32465,6 @@ theorem dualCarryPullback_range_index (n : ℕ) :
     (dualCarryPullback n).range.index = 2 ^ (4 * n) := by
   rw [dualCarryPullback_range_index_eq_kernelDual_card, shiftKernelDual_card]
 
-theorem dualCarryPullback_range_index_injective {m n : ℕ}
-    (h : (dualCarryPullback m).range.index =
-      (dualCarryPullback n).range.index) : m = n := by
-  rw [dualCarryPullback_range_index, dualCarryPullback_range_index] at h
-  exact Nat.mul_left_cancel (by decide : 0 < 4)
-    ((Nat.pow_right_injective (by decide : 2 ≤ 2)) h)
-
 section SemidirectIndex
 
 variable {N₁ N₂ H : Type*} [Group N₁] [Group N₂] [Group H]
@@ -44572,346 +32603,19 @@ open scoped ENNReal ComplexConjugate
 
 namespace ConnesRigidity.FourierDuality
 
-def rationalCircleToRealCircle : AddCircle (1 : ℚ) →+ AddCircle (1 : ℝ) :=
-  QuotientAddGroup.map (zmultiples (1 : ℚ)) (zmultiples (1 : ℝ))
-    (Rat.castHom ℝ).toAddMonoidHom (by
-      intro q hq
-      rcases AddSubgroup.mem_zmultiples_iff.mp hq with ⟨z, hz⟩
-      apply AddSubgroup.mem_zmultiples_iff.mpr
-      refine ⟨z, ?_⟩
-      simpa using congrArg (Rat.castHom ℝ) hz)
-
-@[simp] theorem rationalCircleToRealCircle_apply (q : ℚ) :
-    rationalCircleToRealCircle (q : AddCircle (1 : ℚ)) =
-      ((q : ℝ) : AddCircle (1 : ℝ)) := rfl
-
-theorem rationalCircleToRealCircle_injective :
-    Function.Injective rationalCircleToRealCircle := by
-  rw [← AddMonoidHom.ker_eq_bot_iff]
-  apply eq_bot_iff.mpr
-  intro x hx
-  induction x using QuotientAddGroup.induction_on with
-  | _ q =>
-    change ((q : ℝ) : AddCircle (1 : ℝ)) = 0 at hx
-    obtain ⟨z, hz⟩ := (AddCircle.coe_eq_zero_iff (p := (1 : ℝ))).mp hx
-    apply (AddCircle.coe_eq_zero_iff (p := (1 : ℚ))).mpr
-    refine ⟨z, ?_⟩
-    apply (Rat.cast_injective (α := ℝ))
-    simpa using hz
-
 section DiscreteCharacters
-
-variable (A : Type*) [AddCommGroup A] [TopologicalSpace A] [DiscreteTopology A]
-
-def rationalCharacterToPontryagin (χ : CharacterModule A) :
-    PontryaginDual (Multiplicative A) where
-  toMonoidHom :=
-    (AddCircle.toCircle_addChar.compAddMonoidHom
-      (rationalCircleToRealCircle.comp χ)).toMonoidHom
-  continuous_toFun := continuous_of_discreteTopology
-
-@[simp] theorem rationalCharacterToPontryagin_apply
-    (χ : CharacterModule A) (a : A) :
-    rationalCharacterToPontryagin A χ (Multiplicative.ofAdd a) =
-      AddCircle.toCircle (rationalCircleToRealCircle (χ a)) := rfl
-
-theorem exists_character_apply_ne_one_of_ne_zero
-    {a : A} (ha : a ≠ 0) :
-    ∃ χ : PontryaginDual (Multiplicative A),
-      χ (Multiplicative.ofAdd a) ≠ 1 := by
-  obtain ⟨c, hc⟩ := CharacterModule.exists_character_apply_ne_zero_of_ne_zero ha
-  refine ⟨rationalCharacterToPontryagin A c, ?_⟩
-  intro h
-  have hreal : rationalCircleToRealCircle (c a) = 0 := by
-    apply AddCircle.injective_toCircle (by norm_num : (1 : ℝ) ≠ 0)
-    simpa [rationalCharacterToPontryagin_apply] using h
-  exact hc (rationalCircleToRealCircle_injective (by simpa using hreal))
 
 end DiscreteCharacters
 
 section HaarOrthogonality
 
-variable {G : Type*} [CommGroup G] [TopologicalSpace G]
-  [IsTopologicalGroup G] [MeasurableSpace G] [BorelSpace G]
-
-theorem integral_character_eq_zero
-    (μ : Measure G) [μ.IsMulLeftInvariant]
-    (χ : PontryaginDual G) (hχ : χ ≠ 1) :
-    (∫ x : G, (χ x : ℂ) ∂μ) = 0 := by
-  obtain ⟨g, hg⟩ : ∃ g : G, χ g ≠ 1 := by
-    by_contra h
-    push_neg at h
-    apply hχ
-    exact PontryaginDual.ext (by simpa using h)
-  have htrans :
-      (χ g : ℂ) * (∫ x : G, (χ x : ℂ) ∂μ) =
-        ∫ x : G, (χ x : ℂ) ∂μ := by
-    calc
-      (χ g : ℂ) * (∫ x : G, (χ x : ℂ) ∂μ) =
-          ∫ x : G, (χ g : ℂ) * (χ x : ℂ) ∂μ :=
-        (integral_const_mul (χ g : ℂ) (fun x : G => (χ x : ℂ))).symm
-      _ = ∫ x : G, (χ (g * x) : ℂ) ∂μ := by
-        congr 1
-        funext x
-        simp
-      _ = ∫ x : G, (χ x : ℂ) ∂μ :=
-        integral_mul_left_eq_self (fun x : G => (χ x : ℂ)) g
-  have hzero :
-      ((χ g : ℂ) - 1) * (∫ x : G, (χ x : ℂ) ∂μ) = 0 := by
-    linear_combination htrans
-  rcases mul_eq_zero.mp hzero with h | h
-  · exfalso
-    apply hg
-    exact Circle.coe_eq_one.mp (sub_eq_zero.mp h)
-  · exact h
-
-theorem integral_character_mul_conj_eq_zero
-    (μ : Measure G) [μ.IsMulLeftInvariant]
-    (χ ψ : PontryaginDual G) (h : χ ≠ ψ) :
-    (∫ x : G, (χ x : ℂ) * starRingEnd ℂ (ψ x : ℂ) ∂μ) = 0 := by
-  have hne : χ * ψ⁻¹ ≠ 1 := by
-    intro he
-    apply h
-    exact mul_inv_eq_one.mp he
-  have hz := integral_character_eq_zero μ (χ * ψ⁻¹) hne
-  convert hz using 1
-  congr 1
-  funext x
-  change (χ x : ℂ) * starRingEnd ℂ (ψ x : ℂ) =
-    ((χ x * (ψ x)⁻¹ : Circle) : ℂ)
-  rw [Circle.coe_mul, Circle.coe_inv_eq_conj]
-
-theorem integral_character_orthogonality
-    (μ : Measure G) [μ.IsMulLeftInvariant] [IsProbabilityMeasure μ]
-    (χ ψ : PontryaginDual G) [Decidable (χ = ψ)] :
-    (∫ x : G, (χ x : ℂ) * starRingEnd ℂ (ψ x : ℂ) ∂μ) =
-      if χ = ψ then 1 else 0 := by
-  split_ifs with h
-  · subst ψ
-    have hpoint : ∀ x : G, (χ x : ℂ) * starRingEnd ℂ (χ x : ℂ) = 1 := by
-      intro x
-      rw [← Circle.coe_inv_eq_conj, ← Circle.coe_mul, mul_inv_cancel]
-      rfl
-    simp_rw [hpoint]
-    simp
-  · exact integral_character_mul_conj_eq_zero μ χ ψ h
-
 end HaarOrthogonality
 
 section DualEvaluation
 
-variable (A : Type*) [AddCommGroup A] [TopologicalSpace A] [DiscreteTopology A]
-
-abbrev Dual := PontryaginDual (Multiplicative A)
-
-def evaluation (a : A) : PontryaginDual (Dual A) where
-  toMonoidHom :=
-    { toFun := fun χ => χ (Multiplicative.ofAdd a)
-      map_one' := rfl
-      map_mul' _ _ := rfl }
-  continuous_toFun := by
-    change Continuous
-      (fun χ : ((Multiplicative A) →ₜ* Circle) =>
-        χ (Multiplicative.ofAdd a))
-    exact continuous_eval_const _
-
-@[simp] theorem evaluation_apply (a : A) (χ : Dual A) :
-    evaluation A a χ = χ (Multiplicative.ofAdd a) := rfl
-
-@[simp] theorem evaluation_zero : evaluation A 0 = 1 := by
-  apply PontryaginDual.ext
-  intro χ
-  exact map_one χ
-
-@[simp] theorem evaluation_add (a b : A) :
-    evaluation A (a + b) = evaluation A a * evaluation A b := by
-  apply PontryaginDual.ext
-  intro χ
-  exact map_mul χ (Multiplicative.ofAdd a) (Multiplicative.ofAdd b)
-
-@[simp] theorem evaluation_neg (a : A) :
-    evaluation A (-a) = (evaluation A a)⁻¹ := by
-  apply PontryaginDual.ext
-  intro χ
-  exact map_inv χ (Multiplicative.ofAdd a)
-
-theorem evaluation_injective : Function.Injective (evaluation A) := by
-  intro a b hab
-  by_contra hne
-  have hab' : a - b ≠ 0 := sub_ne_zero.mpr hne
-  obtain ⟨χ, hχ⟩ := exists_character_apply_ne_one_of_ne_zero A hab'
-  have heval := DFunLike.congr_fun hab χ
-  have hone : χ (Multiplicative.ofAdd (a - b)) = 1 := by
-    rw [sub_eq_add_neg]
-    change χ (Multiplicative.ofAdd a * Multiplicative.ofAdd (-b)) = 1
-    rw [map_mul]
-    change χ (Multiplicative.ofAdd a) *
-      χ ((Multiplicative.ofAdd b)⁻¹) = 1
-    rw [map_inv]
-    change χ (Multiplicative.ofAdd a) =
-      χ (Multiplicative.ofAdd b) at heval
-    rw [heval, mul_inv_cancel]
-  exact hχ hone
-
-def character (a : A) : C(Dual A, ℂ) where
-  toFun χ := evaluation A a χ
-  continuous_toFun :=
-    continuous_subtype_val.comp (evaluation A a).continuous
-
-@[simp] theorem character_apply (a : A) (χ : Dual A) :
-    character A a χ = (χ (Multiplicative.ofAdd a) : ℂ) := rfl
-
-@[simp] theorem character_zero : character A 0 = 1 := by
-  ext χ
-  exact congrArg (fun z : Circle => (z : ℂ)) (map_one χ)
-
-@[simp] theorem character_add (a b : A) :
-    character A (a + b) = character A a * character A b := by
-  ext χ
-  change (χ (Multiplicative.ofAdd (a + b)) : ℂ) =
-    (χ (Multiplicative.ofAdd a) : ℂ) * (χ (Multiplicative.ofAdd b) : ℂ)
-  exact congrArg (fun z : Circle => (z : ℂ))
-    (map_mul χ (Multiplicative.ofAdd a) (Multiplicative.ofAdd b))
-
-@[simp] theorem character_neg (a : A) :
-    character A (-a) = star (character A a) := by
-  ext χ
-  change (χ (Multiplicative.ofAdd (-a)) : ℂ) =
-    starRingEnd ℂ (χ (Multiplicative.ofAdd a) : ℂ)
-  change (χ ((Multiplicative.ofAdd a)⁻¹) : ℂ) =
-    starRingEnd ℂ (χ (Multiplicative.ofAdd a) : ℂ)
-  rw [map_inv, Circle.coe_inv_eq_conj]
-
-def characterSubalgebra : StarSubalgebra ℂ C(Dual A, ℂ) where
-  toSubalgebra := Algebra.adjoin ℂ (range (character A))
-  star_mem' := by
-    change Algebra.adjoin ℂ (range (character A)) ≤
-      star (Algebra.adjoin ℂ (range (character A)))
-    refine Algebra.adjoin_le ?_
-    rintro _ ⟨a, rfl⟩
-    exact Algebra.subset_adjoin ⟨-a, character_neg A a⟩
-
-theorem characterSubalgebra_toSubmodule :
-    (characterSubalgebra A).toSubalgebra.toSubmodule =
-      span ℂ (range (character A)) := by
-  apply adjoin_eq_span_of_subset
-  refine Subset.trans ?_ Submodule.subset_span
-  intro x hx
-  refine Submonoid.closure_induction (fun _ => id)
-    ⟨0, character_zero A⟩ ?_ hx
-  rintro _ _ _ _ ⟨a, rfl⟩ ⟨b, rfl⟩
-  exact ⟨a + b, character_add A a b⟩
-
-theorem characterSubalgebra_separatesPoints :
-    (characterSubalgebra A).SeparatesPoints := by
-  intro χ ψ hne
-  obtain ⟨a, ha⟩ : ∃ a : A,
-      χ (Multiplicative.ofAdd a) ≠ ψ (Multiplicative.ofAdd a) := by
-    by_contra h
-    push_neg at h
-    apply hne
-    apply PontryaginDual.ext
-    intro a
-    exact h (Multiplicative.toAdd a)
-  refine ⟨_, ⟨character A a, Algebra.subset_adjoin ⟨a, rfl⟩, rfl⟩, ?_⟩
-  exact fun h => ha (Subtype.ext h)
-
-theorem character_span_dense :
-    (span ℂ (range (character A))).topologicalClosure = ⊤ := by
-  rw [← characterSubalgebra_toSubmodule A]
-  exact congrArg (fun S : StarSubalgebra ℂ C(Dual A, ℂ) =>
-      S.toSubalgebra.toSubmodule)
-    (ContinuousMap.starSubalgebra_topologicalClosure_eq_top_of_separatesPoints
-      (characterSubalgebra A) (characterSubalgebra_separatesPoints A))
-
 end DualEvaluation
 
 section FourierBasis
-
-variable (A : Type*) [AddCommGroup A] [TopologicalSpace A] [DiscreteTopology A]
-
-instance instDualMeasurableSpace : MeasurableSpace (Dual A) := borel (Dual A)
-
-instance instDualBorelSpace : BorelSpace (Dual A) := ⟨rfl⟩
-
-def dualPositiveCompact : PositiveCompacts (Dual A) :=
-  ⟨⟨Set.univ, isCompact_univ⟩, by simp⟩
-
-def dualHaar : Measure (Dual A) :=
-  Measure.haarMeasure (dualPositiveCompact A)
-
-instance instDualHaarProbability : IsProbabilityMeasure (dualHaar A) :=
-  ⟨Measure.haarMeasure_self⟩
-
-instance instDualHaarInvariant : (dualHaar A).IsMulLeftInvariant :=
-  inferInstanceAs ((Measure.haarMeasure (dualPositiveCompact A)).IsMulLeftInvariant)
-
-instance instDualHaarRegular : (dualHaar A).Regular :=
-  inferInstanceAs ((Measure.haarMeasure (dualPositiveCompact A)).Regular)
-
-def characterLp (a : A) : Lp ℂ 2 (dualHaar A) :=
-  ContinuousMap.toLp 2 (dualHaar A) ℂ (character A a)
-
-theorem characterLp_span_dense :
-    (span ℂ (range (characterLp A))).topologicalClosure = ⊤ := by
-  convert!
-    (ContinuousMap.toLp_denseRange ℂ (dualHaar A) ℂ
-      (by norm_num : (2 : ℝ≥0∞) ≠ ∞)).topologicalClosure_map_submodule
-      (character_span_dense A)
-  rw [map_span]
-  unfold characterLp
-  rw [range_comp']
-  simp only [ContinuousLinearMap.coe_coe]
-
-theorem orthonormal_all_characters
-    {G : Type*} [CommGroup G] [TopologicalSpace G] [CompactSpace G]
-    [IsTopologicalGroup G] [MeasurableSpace G] [BorelSpace G]
-    (μ : Measure G) [IsProbabilityMeasure μ] [μ.IsMulLeftInvariant] :
-    Orthonormal ℂ (fun χ : PontryaginDual G =>
-      ContinuousMap.toLp 2 μ ℂ
-        (⟨fun g => (χ g : ℂ), continuous_subtype_val.comp χ.continuous⟩ :
-          C(G, ℂ))) := by
-  classical
-  rw [orthonormal_iff_ite]
-  intro χ ψ
-  rw [ContinuousMap.inner_toLp μ]
-  change
-    (∫ g : G, (ψ g : ℂ) * starRingEnd ℂ (χ g : ℂ) ∂μ) =
-      if χ = ψ then 1 else 0
-  have hchar :
-      (fun g : G => (ψ g : ℂ) * starRingEnd ℂ (χ g : ℂ)) =
-        fun g : G => ((ψ * χ⁻¹) g : ℂ) := by
-    funext g
-    rw [← Circle.coe_inv_eq_conj, ← Circle.coe_mul]
-    rfl
-  rw [hchar]
-  by_cases h : ψ = χ
-  · subst ψ
-    simp
-  · have hne : ψ * χ⁻¹ ≠ 1 := by
-      simpa [mul_inv_eq_one] using h
-    rw [integral_character_eq_zero μ _ hne]
-    simp [h, Ne.symm h]
-
-theorem orthonormal_characterLp : Orthonormal ℂ (characterLp A) := by
-  have h := orthonormal_all_characters (dualHaar A)
-  exact h.comp (evaluation A) (evaluation_injective A)
-
-def fourierBasis : HilbertBasis A ℂ (Lp ℂ 2 (dualHaar A)) :=
-  HilbertBasis.mk (orthonormal_characterLp A) (characterLp_span_dense A).ge
-
-@[simp] theorem fourierBasis_apply (a : A) :
-    fourierBasis A a = characterLp A a := by
-  exact congrFun (HilbertBasis.coe_mk _ _) a
-
-def fourierEquiv :
-    (lp (fun _ : A => ℂ) 2) ≃ₗᵢ[ℂ] Lp ℂ 2 (dualHaar A) :=
-  (fourierBasis A).repr.symm
-
-theorem fourierEquiv_single [DecidableEq A] (a : A) :
-    fourierEquiv A (lp.single 2 a 1) = characterLp A a := by
-  exact (Orthonormal.linearIsometryEquiv_symm_apply_single_one
-    (orthonormal_characterLp A) (characterLp_span_dense A).ge a)
 
 end FourierBasis
 
@@ -45205,29 +32909,6 @@ theorem transvection_smul_apply
     Matrix.SpecialLinearGroup.transvection_coe,
     Matrix.add_mulVec, Matrix.single_mulVec_eq]
 
-theorem transvection_smul_apply_of_ne
-    {i j : Index} (hij : i ≠ j) (f : R) (v : V)
-    (k : Index) (hk : k ≠ i) :
-    (Matrix.SpecialLinearGroup.transvection hij f • v) k = v k := by
-  simp [Matrix.SpecialLinearGroup.smul_def,
-    Matrix.SpecialLinearGroup.transvection_coe,
-    Matrix.add_mulVec, Matrix.single_mulVec_eq, hk]
-
-theorem binaryTransvection_coeff_eq_of_lower_vanish
-    {i j : Index} (hij : i ≠ j) (n : ℕ) (hn : 0 < n)
-    (v : V) (a : ℕ)
-    (hvanish : ∀ d < a, (v j).coeff d = 0) (k : Index) :
-    ((binaryTransvection hij n • v) k).coeff a = (v k).coeff a := by
-  by_cases hki : k = i
-  · subst k
-    rw [binaryTransvection, transvection_smul_apply, Polynomial.coeff_add,
-      Polynomial.coeff_X_pow_mul']
-    split_ifs with hna
-    · have hlt : a - n < a := by omega
-      simp [hvanish (a - n) hlt]
-    · simp
-  · rw [binaryTransvection, transvection_smul_apply_of_ne hij _ v k hki]
-
 theorem x_pow_mul_injective (p : R) (hp : p ≠ 0) :
     Function.Injective (fun n : ℕ ↦ (Polynomial.X : R) ^ n * p) := by
   intro m n h
@@ -45242,24 +32923,6 @@ theorem binaryTransvection_smul_injective
   have hcoordinate := congrFun h i
   simp only [binaryTransvection, transvection_smul_apply] at hcoordinate
   exact x_pow_mul_injective (v j) hvj (add_left_cancel hcoordinate)
-
-theorem q_vector_orbit_infinite (v : V) (hv : v ≠ 0) :
-    (MulAction.orbit Q v).Infinite := by
-  obtain ⟨j, hj⟩ : ∃ j : Index, v j ≠ 0 := by
-    by_contra h
-    push Not at h
-    apply hv
-    funext j
-    exact h j
-  obtain ⟨i, hij, _⟩ :=
-    Fin.exists_ne_and_ne_of_two_lt j j (by decide : 2 < 4)
-  have hinfinite :
-      (Set.range fun n : ℕ ↦ binaryTransvection hij n • v).Infinite :=
-    Set.infinite_range_of_injective
-      (binaryTransvection_smul_injective hij v hj)
-  apply hinfinite.mono
-  rintro _ ⟨n, rfl⟩
-  exact ⟨binaryTransvection hij n, rfl⟩
 
 theorem k_vector_orbit_infinite (v : V) (hv : v ≠ 0) :
     (Set.range fun k : K ↦ kLinear k v).Infinite := by
@@ -45283,35 +32946,6 @@ theorem k_vector_orbit_infinite (v : V) (hv : v ≠ 0) :
   exact (Set.infinite_range_of_injective hinjective).mono (by
     rintro _ ⟨n, rfl⟩
     exact ⟨actingTransvection hij n, rfl⟩)
-
-theorem actingTransvection_linear_apply
-    {i j : Index} (hij : i ≠ j) (n : ℕ) (v : V) :
-    kLinear (actingTransvection hij n) v = binaryTransvection hij n • v := by
-  change Matrix.SpecialLinearGroup.toLin'
-    (pi₂ (actingTransvection hij n)) v = binaryTransvection hij n • v
-  rw [pi₂_actingTransvection]
-  rfl
-
-theorem d_kDividedSquareLinear (k : K) (b : B) :
-    d (kDividedSquareLinear k b) = kLinear k (d b) := by
-  have h := d_equivariant
-    (kLinear k).toLinearMap (kDividedSquareLinear k).toLinearMap
-    (fun v ↦ kDividedSquareLinear_diagonal k v)
-  exact DFunLike.congr_fun h b
-
-theorem k_dividedSquare_orbit_infinite_of_d_ne_zero
-    (b : B) (hb : d b ≠ 0) :
-    (Set.range fun k : K ↦ kDividedSquareLinear k b).Infinite := by
-  apply Set.Infinite.of_image d
-  apply (k_vector_orbit_infinite (d b) hb).mono
-  rintro _ ⟨k, rfl⟩
-  exact ⟨kDividedSquareLinear k b, ⟨k, rfl⟩,
-    d_kDividedSquareLinear k b⟩
-
-theorem k_diagonal_orbit_infinite (v : V) (hv : v ≠ 0) :
-    (Set.range fun k : K ↦ kDividedSquareLinear k (diagonal v)).Infinite := by
-  apply k_dividedSquare_orbit_infinite_of_d_ne_zero
-  simpa using hv
 
 theorem transvection_linear_apply_coordinate
     {i j : Index} (hij : i ≠ j) (f : R) (v : V) (k : Index) :
@@ -45425,18 +33059,6 @@ theorem k_D_orbit_infinite (x : D) (hx : x ≠ 0) :
     apply (k_vector_orbit_infinite x.1 hv).mono
     rintro _ ⟨k, rfl⟩
     exact ⟨kDLinear k x, ⟨k, rfl⟩, rfl⟩
-
-theorem kDAction_orbit_infinite
-    (x : Multiplicative D) (hx : x ≠ 1) :
-    (Set.range fun k : K ↦ kDAction k x).Infinite := by
-  have hzero : Multiplicative.toAdd x ≠ 0 := by
-    intro h
-    apply hx
-    exact congrArg Multiplicative.ofAdd h
-  apply Set.Infinite.of_image Multiplicative.toAdd
-  apply (k_D_orbit_infinite (Multiplicative.toAdd x) hzero).mono
-  rintro _ ⟨k, rfl⟩
-  exact ⟨kDAction k x, ⟨k, rfl⟩, rfl⟩
 
 end ConnesRigidity
 
@@ -45610,13 +33232,6 @@ theorem gamma_isICC_of_infinite_orbits
   exact semidirect_isICC (eKernelGroup n) actingGroup (kEAction n)
     actingGroup_isICC horbit
 
-theorem gamma_isICC_of_infinite_kernel_orbits
-    (n : ℕ)
-    (horbit : ∀ η : Multiplicative (E n), η ≠ 1 →
-      (Set.range fun k : K => kEAction n k η).Infinite) :
-    IsICC (gammaGroup n) :=
-  gamma_isICC_of_infinite_orbits n horbit
-
 theorem gamma_isICC_of_additive_infinite_orbits
     (n : ℕ)
     (horbit : ∀ η : E n, η ≠ 0 →
@@ -45721,23 +33336,6 @@ theorem sigma_equivariant_raw (n : ℕ) (k : K) (η : E n) :
           (kEAction n k (Multiplicative.ofAdd η))) =
       kDividedSquareLinear k (sigma n η) :=
   sigma_equivariant n k η
-
-theorem kEAddAction_orbit_infinite (n : ℕ) (η : E n) (hη : η ≠ 0) :
-    (Set.range fun k : K ↦ kEAddAction n k η).Infinite :=
-  kEAddAction_orbit_infinite_of_exact n (sigma n) (sigma_ker n)
-    (sigma_equivariant n) η hη
-
-theorem kEAction_orbit_infinite
-    (n : ℕ) (η : Multiplicative (E n)) (hη : η ≠ 1) :
-    (Set.range fun k : K ↦ kEAction n k η).Infinite := by
-  have hzero : Multiplicative.toAdd η ≠ 0 := by
-    intro h
-    apply hη
-    exact congrArg Multiplicative.ofAdd h
-  apply Set.Infinite.of_image Multiplicative.toAdd
-  exact (kEAddAction_orbit_infinite n (Multiplicative.toAdd η) hzero).mono (by
-    rintro _ ⟨k, rfl⟩
-    exact ⟨kEAction n k η, ⟨k, rfl⟩, rfl⟩)
 
 theorem gamma_isICC (n : ℕ) : IsICC (gammaGroup n) :=
   gamma_isICC_of_characterized_exact n (sigma n) (sigma_ker n)
@@ -45930,11 +33528,6 @@ theorem mem_twoTorsion_iff (x : E) :
   · intro h
     simp [h]
 
-theorem twoTorsion_eq_comap_ker :
-    twoTorsion E = F.retraction.ker.comap F.sigma := by
-  ext x
-  exact F.mem_twoTorsion_iff x
-
 theorem doubledSubgroup_eq_iota_shift_range :
     doubledSubgroup E = F.shift.range.map F.iota := by
   ext x
@@ -46112,12 +33705,6 @@ def finiteOrbitSubgroupEquiv
     (a : finiteOrbitSubgroup K A) :
     (finiteOrbitSubgroupEquiv φ e he a : A') = e a := rfl
 
-theorem finiteOrbitSubgroup_card_eq_of_equivariant
-    (φ : K ≃* K') (e : A ≃+ A')
-    (he : ∀ (k : K) (a : A), e (k • a) = φ k • e a) :
-    Nat.card (finiteOrbitSubgroup K A) = Nat.card (finiteOrbitSubgroup K' A') :=
-  Nat.card_congr (finiteOrbitSubgroupEquiv φ e he).toEquiv
-
 end FiniteOrbits
 
 section QuotientEquivariance
@@ -46125,14 +33712,6 @@ section QuotientEquivariance
 variable {K : Type u} {K' : Type v} {E : Type w} {E' : Type z}
   [Group K] [Group K'] [AddCommGroup E] [AddCommGroup E']
   [DistribMulAction K E] [DistribMulAction K' E']
-
-theorem twoTorsionEquiv_smul
-    (φ : K ≃* K') (e : E ≃+ E')
-    (he : ∀ (k : K) (x : E), e (k • x) = φ k • e x)
-    (k : K) (x : twoTorsion E) :
-    twoTorsionEquiv e (k • x) = φ k • twoTorsionEquiv e x := by
-  apply Subtype.ext
-  exact he k x
 
 variable (hfour : ∀ x : E, (4 : ℕ) • x = 0)
 variable (hfour' : ∀ x : E', (4 : ℕ) • x = 0)
@@ -46143,30 +33722,6 @@ variable (hfour' : ∀ x : E', (4 : ℕ) • x = 0)
         (QuotientAddGroup.mk' (doubledWithinTwoTorsion E hfour) x) =
       QuotientAddGroup.mk' (doubledWithinTwoTorsion E' hfour')
         (twoTorsionEquiv e x) := rfl
-
-theorem twoTorsionQuotientEquiv_smul
-    (φ : K ≃* K') (e : E ≃+ E')
-    (he : ∀ (k : K) (x : E), e (k • x) = φ k • e x)
-    (k : K) (a : twoTorsionQuotient E hfour) :
-    twoTorsionQuotientEquiv e hfour hfour' (k • a) =
-      φ k • twoTorsionQuotientEquiv e hfour hfour' a := by
-  induction a using Quotient.inductionOn with
-  | _ x =>
-      change
-        QuotientAddGroup.mk' (doubledWithinTwoTorsion E' hfour')
-            (twoTorsionEquiv e (k • x)) =
-          QuotientAddGroup.mk' (doubledWithinTwoTorsion E' hfour')
-            (φ k • twoTorsionEquiv e x)
-      rw [twoTorsionEquiv_smul φ e he]
-
-theorem twoTorsionQuotient_finiteOrbit_card_eq
-    (φ : K ≃* K') (e : E ≃+ E')
-    (he : ∀ (k : K) (x : E), e (k • x) = φ k • e x) :
-    Nat.card (finiteOrbitSubgroup K (twoTorsionQuotient E hfour)) =
-      Nat.card (finiteOrbitSubgroup K' (twoTorsionQuotient E' hfour')) :=
-  finiteOrbitSubgroup_card_eq_of_equivariant φ
-    (twoTorsionQuotientEquiv e hfour hfour')
-    (twoTorsionQuotientEquiv_smul hfour hfour' φ e he)
 
 end QuotientEquivariance
 
@@ -46218,13 +33773,6 @@ noncomputable def finiteOrbitSubgroupKerEquiv
   left_inv _ := Subtype.ext rfl
   right_inv _ := Subtype.ext rfl
   map_add' _ _ := Subtype.ext rfl
-
-theorem finiteOrbitSubgroup_card_eq_ker
-    (p : A →+ B₀) [Finite p.ker]
-    (hp : ∀ (k : K) (a : A), p (k • a) = k • p a)
-    (hB : ∀ b : B₀, b ≠ 0 → ¬(MulAction.orbit K b).Finite) :
-    Nat.card (finiteOrbitSubgroup K A) = Nat.card p.ker :=
-  Nat.card_congr (finiteOrbitSubgroupKerEquiv p hp hB).toEquiv
 
 theorem finite_ker_of_shiftedQuotient_equiv
     (n : ℕ) (p : A →+ B₀)
@@ -46313,18 +33861,6 @@ def quotientIota : (P ⧸ D.shift.range) →+
     D.quotientIota ((QuotientAddGroup.mk' D.shift.range) p) =
       D.quotientIotaBase p :=
   QuotientAddGroup.lift_mk' D.shift.range D.shift_range_le_quotientIotaBase_ker p
-
-theorem quotientSigma_surjective : Function.Surjective D.quotientSigma := by
-  intro b
-  obtain ⟨e, he⟩ := D.sigma_surjective (b : B₀)
-  have he_torsion : e ∈ twoTorsion E := by
-    apply (D.mem_twoTorsion_iff e).2
-    rw [he]
-    exact b.property
-  let x : twoTorsion E := ⟨e, he_torsion⟩
-  refine ⟨(QuotientAddGroup.mk' (doubledWithinTwoTorsion E D.exponent_four)) x, ?_⟩
-  rw [D.quotientSigma_mk]
-  exact Subtype.ext he
 
 theorem quotientIota_injective : Function.Injective D.quotientIota := by
   apply (AddMonoidHom.ker_eq_bot_iff D.quotientIota).1
@@ -46416,74 +33952,6 @@ noncomputable def shiftedQuotientToKernelEquiv
     QuotientAddGroup.congr (shiftedSubmodule n).toAddSubgroup D.shift.range
       (AddEquiv.refl V) (by simpa using hrange.symm)
   exact e.trans D.quotientIotaKernelEquiv
-
-@[reducible] def retractionKerDistribMulAction
-    {K : Type z} [Group K]
-    [DistribMulAction K P] [DistribMulAction K B₀]
-    (hretraction : ∀ (k : K) (b : B₀),
-      D.retraction (k • b) = k • D.retraction b) :
-    DistribMulAction K D.retraction.ker where
-  smul k b :=
-    ⟨k • (b : B₀), by
-      change D.retraction (k • (b : B₀)) = 0
-      rw [hretraction, b.property, smul_zero]⟩
-  one_smul b := Subtype.ext (one_smul K (b : B₀))
-  mul_smul k l b := Subtype.ext (mul_smul k l (b : B₀))
-  smul_zero k := Subtype.ext (smul_zero k)
-  smul_add k x y := Subtype.ext (smul_add k (x : B₀) (y : B₀))
-
-theorem quotientSigma_smul
-    {K : Type z} [Group K]
-    [DistribMulAction K E] [DistribMulAction K B₀]
-    [DistribMulAction K D.retraction.ker]
-    (hsigma : ∀ (k : K) (x : E), D.sigma (k • x) = k • D.sigma x)
-    (hker : ∀ (k : K) (b : D.retraction.ker),
-      ((k • b : D.retraction.ker) : B₀) = k • (b : B₀))
-    (k : K) (a : twoTorsionQuotient E D.exponent_four) :
-    D.quotientSigma (k • a) = k • D.quotientSigma a := by
-  induction a using Quotient.inductionOn with
-  | _ x =>
-      change D.quotientSigma
-          ((QuotientAddGroup.mk' (doubledWithinTwoTorsion E D.exponent_four))
-            (k • x)) =
-        k • D.quotientSigma
-          ((QuotientAddGroup.mk' (doubledWithinTwoTorsion E D.exponent_four)) x)
-      rw [D.quotientSigma_mk, D.quotientSigma_mk]
-      apply Subtype.ext
-      exact (hsigma k x).trans (hker k (D.sigmaIntoRetractionKer x)).symm
-
-theorem finiteOrbit_iff_mem_quotientIota_range
-    {K : Type z} [Group K]
-    [DistribMulAction K E] [DistribMulAction K B₀]
-    [DistribMulAction K D.retraction.ker]
-    (hsigma : ∀ (k : K) (x : E), D.sigma (k • x) = k • D.sigma x)
-    (hker : ∀ (k : K) (b : D.retraction.ker),
-      ((k • b : D.retraction.ker) : B₀) = k • (b : B₀))
-    [Finite D.quotientSigma.ker]
-    (hinfinite : ∀ b : D.retraction.ker,
-      b ≠ 0 → ¬(MulAction.orbit K b).Finite)
-    (a : twoTorsionQuotient E D.exponent_four) :
-    (MulAction.orbit K a).Finite ↔ a ∈ D.quotientIota.range := by
-  rw [← D.quotientSigma_ker_eq_quotientIota_range]
-  exact finiteOrbit_iff_equivariantHom_eq_zero
-    D.quotientSigma (D.quotientSigma_smul hsigma hker) hinfinite a
-
-theorem finiteOrbitSubgroup_card
-    (D : ExponentFourExtension V E B₀)
-    {K : Type z} [Group K]
-    [DistribMulAction K E] [DistribMulAction K B₀]
-    [DistribMulAction K D.retraction.ker]
-    (hsigma : ∀ (k : K) (x : E), D.sigma (k • x) = k • D.sigma x)
-    (hker : ∀ (k : K) (b : D.retraction.ker),
-      ((k • b : D.retraction.ker) : B₀) = k • (b : B₀))
-    (hinfinite : ∀ b : D.retraction.ker,
-      b ≠ 0 → ¬(MulAction.orbit K b).Finite)
-    (n : ℕ) (hshift : D.shift = (shiftVector n).toAddMonoidHom) :
-    Nat.card (finiteOrbitSubgroup K
-      (twoTorsionQuotient E D.exponent_four)) = 2 ^ (4 * n) := by
-  exact finiteOrbitSubgroup_card_eq_two_pow_four_mul n D.quotientSigma
-    (D.quotientSigma_smul hsigma hker) hinfinite
-    (D.shiftedQuotientToKernelEquiv n hshift)
 
 def quotientSigmaToB : twoTorsionQuotient E D.exponent_four →+ B₀ :=
   D.retraction.ker.subtype.comp D.quotientSigma
@@ -46887,18 +34355,6 @@ def intrinsicFiniteOrbitCarrierEquivFiniteOrbitSubgroup
     exact congrArg Multiplicative.toAdd
       (e.apply_symm_apply (Multiplicative.ofAdd (a : A)))
 
-theorem intrinsicFiniteOrbitCarrier_card_eq_finiteOrbitSubgroup
-    (projection : G →* K) (hprojection : Function.Surjective projection)
-    (e : intrinsicSubquotient I D ≃* Multiplicative A)
-    (he : ∀ (g : G) (q : intrinsicSubquotient I D),
-      Multiplicative.toAdd (e (intrinsicConjugationAction I D g q)) =
-        projection g • Multiplicative.toAdd (e q)) :
-    Nat.card (IntrinsicFiniteOrbitCarrier I D) =
-      Nat.card (finiteOrbitSubgroup K A) :=
-  Nat.card_congr
-    (intrinsicFiniteOrbitCarrierEquivFiniteOrbitSubgroup
-      projection hprojection e he)
-
 end AbstractOrbitBridge
 
 section SemidirectCanonicalSubgroups
@@ -47156,28 +34612,6 @@ variable {E : Type u} {K : Type v} {E' : Type w} {K' : Type z}
   [AddCommGroup E] [Group K] [AddCommGroup E'] [Group K']
   [DistribMulAction K E] [DistribMulAction K' E']
 
-theorem semidirect_twoTorsionQuotient_finiteOrbit_card_eq
-    (φ : K →* MulAut (Multiplicative E))
-    (ψ : K' →* MulAut (Multiplicative E'))
-    (hfour : ∀ x : E, (4 : ℕ) • x = 0)
-    (hK : ∀ k : K, IsOfFinOrder k → k = 1)
-    (hfour' : ∀ x : E', (4 : ℕ) • x = 0)
-    (hK' : ∀ k : K', IsOfFinOrder k → k = 1)
-    (hact : ∀ (k : K) (x : E),
-      k • x = Multiplicative.toAdd (φ k (Multiplicative.ofAdd x)))
-    (hact' : ∀ (k : K') (x : E'),
-      k • x = Multiplicative.toAdd (ψ k (Multiplicative.ofAdd x)))
-    (f : (Multiplicative E ⋊[φ] K) ≃*
-      (Multiplicative E' ⋊[ψ] K')) :
-    Nat.card (finiteOrbitSubgroup K (twoTorsionQuotient E hfour)) =
-      Nat.card (finiteOrbitSubgroup K'
-        (twoTorsionQuotient E' hfour')) := by
-  apply twoTorsionQuotient_finiteOrbit_card_eq hfour hfour'
-    (additiveSemidirectActingMulEquiv φ ψ hfour hK hfour' hK' f)
-    (semidirectKernelAddEquiv φ ψ hfour hK hfour' hK' f)
-  exact semidirectKernelAddEquiv_smul φ ψ hact hact'
-    hfour hK hfour' hK' f
-
 end SemidirectIsomorphism
 
 end
@@ -47376,31 +34810,6 @@ theorem paperInvariant_semidirect_value_eq
   Nat.card_congr
     (paperInvariant_semidirect_carrier_equiv
       φ hfour hK hact G eG)
-
-theorem paperInvariant_semidirect_value_eq_two_pow_four_mul
-    [DistribMulAction K E]
-    {B₀ : Type w} [AddCommGroup B₀] [DistribMulAction K B₀]
-    (hfour : ∀ x : E, (4 : ℕ) • x = 0)
-    (hK : ∀ k : K, IsOfFinOrder k → k = 1)
-    (hact : ∀ (k : K) (x : E),
-      k • x = Multiplicative.toAdd (φ k (Multiplicative.ofAdd x)))
-    (G : ConnesRigidity.CountableDiscreteGroup.{max u v})
-    (eG : G ≃* (Multiplicative E ⋊[φ] K))
-    (n : ℕ) (p : twoTorsionQuotient E hfour →+ B₀)
-    (hp : ∀ (k : K) (a : twoTorsionQuotient E hfour),
-      p (k • a) = k • p a)
-    (hB : ∀ b : B₀, b ≠ 0 →
-      ¬(MulAction.orbit K b).Finite)
-    (kernelEquiv : ShiftedQuotient n ≃+ p.ker) :
-    paperGroupCardinalInvariant.value G = 2 ^ (4 * n) := by
-  calc
-    paperGroupCardinalInvariant.value G =
-        Nat.card
-          (finiteOrbitSubgroup K (twoTorsionQuotient E hfour)) :=
-      paperInvariant_semidirect_value_eq φ hfour hK hact G eG
-    _ = 2 ^ (4 * n) :=
-      finiteOrbitSubgroup_card_eq_two_pow_four_mul
-        n p hp hB kernelEquiv
 
 end SemidirectRepresentative
 
@@ -47630,111 +35039,6 @@ theorem gamma_hasFiniteSpectralDetection_of_measureGap (n : ℕ)
     nlinarith
   simpa [gamma_detectors_ne n] using hcombined
 
-structure GammaSpectralInput (n : ℕ) where
-
-  spectral : ∀ (W : Type)
-    (_ : NormedAddCommGroup W)
-    (_ : InnerProductSpace ℂ W)
-    (_ : CompleteSpace W)
-    (π : UnitaryRepresentation (gammaGroup n) W),
-      SpectralMeasureInterface (gammaSplitAbelianExtension n) W π
-
-  detection_gap : HasFiniteSpectralDetection
-    (gammaSplitAbelianExtension n)
-    {gammaLinearDetector n, gammaQuadraticDetector n} (2 / 7 : ℝ)
-
-theorem gamma_hasKazhdanPropertyT (n : ℕ)
-    (hUniversalLattice : ErshovJaikinUniversalLatticePropertyT)
-    (analytic : GammaSpectralInput n) :
-    HasKazhdanPropertyT (gammaGroup n) := by
-  apply spectral_criterion (gammaSplitAbelianExtension n)
-    (actingGroup_hasKazhdanPropertyT hUniversalLattice)
-    {gammaLinearDetector n, gammaQuadraticDetector n}
-    (by norm_num)
-    analytic.detection_gap
-  exact analytic.spectral
-
-structure GammaProjectionSpectralInput (n : ℕ) where
-
-  projection : ∀ (W : Type)
-    (_ : NormedAddCommGroup W)
-    (_ : InnerProductSpace ℂ W)
-    (_ : CompleteSpace W)
-    (π : UnitaryRepresentation (gammaGroup n) W),
-      ProjectionValuedSpectralMeasure (gammaSplitAbelianExtension n) W π
-
-structure GammaRieszSpectralInput (n : ℕ) where
-
-  compatibility : ∀ (W : Type)
-    (_ : NormedAddCommGroup W)
-    (_ : InnerProductSpace ℂ W)
-    (_ : CompleteSpace W)
-    (π : UnitaryRepresentation (gammaGroup n) W),
-      SpectralAtomCompatibility (gammaSplitAbelianExtension n) π
-        (jointPositiveSpectralFunctional (gammaSplitAbelianExtension n) π)
-
-def GammaProjectionSpectralInput.toGammaSpectralInput
-    {n : ℕ} (analytic : GammaProjectionSpectralInput n)
-    (hgap : ∀ μ : ProbabilityMeasure (DiscreteCharacterSpace (E n)),
-      IsInvariantSpectralMeasure (gammaSplitAbelianExtension n).action μ →
-        (1 / 7 : ℝ) * (1 - spectralTrivialAtom μ) ≤
-          (μ : Measure (DiscreteCharacterSpace (E n))).real
-            (gammaDetectedSet n)) :
-    GammaSpectralInput n where
-  spectral W _ _ _ π :=
-    (analytic.projection W inferInstance inferInstance inferInstance π)
-      |>.toSpectralMeasureInterface
-        (quotientFixedApproximation (gammaSplitAbelianExtension n) π)
-  detection_gap := gamma_hasFiniteSpectralDetection_of_measureGap n hgap
-
-theorem gamma_hasKazhdanPropertyT_of_projection_valued_measure
-    (n : ℕ)
-    (hUniversalLattice : ErshovJaikinUniversalLatticePropertyT)
-    (analytic : GammaProjectionSpectralInput n)
-    (hgap : ∀ μ : ProbabilityMeasure (DiscreteCharacterSpace (E n)),
-      IsInvariantSpectralMeasure (gammaSplitAbelianExtension n).action μ →
-        (1 / 7 : ℝ) * (1 - spectralTrivialAtom μ) ≤
-          (μ : Measure (DiscreteCharacterSpace (E n))).real
-            (gammaDetectedSet n)) :
-    HasKazhdanPropertyT (gammaGroup n) := by
-  apply spectral_criterion_of_projection_valued_measure
-    (gammaSplitAbelianExtension n)
-    (actingGroup_hasKazhdanPropertyT hUniversalLattice)
-    {gammaLinearDetector n, gammaQuadraticDetector n}
-    (by norm_num)
-    (gamma_hasFiniteSpectralDetection_of_measureGap n hgap)
-  · exact analytic.projection
-  · intro W _ _ _ π
-    exact quotientFixedApproximation (gammaSplitAbelianExtension n) π
-
-def GammaRieszSpectralInput.toGammaSpectralInput
-    {n : ℕ} (analytic : GammaRieszSpectralInput n)
-    (hgap : ∀ μ : ProbabilityMeasure (DiscreteCharacterSpace (E n)),
-      IsInvariantSpectralMeasure (gammaSplitAbelianExtension n).action μ →
-        (1 / 7 : ℝ) * (1 - spectralTrivialAtom μ) ≤
-          (μ : Measure (DiscreteCharacterSpace (E n))).real
-            (gammaDetectedSet n)) :
-    GammaSpectralInput n where
-  spectral W hnorm hinner hcomplete π :=
-    (jointPositiveSpectralFunctional (gammaSplitAbelianExtension n) π)
-      |>.toSpectralMeasureInterfaceOfRiesz
-        (analytic.compatibility W hnorm hinner hcomplete π)
-        (quotientFixedApproximation (gammaSplitAbelianExtension n) π)
-  detection_gap := gamma_hasFiniteSpectralDetection_of_measureGap n hgap
-
-theorem gamma_hasKazhdanPropertyT_of_riesz_functional
-    (n : ℕ)
-    (hUniversalLattice : ErshovJaikinUniversalLatticePropertyT)
-    (analytic : GammaRieszSpectralInput n)
-    (hgap : ∀ μ : ProbabilityMeasure (DiscreteCharacterSpace (E n)),
-      IsInvariantSpectralMeasure (gammaSplitAbelianExtension n).action μ →
-        (1 / 7 : ℝ) * (1 - spectralTrivialAtom μ) ≤
-          (μ : Measure (DiscreteCharacterSpace (E n))).real
-            (gammaDetectedSet n)) :
-    HasKazhdanPropertyT (gammaGroup n) :=
-  gamma_hasKazhdanPropertyT n hUniversalLattice
-    (analytic.toGammaSpectralInput hgap)
-
 end ConnesRigidity
 
 end
@@ -47825,65 +35129,6 @@ theorem primitiveCount_subtraction (N : ℕ) (hN : 0 < N) :
     7 * countingScale N + 1
   omega
 
-theorem box_sub_primitiveCount (N : ℕ) (hN : 0 < N) :
-    2 ^ (4 * N) - primitiveCount N = countingScale N - 1 := by
-  have hscale := eight_mul_countingScale N hN
-  have hpositive : 0 < countingScale N := pow_pos (by omega) _
-  rw [primitiveCount_eq N hN]
-  change 2 ^ (4 * N) - (7 * countingScale N + 1) = countingScale N - 1
-  omega
-
-theorem card_vector_sub_primitiveCount (N : ℕ) (hN : 0 < N) :
-    Fintype.card (BinaryPolynomialVector N) - primitiveCount N =
-      2 ^ (4 * N - 3) - 1 := by
-  rw [card_binaryPolynomialVector, box_sub_primitiveCount N hN]
-  rfl
-
-theorem quarter_box_sub_nonprimitive (N : ℕ) (hN : 0 < N) :
-    2 ^ (4 * N - 2) - (countingScale N - 1) = countingScale N + 1 := by
-  have hexp : 4 * N - 3 + 1 = 4 * N - 2 := by omega
-  have hdouble : 2 ^ (4 * N - 2) = 2 * countingScale N := by
-    unfold countingScale
-    rw [← hexp, pow_add]
-    simp [Nat.mul_comm]
-  have hpositive : 0 < countingScale N := pow_pos (by omega) _
-  omega
-
-theorem seven_mul_detecting_lower_bound (N : ℕ) (hN : 0 < N) :
-    primitiveCount N ≤ 7 * (countingScale N + 1) := by
-  rw [primitiveCount_eq N hN]
-  change 7 * countingScale N + 1 ≤ 7 * (countingScale N + 1)
-  omega
-
-theorem primitive_detection_bound (N support : ℕ) (hN : 0 < N)
-    (hsupport : 2 ^ (4 * N - 2) ≤ support) :
-    primitiveCount N ≤ 7 * (support - (2 ^ (4 * N) - primitiveCount N)) := by
-  have hremoved := box_sub_primitiveCount N hN
-  have hremaining := quarter_box_sub_nonprimitive N hN
-  have hseventh := seven_mul_detecting_lower_bound N hN
-  omega
-
-theorem primitive_density (N : ℕ) (hN : 0 < N) :
-    (primitiveCount N : ℚ) / 2 ^ (4 * N) =
-      7 / 8 + 1 / (2 ^ (4 * N) : ℚ) := by
-  have hscale := eight_mul_countingScale N hN
-  have hbox : (2 ^ (4 * N) : ℚ) ≠ 0 := by positivity
-  rw [primitiveCount_eq N hN]
-  push_cast
-  have hscaleQ : (8 : ℚ) * (countingScale N : ℚ) = 2 ^ (4 * N) := by
-    exact_mod_cast hscale
-  simp [countingScale] at hscaleQ
-  field_simp
-  nlinarith
-
-theorem one_seventh_density_identity :
-    ((1 / 4 : ℚ) - 1 / 8) / (1 - 1 / 8) = 1 / 7 := by
-  norm_num
-
-theorem rank_four_detection_constant :
-    (((2 : ℚ) ^ (4 - 3) - 1) / (2 ^ (4 - 1) - 1)) = 1 / 7 := by
-  norm_num
-
 end
 
 end ConnesRigidity
@@ -47930,10 +35175,6 @@ def polynomialVectorVal {N : ℕ} (v : BinaryPolynomialVector N) : V :=
 
 abbrev NonzeroPolynomialVector (N : ℕ) :=
   {v : BinaryPolynomialVector N // v ≠ 0}
-
-abbrev NonprimitiveNonzeroVector (N : ℕ) :=
-  {v : BinaryPolynomialVector N //
-    v ≠ 0 ∧ ¬ IsPrimitiveVector (polynomialVectorVal v)}
 
 noncomputable instance primitivePolynomialVectorFintype (N : ℕ) :
     Fintype (PrimitivePolynomialVector N) := by
@@ -48004,20 +35245,6 @@ theorem vectorGCD_div_eq_one {v : V} (hv : v ≠ 0) :
   change Finset.univ.gcd (fun i ↦ v i / Finset.univ.gcd v) = 1
   exact Finset.gcd_div_eq_one (Finset.mem_univ i) hi
 
-theorem gcd_mul_div_coordinate {v : V} (hv : v ≠ 0) (i : Fin 4) :
-    vectorGCD v * (v i / vectorGCD v) = v i := by
-  exact EuclideanDomain.mul_div_cancel'
-    (vectorGCD_ne_zero hv) (vectorGCD_dvd v i)
-
-theorem vectorGCD_div_ne_zero {v : V} (hv : v ≠ 0) :
-    (fun i ↦ v i / vectorGCD v) ≠ 0 := by
-  intro hzero
-  have hprimitive := vectorGCD_div_eq_one hv
-  have hgzero : vectorGCD (0 : V) = 0 :=
-    (vectorGCD_eq_zero_iff (0 : V)).mpr rfl
-  rw [hzero, hgzero] at hprimitive
-  exact zero_ne_one hprimitive
-
 theorem bounded_natDegree_lt {N : ℕ}
     (p : BinaryBoundedPolynomial N) (hp : (p : R) ≠ 0) :
     (p : R).natDegree < N := by
@@ -48033,119 +35260,6 @@ theorem mem_degreeLT_of_natDegree_lt {N : ℕ} (p : R)
     by_cases hpzero : p = 0
     · simp [hpzero]
     · exact (Polynomial.natDegree_lt_iff_degree_lt hpzero).mp hp
-
-theorem monic_natDegree_pos {g : R} (hg : g.Monic) (hne : g ≠ 1) :
-    0 < g.natDegree := by
-  exact Nat.pos_of_ne_zero (fun hzero ↦ hne (hg.natDegree_eq_zero.mp hzero))
-
-theorem monic_divX {g : R} (hg : g.Monic) (hpos : 0 < g.natDegree) :
-    g.divX.Monic := by
-  unfold Polynomial.Monic
-  rw [Polynomial.leadingCoeff, Polynomial.coeff_divX,
-    Polynomial.natDegree_divX_eq_natDegree_tsub_one,
-    Nat.sub_add_cancel hpos]
-  exact hg
-
-theorem monic_X_mul_add_C (g : R) (hg : g.Monic) (b : F) :
-    (Polynomial.X * g + Polynomial.C b).Monic := by
-  apply (Polynomial.monic_X.mul hg).add_of_left
-  have hpos : 0 < (Polynomial.X * g).natDegree := by
-    rw [Polynomial.natDegree_X_mul hg.ne_zero]
-    omega
-  exact Polynomial.degree_C_le.trans_lt
-    ((Polynomial.natDegree_pos_iff_degree_pos).mp hpos)
-
-theorem natDegree_X_mul_add_C (g : R) (hg : g.Monic) (b : F) :
-    (Polynomial.X * g + Polynomial.C b).natDegree = g.natDegree + 1 := by
-  have hlt : (Polynomial.C b).degree < (Polynomial.X * g).degree := by
-    have hpos : 0 < (Polynomial.X * g).natDegree := by
-      rw [Polynomial.natDegree_X_mul hg.ne_zero]
-      omega
-    exact Polynomial.degree_C_le.trans_lt
-      ((Polynomial.natDegree_pos_iff_degree_pos).mp hpos)
-  rw [Polynomial.natDegree_add_eq_left_of_degree_lt hlt,
-    Polynomial.natDegree_X_mul hg.ne_zero]
-
-theorem bounded_mul {N d : ℕ} {g q : R}
-    (hg : g.Monic) (hd : g.natDegree = d)
-    (hq : q ∈ Polynomial.degreeLT F (N - d)) :
-    g * q ∈ Polynomial.degreeLT F N := by
-  by_cases hqzero : q = 0
-  · simp [hqzero]
-  have hqdeg : q.natDegree < N - d :=
-    (Polynomial.natDegree_lt_iff_degree_lt hqzero).mpr
-      (Polynomial.mem_degreeLT.mp hq)
-  apply Polynomial.mem_degreeLT.mpr
-  rw [Polynomial.degree_eq_natDegree (hg.mul_right_ne_zero hqzero),
-    hg.natDegree_mul' hqzero, hd, Nat.cast_lt]
-  omega
-
-theorem bounded_div {N d : ℕ} {g p : R}
-    (hg : g.Monic) (hd : g.natDegree = d) (hdiv : g ∣ p)
-    (hp : p ∈ Polynomial.degreeLT F N) :
-    p / g ∈ Polynomial.degreeLT F (N - d) := by
-  by_cases hpzero : p = 0
-  · simp [hpzero]
-  have hprod : g * (p / g) = p :=
-    EuclideanDomain.mul_div_cancel' hg.ne_zero hdiv
-  have hqzero : p / g ≠ 0 := by
-    intro h
-    simp [h] at hprod
-    exact hpzero hprod.symm
-  have hpdeg : p.natDegree < N :=
-    (Polynomial.natDegree_lt_iff_degree_lt hpzero).mpr
-      (Polynomial.mem_degreeLT.mp hp)
-  have hdeg := congrArg Polynomial.natDegree hprod
-  rw [hg.natDegree_mul' hqzero, hd] at hdeg
-  apply Polynomial.mem_degreeLT.mpr
-  rw [Polynomial.degree_eq_natDegree hqzero, Nat.cast_lt]
-  omega
-
-theorem shift_down_mem {N : ℕ} {g q : R}
-    (hg : g.Monic) (hpos : 0 < g.natDegree)
-    (hp : g * q ∈ Polynomial.degreeLT F N) :
-    g.divX * q ∈ Polynomial.degreeLT F (N - 1) := by
-  by_cases hq : q = 0
-  · simp [hq]
-  have hprod : g * q ≠ 0 := hg.mul_right_ne_zero hq
-  have hproddeg : (g * q).natDegree < N :=
-    (Polynomial.natDegree_lt_iff_degree_lt hprod).mpr
-      (Polynomial.mem_degreeLT.mp hp)
-  rw [hg.natDegree_mul' hq] at hproddeg
-  have htail := monic_divX hg hpos
-  apply Polynomial.mem_degreeLT.mpr
-  rw [Polynomial.degree_eq_natDegree (htail.mul_right_ne_zero hq),
-    htail.natDegree_mul' hq,
-    Polynomial.natDegree_divX_eq_natDegree_tsub_one,
-    Nat.cast_lt]
-  omega
-
-theorem shift_up_mem {N : ℕ} {p : R}
-    (hp : p ∈ Polynomial.degreeLT F (N - 1)) :
-    Polynomial.X * p ∈ Polynomial.degreeLT F N := by
-  by_cases hpzero : p = 0
-  · simp [hpzero]
-  have hpdeg : p.natDegree < N - 1 :=
-    (Polynomial.natDegree_lt_iff_degree_lt hpzero).mpr
-      (Polynomial.mem_degreeLT.mp hp)
-  apply Polynomial.mem_degreeLT.mpr
-  rw [Polynomial.degree_eq_natDegree
-    (Polynomial.monic_X.mul_right_ne_zero hpzero),
-    Polynomial.natDegree_X_mul hpzero, Nat.cast_lt]
-  omega
-
-theorem quotient_mem_same_bound {N : ℕ} {p g : R}
-    (hp : p ∈ Polynomial.degreeLT F N) :
-    p / g ∈ Polynomial.degreeLT F N := by
-  apply Polynomial.mem_degreeLT.mpr
-  exact (Polynomial.degree_div_le p g).trans_lt
-    (Polynomial.mem_degreeLT.mp hp)
-
-theorem const_mul_mem {N : ℕ} (b : F) {p : R}
-    (hp : p ∈ Polynomial.degreeLT F N) :
-    Polynomial.C b * p ∈ Polynomial.degreeLT F N := by
-  simpa [Polynomial.smul_eq_C_mul] using
-    (Polynomial.degreeLT F N).smul_mem b hp
 
 @[simp] theorem divX_X_mul_add_C (h : R) (b : F) :
     (Polynomial.X * h + Polynomial.C b).divX = h := by
@@ -48215,15 +35329,6 @@ theorem nonzeroVector_coe_ne_zero {N : ℕ}
     polynomialVectorVal v.val ≠ 0 := by
   exact fun hzero ↦ v.property
     ((polynomialVectorVal_eq_zero_iff v.val).mp hzero)
-
-theorem exists_nonzeroCoordinate {N : ℕ}
-    (v : NonzeroPolynomialVector N) :
-    ∃ i : Fin 4, (v.val i : R) ≠ 0 := by
-  by_contra h
-  apply nonzeroVector_coe_ne_zero v
-  apply funext
-  intro i
-  exact not_ne_iff.mp (not_exists.mp h i)
 
 theorem quotient_isPrimitive {N : ℕ}
     (v : NonzeroPolynomialVector N) :
@@ -48371,13 +35476,6 @@ noncomputable def gcdDegreeFiberEquiv {N : ℕ} (d : Fin N) :
   left_inv := productToFiber_fiberToProduct
   right_inv := fiberToProduct_productToFiber d
 
-theorem gcd_degree_fiber_count (N : ℕ) :
-    2 ^ (4 * N) - 1 =
-      ∑ d : Fin N, Fintype.card
-        {v : NonzeroPolynomialVector N // gcdDegreeMap N v = d} := by
-  rw [← card_nonzeroPolynomialVector]
-  exact card_eq_sum_card_fibers (gcdDegreeMap N)
-
 theorem primitive_gcd_convolution (N : ℕ) :
     2 ^ (4 * N) - 1 =
       ∑ d : Fin N,
@@ -48497,26 +35595,6 @@ theorem primitiveVector_specialLinear_completion (v : V)
   apply primitiveVector_specialLinear_completion_of_coordinateIdeal
   exact (isPrimitiveVector_iff_coordinateIdeal_eq_top v).mp hv
 
-theorem primitiveVector_specialLinear_reduction (v : V)
-    (hv : IsPrimitiveVector v) :
-    ∃ g : Q, Matrix.mulVec (g : Matrix (Fin 4) (Fin 4) R) v = e := by
-  obtain ⟨g, hg⟩ := primitiveVector_specialLinear_completion v hv
-  change g • e = v at hg
-  refine ⟨g⁻¹, ?_⟩
-  change g⁻¹ • v = e
-  simp [← hg]
-
-theorem primitiveVector_specialLinear_transitive (v w : V)
-    (hv : IsPrimitiveVector v) (hw : IsPrimitiveVector w) :
-    ∃ g : Q, Matrix.mulVec (g : Matrix (Fin 4) (Fin 4) R) v = w := by
-  obtain ⟨g, hg⟩ := primitiveVector_specialLinear_reduction v hv
-  obtain ⟨h, hh⟩ := primitiveVector_specialLinear_completion w hw
-  change g • v = e at hg
-  change h • e = w at hh
-  refine ⟨h * g, ?_⟩
-  change (h * g) • v = w
-  rw [mul_smul, hg, hh]
-
 end
 
 end ConnesRigidity
@@ -48528,39 +35606,6 @@ section
 noncomputable section
 
 namespace ConnesRigidity
-
-theorem coordinateIdeal_specialLinear_le (g : Q) (v : V) :
-    coordinateIdeal (Matrix.SpecialLinearGroup.toLin' g v) ≤
-      coordinateIdeal v := by
-  rw [coordinateIdeal, Ideal.span_le]
-  rintro x ⟨i, rfl⟩
-  change (∑ j : Fin 4, (g : Matrix (Fin 4) (Fin 4) R) i j * v j)
-    ∈ coordinateIdeal v
-  exact Ideal.sum_mem _ (fun j _ => Ideal.mul_mem_left _ _
-    (show v j ∈ coordinateIdeal v from Ideal.mem_span_range_self))
-
-theorem coordinateIdeal_specialLinear (g : Q) (v : V) :
-    coordinateIdeal (Matrix.SpecialLinearGroup.toLin' g v) =
-      coordinateIdeal v := by
-  apply le_antisymm (coordinateIdeal_specialLinear_le g v)
-  have hreverse := coordinateIdeal_specialLinear_le g⁻¹
-    (Matrix.SpecialLinearGroup.toLin' g v)
-  simpa using hreverse
-
-theorem isPrimitiveVector_specialLinear_iff (g : Q) (v : V) :
-    IsPrimitiveVector (Matrix.SpecialLinearGroup.toLin' g v) ↔
-      IsPrimitiveVector v := by
-  rw [isPrimitiveVector_iff_coordinateIdeal_eq_top,
-    isPrimitiveVector_iff_coordinateIdeal_eq_top,
-    coordinateIdeal_specialLinear]
-
-theorem coordinateIdeal_kLinear (k : K) (v : V) :
-    coordinateIdeal (kLinear k v) = coordinateIdeal v :=
-  coordinateIdeal_specialLinear (pi₂ k) v
-
-theorem isPrimitiveVector_kLinear_iff (k : K) (v : V) :
-    IsPrimitiveVector (kLinear k v) ↔ IsPrimitiveVector v :=
-  isPrimitiveVector_specialLinear_iff (pi₂ k) v
 
 theorem e_isPrimitiveVector : IsPrimitiveVector e := by
   apply (isPrimitiveVector_iff_coordinateIdeal_eq_top e).mpr
@@ -48583,66 +35628,10 @@ theorem primitiveVector_actingGroup_completion_of_surjective
   rw [hk]
   exact hg
 
-theorem primitiveVector_actingGroup_reduction_of_surjective
-    (hsurj : Function.Surjective pi₂)
-    (v : V) (hv : IsPrimitiveVector v) :
-    ∃ k : K, kLinear k v = e := by
-  obtain ⟨g, hg⟩ := primitiveVector_specialLinear_reduction v hv
-  obtain ⟨k, hk⟩ := hsurj g
-  refine ⟨k, ?_⟩
-  change Matrix.SpecialLinearGroup.toLin' (pi₂ k) v = e
-  rw [hk]
-  exact hg
-
-theorem primitiveVector_actingGroup_transitive_of_surjective
-    (hsurj : Function.Surjective pi₂)
-    (v w : V) (hv : IsPrimitiveVector v) (hw : IsPrimitiveVector w) :
-    ∃ k : K, kLinear k v = w := by
-  obtain ⟨g, hg⟩ := primitiveVector_specialLinear_transitive v w hv hw
-  obtain ⟨k, hk⟩ := hsurj g
-  refine ⟨k, ?_⟩
-  change Matrix.SpecialLinearGroup.toLin' (pi₂ k) v = w
-  rw [hk]
-  exact hg
-
-theorem primitiveVector_actingGroup_orbit_iff_of_surjective
-    (hsurj : Function.Surjective pi₂) (v : V) :
-    v ∈ Set.range (fun k : K => kLinear k e) ↔ IsPrimitiveVector v := by
-  constructor
-  · rintro ⟨k, rfl⟩
-    exact (isPrimitiveVector_kLinear_iff k e).mpr e_isPrimitiveVector
-  · exact primitiveVector_actingGroup_completion_of_surjective hsurj v
-
 theorem primitiveVector_actingGroup_completion
     (v : V) (hv : IsPrimitiveVector v) :
     ∃ k : K, kLinear k e = v :=
   primitiveVector_actingGroup_completion_of_surjective pi₂_surjective v hv
-
-theorem primitiveVector_actingGroup_reduction
-    (v : V) (hv : IsPrimitiveVector v) :
-    ∃ k : K, kLinear k v = e :=
-  primitiveVector_actingGroup_reduction_of_surjective pi₂_surjective v hv
-
-theorem primitiveVector_actingGroup_transitive
-    (v w : V) (hv : IsPrimitiveVector v) (hw : IsPrimitiveVector w) :
-    ∃ k : K, kLinear k v = w :=
-  primitiveVector_actingGroup_transitive_of_surjective pi₂_surjective
-    v w hv hw
-
-theorem primitiveVector_actingGroup_orbit_iff (v : V) :
-    v ∈ Set.range (fun k : K => kLinear k e) ↔ IsPrimitiveVector v :=
-  primitiveVector_actingGroup_orbit_iff_of_surjective pi₂_surjective v
-
-theorem primitiveVector_actingGroup_orbit_eq
-    (v : V) (hv : IsPrimitiveVector v) :
-    (Set.range fun k : K => kLinear k v) =
-      {w : V | IsPrimitiveVector w} := by
-  ext w
-  constructor
-  · rintro ⟨k, rfl⟩
-    exact (isPrimitiveVector_kLinear_iff k v).mpr hv
-  · intro hw
-    exact primitiveVector_actingGroup_transitive v w hv hw
 
 def linearDetectorAt (v : V) : D := (v, 0)
 
@@ -48661,39 +35650,6 @@ def quadraticDetectorAt (v : V) : D := (0, diagonal v)
   apply Prod.ext
   · exact map_zero (kLinear k).toLinearMap
   · exact kDividedSquareLinear_diagonal k v
-
-theorem primitiveVector_jointDetector_orbit_of_surjective
-    (hsurj : Function.Surjective pi₂)
-    (v : V) (hv : IsPrimitiveVector v) :
-    ∃ k : K,
-      kDLinear k (e, 0) = (v, 0) ∧
-      kDLinear k (0, diagonal e) = (0, diagonal v) := by
-  obtain ⟨k, hk⟩ :=
-    primitiveVector_actingGroup_completion_of_surjective hsurj v hv
-  refine ⟨k, ?_, ?_⟩
-  · exact (kDLinear_linearDetectorAt k e).trans
-      (by simp [linearDetectorAt, hk])
-  · exact (kDLinear_quadraticDetectorAt k e).trans
-      (by simp [quadraticDetectorAt, hk])
-
-theorem primitiveVector_jointDetector_orbit
-    (v : V) (hv : IsPrimitiveVector v) :
-    ∃ k : K,
-      kDLinear k (e, 0) = (v, 0) ∧
-      kDLinear k (0, diagonal e) = (0, diagonal v) :=
-  primitiveVector_jointDetector_orbit_of_surjective pi₂_surjective v hv
-
-theorem primitiveVector_jointDetector_transitive
-    (v w : V) (hv : IsPrimitiveVector v) (hw : IsPrimitiveVector w) :
-    ∃ k : K,
-      kDLinear k (v, 0) = (w, 0) ∧
-      kDLinear k (0, diagonal v) = (0, diagonal w) := by
-  obtain ⟨k, hk⟩ := primitiveVector_actingGroup_transitive v w hv hw
-  refine ⟨k, ?_, ?_⟩
-  · exact (kDLinear_linearDetectorAt k v).trans
-      (by simp [linearDetectorAt, hk])
-  · exact (kDLinear_quadraticDetectorAt k v).trans
-      (by simp [quadraticDetectorAt, hk])
 
 end ConnesRigidity
 
@@ -48936,35 +35892,6 @@ theorem character_truncated_detection_primitive_seventh
     (by
       simp only [Finset.card_univ, card_binaryPolynomialVector]
       exact DetectionGap.cube_card_eq_eight_mul_scale N hN)
-    (primitiveTruncationFinset_card N hN)
-    (character_truncated_detection_quarter_direct N z hz)
-  have hset : detecting ∩ primitiveTruncationFinset N =
-      (primitiveTruncationFinset N).filter
-        (fun x ↦ z.1 (polynomialVectorVal x) ≠ 0 ∨
-          z.2 (diagonal (polynomialVectorVal x)) ≠ 0) := by
-    ext x
-    simp [detecting, and_comm]
-  rwa [hset] at hbound
-
-theorem character_truncated_detection_primitive_card
-    (N : ℕ) (hN : 0 < N) (z : X × Y)
-    (hz : ∃ x : BinaryPolynomialVector N,
-      z.1 (polynomialVectorVal x) ≠ 0 ∨
-        z.2 (diagonal (polynomialVectorVal x)) ≠ 0) :
-    2 ^ (4 * N - 3) + 1 ≤
-      ((primitiveTruncationFinset N).filter
-        (fun x ↦ z.1 (polynomialVectorVal x) ≠ 0 ∨
-          z.2 (diagonal (polynomialVectorVal x)) ≠ 0)).card := by
-  classical
-  let detecting : Finset (BinaryPolynomialVector N) :=
-    Finset.univ.filter
-      (fun x ↦ z.1 (polynomialVectorVal x) ≠ 0 ∨
-        z.2 (diagonal (polynomialVectorVal x)) ≠ 0)
-  have hbound := DetectionGap.primitive_detecting_card_at_level
-    (Finset.univ : Finset (BinaryPolynomialVector N))
-    (primitiveTruncationFinset N) detecting N hN
-    (Finset.subset_univ _) (Finset.filter_subset _ _)
-    (by simpa using card_binaryPolynomialVector N)
     (primitiveTruncationFinset_card N hN)
     (character_truncated_detection_quarter_direct N z hz)
   have hset : detecting ∩ primitiveTruncationFinset N =
@@ -49375,14 +36302,6 @@ theorem homeomorphPushProbability_measureReal
       (μ : Measure α).real (e ⁻¹' s) := by
   exact map_measureReal_apply e.continuous.measurable hs
 
-theorem homeomorphPushProbability_measureReal_eq_of_preimage
-    (e : α ≃ₜ β) (μ : ProbabilityMeasure α)
-    (s : Set β) (t : Set α) (hs : MeasurableSet s)
-    (hevent : e ⁻¹' s = t) :
-    ((homeomorphPushProbability e μ : ProbabilityMeasure β) : Measure β).real s =
-      (μ : Measure α).real t := by
-  rw [homeomorphPushProbability_measureReal e μ s hs, hevent]
-
 theorem homeomorphPushProbability_measureReal_singleton
     [MeasurableSingletonClass β]
     (e : α ≃ₜ β) (μ : ProbabilityMeasure α) (x : α) :
@@ -49598,12 +36517,6 @@ theorem gammaProbability_detection_gap_of_bidual
   rw [hatom] at hgap
   exact hgap.trans hdetected
 
-theorem gamma_hasFiniteSpectralDetection_of_bidual :
-    HasFiniteSpectralDetection (gammaSplitAbelianExtension n)
-      {gammaLinearDetector n, gammaQuadraticDetector n} (2 / 7 : ℝ) :=
-  gamma_hasFiniteSpectralDetection_of_measureGap n
-    (gammaProbability_detection_gap_of_bidual n bidual hbidual)
-
 end EvaluationHomeomorphism
 
 theorem gamma_probability_detection_gap (n : ℕ)
@@ -49622,20 +36535,6 @@ theorem gamma_hasFiniteSpectralDetection (n : ℕ) :
       {gammaLinearDetector n, gammaQuadraticDetector n} (2 / 7 : ℝ) :=
   gamma_hasFiniteSpectralDetection_of_measureGap n
     (gamma_probability_detection_gap n)
-
-theorem gamma_hasKazhdanPropertyT_of_projection (n : ℕ)
-    (hUniversalLattice : ErshovJaikinUniversalLatticePropertyT)
-    (analytic : GammaProjectionSpectralInput n) :
-    HasKazhdanPropertyT (gammaGroup n) :=
-  gamma_hasKazhdanPropertyT_of_projection_valued_measure
-    n hUniversalLattice analytic (gamma_probability_detection_gap n)
-
-theorem gamma_hasKazhdanPropertyT_of_riesz (n : ℕ)
-    (hUniversalLattice : ErshovJaikinUniversalLatticePropertyT)
-    (analytic : GammaRieszSpectralInput n) :
-    HasKazhdanPropertyT (gammaGroup n) :=
-  gamma_hasKazhdanPropertyT_of_riesz_functional
-    n hUniversalLattice analytic (gamma_probability_detection_gap n)
 
 theorem gamma_hasKazhdanPropertyT_unconditional (n : ℕ)
     (hUniversalLattice : ErshovJaikinUniversalLatticePropertyT) :
@@ -49661,65 +36560,6 @@ noncomputable section
 
 namespace ConnesRigidity
 
-open ConnesRigidity MeasureTheory
-
-theorem gamma_rigidity_of_exact
-    (n : ℕ)
-    (sigma : E n →+ B)
-    (hsigma_ker : sigma.ker = (iota n).range)
-    (hsigma_equivariant : ∀ (k : K) (η : E n),
-      sigma (kEAddAction n k η) = kDividedSquareLinear k (sigma η))
-    (hUniversalLattice : ErshovJaikinUniversalLatticePropertyT)
-    (analytic : GammaSpectralInput n) :
-    IsICC (gammaGroup n) ∧
-      HasKazhdanPropertyT (gammaGroup n) ∧ Group.FG (gammaGroup n) := by
-  have hicc : IsICC (gammaGroup n) :=
-    gamma_isICC_of_exact n sigma hsigma_ker hsigma_equivariant
-  have hT : HasKazhdanPropertyT (gammaGroup n) :=
-    gamma_hasKazhdanPropertyT n hUniversalLattice analytic
-  exact ⟨hicc, hT,
-    hasKazhdanPropertyT_finitelyGenerated (gammaGroup n) hT⟩
-
-theorem gamma_rigidity
-    (n : ℕ)
-    (hUniversalLattice : ErshovJaikinUniversalLatticePropertyT)
-    (analytic : GammaSpectralInput n) :
-    IsICC (gammaGroup n) ∧
-      HasKazhdanPropertyT (gammaGroup n) ∧ Group.FG (gammaGroup n) := by
-  have hT : HasKazhdanPropertyT (gammaGroup n) :=
-    gamma_hasKazhdanPropertyT n hUniversalLattice analytic
-  exact ⟨gamma_isICC n, hT,
-    hasKazhdanPropertyT_finitelyGenerated (gammaGroup n) hT⟩
-
-local instance gammaRigidityDualMeasurable (n : ℕ) :
-    MeasurableSpace (DiscreteCharacterSpace (E n)) :=
-  borel (DiscreteCharacterSpace (E n))
-
-local instance gammaRigidityDualBorel (n : ℕ) :
-    BorelSpace (DiscreteCharacterSpace (E n)) := ⟨rfl⟩
-
-theorem gamma_rigidity_of_projection_valued_measure
-    (n : ℕ)
-    (hUniversalLattice : ErshovJaikinUniversalLatticePropertyT)
-    (analytic : GammaProjectionSpectralInput n) :
-    IsICC (gammaGroup n) ∧
-      HasKazhdanPropertyT (gammaGroup n) ∧ Group.FG (gammaGroup n) := by
-  have hT : HasKazhdanPropertyT (gammaGroup n) :=
-    gamma_hasKazhdanPropertyT_of_projection n hUniversalLattice analytic
-  exact ⟨gamma_isICC n, hT,
-    hasKazhdanPropertyT_finitelyGenerated (gammaGroup n) hT⟩
-
-theorem gamma_rigidity_of_riesz_functional
-    (n : ℕ)
-    (hUniversalLattice : ErshovJaikinUniversalLatticePropertyT)
-    (analytic : GammaRieszSpectralInput n) :
-    IsICC (gammaGroup n) ∧
-      HasKazhdanPropertyT (gammaGroup n) ∧ Group.FG (gammaGroup n) := by
-  have hT : HasKazhdanPropertyT (gammaGroup n) :=
-    gamma_hasKazhdanPropertyT_of_riesz n hUniversalLattice analytic
-  exact ⟨gamma_isICC n, hT,
-    hasKazhdanPropertyT_finitelyGenerated (gammaGroup n) hT⟩
-
 end ConnesRigidity
 
 end
@@ -49728,452 +36568,7 @@ section
 
 namespace ConnesRigidity
 
-open ConnesRigidity
-open scoped ENNReal
-
-universe u
-
 noncomputable section
-
-def rightRegularOperator (G : CountableDiscreteGroup.{u}) (g : G) :
-    GroupL2 G →L[ℂ] GroupL2 G :=
-  (Unitary.linearIsometryEquiv.symm
-    (l2Reindex (Equiv.mulRight g)) :
-      unitary (GroupL2 G →L[ℂ] GroupL2 G))
-
-@[simp]
-theorem rightRegularOperator_apply
-    (G : CountableDiscreteGroup.{u}) (g : G)
-    (ξ : GroupL2 G) (h : G) :
-    rightRegularOperator G g ξ h = ξ (h * g⁻¹) :=
-  rfl
-
-theorem leftRegular_commute_rightRegular
-    (G : CountableDiscreteGroup.{u}) (g h : G) :
-    (leftRegularRepresentation G g : GroupL2 G →L[ℂ] GroupL2 G) *
-        rightRegularOperator G h =
-      rightRegularOperator G h *
-        (leftRegularRepresentation G g : GroupL2 G →L[ℂ] GroupL2 G) := by
-  apply ContinuousLinearMap.ext
-  intro ξ
-  ext k
-  simp only [mul_apply_eq_comp, rightRegularOperator_apply]
-  change
-    (leftRegularUnitary g : GroupL2 G →L[ℂ] GroupL2 G)
-        (rightRegularOperator G h ξ) k =
-      (leftRegularUnitary g : GroupL2 G →L[ℂ] GroupL2 G)
-        ξ (k * h⁻¹)
-  rw [leftRegularUnitary_apply, rightRegularOperator_apply,
-    leftRegularUnitary_apply, mul_assoc]
-
-theorem star_leftRegularRepresentation
-    (G : CountableDiscreteGroup.{u}) (g : G) :
-    star (leftRegularRepresentation G g : GroupL2 G →L[ℂ] GroupL2 G) =
-      (leftRegularRepresentation G g⁻¹ : GroupL2 G →L[ℂ] GroupL2 G) := by
-  rw [← Unitary.coe_star, Unitary.star_eq_inv, ← map_inv]
-
-theorem rightRegular_mem_firstCommutant
-    (G : CountableDiscreteGroup.{u}) (g : G) :
-    rightRegularOperator G g ∈
-      StarSubalgebra.centralizer ℂ
-        (Set.range fun h : G ↦
-          (leftRegularRepresentation G h :
-            GroupL2 G →L[ℂ] GroupL2 G)) := by
-  rw [StarSubalgebra.mem_centralizer_iff]
-  rintro _ ⟨h, rfl⟩
-  refine ⟨leftRegular_commute_rightRegular G h g, ?_⟩
-  rw [star_leftRegularRepresentation]
-  exact leftRegular_commute_rightRegular G h⁻¹ g
-
-theorem groupVonNeumann_commute_rightRegular
-    (G : CountableDiscreteGroup.{u})
-    (z : GroupVonNeumannAlgebra G) (g : G) :
-    rightRegularOperator G g *
-        (z : GroupL2 G →L[ℂ] GroupL2 G) =
-      (z : GroupL2 G →L[ℂ] GroupL2 G) *
-        rightRegularOperator G g := by
-  have hz := z.property
-  change
-    (z : GroupL2 G →L[ℂ] GroupL2 G) ∈
-      StarSubalgebra.centralizer ℂ
-        (StarSubalgebra.centralizer ℂ
-          (Set.range fun h : G ↦
-            (leftRegularRepresentation G h :
-              GroupL2 G →L[ℂ] GroupL2 G)) :
-                Set (GroupL2 G →L[ℂ] GroupL2 G)) at hz
-  exact
-    ((StarSubalgebra.mem_centralizer_iff ℂ).mp hz
-      (rightRegularOperator G g)
-      (rightRegular_mem_firstCommutant G g)).1
-
-theorem rightRegularOperator_vacuum
-    (G : CountableDiscreteGroup.{u}) (g : G) :
-    rightRegularOperator G g (delta G 1) = delta G g := by
-  classical
-  ext h
-  change (delta G 1) (h * g⁻¹) = (delta G g) h
-  by_cases hh : h = g
-  · subst h
-    simp [delta, lp.single_apply]
-  · have hne : h * g⁻¹ ≠ 1 := by
-      intro heq
-      apply hh
-      calc
-        h = (h * g⁻¹) * g := by simp
-        _ = g := by simp [heq]
-    simp [delta, lp.single_apply, hh, hne]
-
-theorem groupVonNeumann_apply_delta
-    (G : CountableDiscreteGroup.{u})
-    (z : GroupVonNeumannAlgebra G) (g : G) :
-    (z : GroupL2 G →L[ℂ] GroupL2 G) (delta G g) =
-      rightRegularOperator G g
-        ((z : GroupL2 G →L[ℂ] GroupL2 G) (delta G 1)) := by
-  have h := congrArg
-    (fun T : GroupL2 G →L[ℂ] GroupL2 G ↦ T (delta G 1))
-    (groupVonNeumann_commute_rightRegular G z g)
-  simpa [mul_apply_eq_comp, rightRegularOperator_vacuum] using h.symm
-
-theorem groupVonNeumann_eq_of_vacuum_eq
-    (G : CountableDiscreteGroup.{u})
-    (z w : GroupVonNeumannAlgebra G)
-    (h : (z : GroupL2 G →L[ℂ] GroupL2 G) (delta G 1) =
-      (w : GroupL2 G →L[ℂ] GroupL2 G) (delta G 1)) :
-    z = w := by
-  classical
-  apply Subtype.ext
-  apply lp.ext_continuousLinearMap (by simp)
-  intro g
-  apply ContinuousLinearMap.ext
-  intro c
-  change
-    (z : GroupL2 G →L[ℂ] GroupL2 G) (lp.single 2 g c) =
-      (w : GroupL2 G →L[ℂ] GroupL2 G) (lp.single 2 g c)
-  have hsingle : lp.single 2 g c = c • delta G g := by
-    simpa [delta] using
-      (lp.single_smul (E := fun _ : G ↦ ℂ) 2 g c (1 : ℂ))
-  rw [hsingle, map_smul, map_smul,
-    groupVonNeumann_apply_delta G z g,
-    groupVonNeumann_apply_delta G w g, h]
-
-theorem central_fourierCoefficient_conjugate
-    (G : CountableDiscreteGroup.{u})
-    (z : GroupVonNeumannAlgebra G)
-    (hz : ∀ x : GroupVonNeumannAlgebra G, z * x = x * z)
-    (k g : G) :
-    fourierCoefficient G z (k * g * k⁻¹) =
-      fourierCoefficient G z g := by
-  have hleft :
-      (z : GroupL2 G →L[ℂ] GroupL2 G) (delta G k) =
-        (leftRegularRepresentation G k : GroupL2 G →L[ℂ] GroupL2 G)
-          ((z : GroupL2 G →L[ℂ] GroupL2 G) (delta G 1)) := by
-    have h := congrArg
-      (fun a : GroupVonNeumannAlgebra G ↦
-        (a : GroupL2 G →L[ℂ] GroupL2 G) (delta G 1))
-      (hz (regularGenerator G k))
-    change
-      (z : GroupL2 G →L[ℂ] GroupL2 G)
-          ((regularGenerator G k : GroupL2 G →L[ℂ] GroupL2 G)
-            (delta G 1)) =
-        (regularGenerator G k : GroupL2 G →L[ℂ] GroupL2 G)
-          ((z : GroupL2 G →L[ℂ] GroupL2 G) (delta G 1)) at h
-    rw [regularGenerator_vacuum] at h
-    exact h
-  have heq :
-      rightRegularOperator G k
-          ((z : GroupL2 G →L[ℂ] GroupL2 G) (delta G 1)) =
-        (leftRegularRepresentation G k : GroupL2 G →L[ℂ] GroupL2 G)
-          ((z : GroupL2 G →L[ℂ] GroupL2 G) (delta G 1)) :=
-    (groupVonNeumann_apply_delta G z k).symm.trans hleft
-  have h := congrArg (fun ξ : GroupL2 G ↦ ξ (k * g)) heq
-  change
-    ((z : GroupL2 G →L[ℂ] GroupL2 G) (delta G 1))
-        ((k * g) * k⁻¹) =
-      ((z : GroupL2 G →L[ℂ] GroupL2 G) (delta G 1))
-        (k⁻¹ * (k * g)) at h
-  simpa [fourierCoefficient, mul_assoc] using h
-
-theorem central_fourierCoefficient_eq_zero_of_icc
-    (G : CountableDiscreteGroup.{u}) (hG : IsICC G)
-    (z : GroupVonNeumannAlgebra G)
-    (hz : ∀ x : GroupVonNeumannAlgebra G, z * x = x * z)
-    (g : G) (hg : g ≠ 1) :
-    fourierCoefficient G z g = 0 := by
-  apply fourierCoefficient_eq_zero_of_infinite_constant
-    G z (conjugacyClass G g) (hG.2 g hg) g
-  rintro _ ⟨k, rfl⟩
-  exact central_fourierCoefficient_conjugate G z hz k g
-
-@[simp]
-theorem groupVonNeumann_algebraMap_apply
-    (G : CountableDiscreteGroup.{u}) (c : ℂ)
-    (ξ : GroupL2 G) :
-    (algebraMap ℂ (GroupVonNeumannAlgebra G) c :
-      GroupL2 G →L[ℂ] GroupL2 G) ξ = c • ξ := by
-  change
-    (algebraMap ℂ (GroupL2 G →L[ℂ] GroupL2 G) c) ξ = c • ξ
-  simp
-
-theorem groupFactorHasTrivialCenter_of_icc
-    (G : CountableDiscreteGroup.{u}) (hG : IsICC G) :
-    GroupFactorHasTrivialCenter G := by
-  intro z hz
-  refine ⟨fourierCoefficient G z 1, ?_⟩
-  apply groupVonNeumann_eq_of_vacuum_eq
-  ext g
-  by_cases hg : g = 1
-  · subst g
-    simp [groupVonNeumann_algebraMap_apply, fourierCoefficient, delta]
-  · rw [show ((z : GroupL2 G →L[ℂ] GroupL2 G) (delta G 1)) g =
-      fourierCoefficient G z g from rfl,
-      central_fourierCoefficient_eq_zero_of_icc G hG z hz g hg]
-    simp [groupVonNeumann_algebraMap_apply, delta, hg]
-
-theorem isII₁GroupFactor_of_icc
-    (G : CountableDiscreteGroup.{u}) (hG : IsICC G) :
-    IsII₁GroupFactor G :=
-  ⟨groupFactorHasTrivialCenter_of_icc G hG,
-    groupVonNeumannAlgebra_not_finiteDimensional_of_infinite G hG.1⟩
-
-theorem conjugacyClass_conjugate_mem
-    (G : CountableDiscreteGroup.{u}) (g k x : G)
-    (hx : x ∈ conjugacyClass G g) :
-    k * x * k⁻¹ ∈ conjugacyClass G g := by
-  obtain ⟨a, rfl⟩ := hx
-  refine ⟨k * a, ?_⟩
-  simp [mul_assoc]
-
-theorem conjugacyClass_conjugate_mem_iff
-    (G : CountableDiscreteGroup.{u}) (g k x : G) :
-    k * x * k⁻¹ ∈ conjugacyClass G g ↔ x ∈ conjugacyClass G g := by
-  constructor
-  · intro hx
-    have h := conjugacyClass_conjugate_mem G g k⁻¹
-      (k * x * k⁻¹) hx
-    simpa [mul_assoc] using h
-  · exact conjugacyClass_conjugate_mem G g k x
-
-def finiteConjugacyClassOperator
-    (G : CountableDiscreteGroup.{u}) (g : G)
-    (hfinite : (conjugacyClass G g).Finite) :
-    GroupVonNeumannAlgebra G :=
-  ∑ x ∈ hfinite.toFinset, regularGenerator G x
-
-theorem finiteConjugacyClassOperator_conjugate_sum
-    (G : CountableDiscreteGroup.{u}) (g k : G)
-    (hfinite : (conjugacyClass G g).Finite) :
-    (∑ x ∈ hfinite.toFinset,
-      regularGenerator G (k * x * k⁻¹)) =
-        finiteConjugacyClassOperator G g hfinite := by
-  classical
-  unfold finiteConjugacyClassOperator
-  apply Finset.sum_equiv (MulAut.conj k).toEquiv
-  · intro x
-    simp only [Set.Finite.mem_toFinset]
-    exact (conjugacyClass_conjugate_mem_iff G g k x).symm
-  · intro x hx
-    simp
-
-theorem finiteConjugacyClassOperator_commute_regular
-    (G : CountableDiscreteGroup.{u}) (g k : G)
-    (hfinite : (conjugacyClass G g).Finite) :
-    finiteConjugacyClassOperator G g hfinite * regularGenerator G k =
-      regularGenerator G k * finiteConjugacyClassOperator G g hfinite := by
-  classical
-  have hconj :
-      regularGenerator G k * finiteConjugacyClassOperator G g hfinite *
-          regularGenerator G k⁻¹ =
-        finiteConjugacyClassOperator G g hfinite := by
-    rw [finiteConjugacyClassOperator]
-    simp_rw [Finset.mul_sum, Finset.sum_mul]
-    simp_rw [← regularGenerator_mul, mul_assoc]
-    simpa [finiteConjugacyClassOperator, mul_assoc] using
-      finiteConjugacyClassOperator_conjugate_sum G g k hfinite
-  calc
-    finiteConjugacyClassOperator G g hfinite * regularGenerator G k =
-        (regularGenerator G k * finiteConjugacyClassOperator G g hfinite *
-          regularGenerator G k⁻¹) * regularGenerator G k := by rw [hconj]
-    _ = regularGenerator G k *
-          (finiteConjugacyClassOperator G g hfinite *
-            (regularGenerator G k⁻¹ * regularGenerator G k)) := by
-      simp only [mul_assoc]
-    _ = regularGenerator G k * finiteConjugacyClassOperator G g hfinite := by
-      rw [← regularGenerator_mul]
-      simp
-
-theorem finiteConjugacyClassOperator_mem_firstCommutant
-    (G : CountableDiscreteGroup.{u}) (g : G)
-    (hfinite : (conjugacyClass G g).Finite) :
-    (finiteConjugacyClassOperator G g hfinite :
-      GroupL2 G →L[ℂ] GroupL2 G) ∈
-        StarSubalgebra.centralizer ℂ
-          (Set.range fun h : G ↦
-            (leftRegularRepresentation G h :
-              GroupL2 G →L[ℂ] GroupL2 G)) := by
-  rw [StarSubalgebra.mem_centralizer_iff]
-  rintro _ ⟨k, rfl⟩
-  constructor
-  · exact congrArg
-      (fun x : GroupVonNeumannAlgebra G ↦
-        (x : GroupL2 G →L[ℂ] GroupL2 G))
-      (finiteConjugacyClassOperator_commute_regular G g k hfinite).symm
-  · rw [star_leftRegularRepresentation]
-    exact congrArg
-      (fun x : GroupVonNeumannAlgebra G ↦
-        (x : GroupL2 G →L[ℂ] GroupL2 G))
-      (finiteConjugacyClassOperator_commute_regular G g k⁻¹ hfinite).symm
-
-theorem finiteConjugacyClassOperator_central
-    (G : CountableDiscreteGroup.{u}) (g : G)
-    (hfinite : (conjugacyClass G g).Finite)
-    (x : GroupVonNeumannAlgebra G) :
-    finiteConjugacyClassOperator G g hfinite * x =
-      x * finiteConjugacyClassOperator G g hfinite := by
-  apply Subtype.ext
-  exact
-    ((StarSubalgebra.mem_centralizer_iff ℂ).mp x.property
-      (finiteConjugacyClassOperator G g hfinite :
-        GroupL2 G →L[ℂ] GroupL2 G)
-      (finiteConjugacyClassOperator_mem_firstCommutant G g hfinite)).1
-
-theorem fourierCoefficient_sum
-    (G : CountableDiscreteGroup.{u})
-    (S : Finset G) (z : G → GroupVonNeumannAlgebra G) (g : G) :
-    fourierCoefficient G (∑ x ∈ S, z x) g =
-      ∑ x ∈ S, fourierCoefficient G (z x) g := by
-  classical
-  change (fourierLinearMap G (∑ x ∈ S, z x)) g = _
-  simp [fourierLinearMap]
-
-theorem finiteConjugacyClassOperator_fourier_self
-    (G : CountableDiscreteGroup.{u}) (g : G)
-    (hfinite : (conjugacyClass G g).Finite) :
-    fourierCoefficient G (finiteConjugacyClassOperator G g hfinite) g = 1 := by
-  classical
-  have hg : g ∈ hfinite.toFinset := by
-    rw [Set.Finite.mem_toFinset]
-    exact ⟨1, by simp⟩
-  rw [finiteConjugacyClassOperator, fourierCoefficient_sum]
-  simp [fourierCoefficient_regularGenerator, delta, lp.single_apply, hg]
-
-theorem one_not_mem_conjugacyClass_of_ne_one
-    (G : CountableDiscreteGroup.{u}) (g : G) (hg : g ≠ 1) :
-    1 ∉ conjugacyClass G g := by
-  rintro ⟨k, hk⟩
-  apply hg
-  have h := congrArg (fun x : G ↦ k⁻¹ * x * k) hk
-  simpa [mul_assoc] using h.symm
-
-theorem finiteConjugacyClassOperator_fourier_one
-    (G : CountableDiscreteGroup.{u}) (g : G) (hg : g ≠ 1)
-    (hfinite : (conjugacyClass G g).Finite) :
-    fourierCoefficient G (finiteConjugacyClassOperator G g hfinite) 1 = 0 := by
-  classical
-  rw [finiteConjugacyClassOperator, fourierCoefficient_sum]
-  apply Finset.sum_eq_zero
-  intro x hx
-  have hxne : (1 : G) ≠ x := by
-    intro heq
-    apply one_not_mem_conjugacyClass_of_ne_one G g hg
-    rw [heq]
-    simpa using hx
-  exact fourierCoefficient_regularGenerator_of_ne G hxne
-
-@[simp]
-theorem fourierCoefficient_algebraMap_one
-    (G : CountableDiscreteGroup.{u}) (c : ℂ) :
-    fourierCoefficient G
-      (algebraMap ℂ (GroupVonNeumannAlgebra G) c) 1 = c := by
-  simp [fourierCoefficient, groupVonNeumann_algebraMap_apply, delta]
-
-theorem fourierCoefficient_algebraMap_of_ne
-    (G : CountableDiscreteGroup.{u}) (c : ℂ)
-    (g : G) (hg : g ≠ 1) :
-    fourierCoefficient G
-      (algebraMap ℂ (GroupVonNeumannAlgebra G) c) g = 0 := by
-  simp [fourierCoefficient, groupVonNeumann_algebraMap_apply,
-    delta, hg]
-
-theorem conjugacyClass_infinite_of_trivialCenter
-    (G : CountableDiscreteGroup.{u})
-    (hcenter : GroupFactorHasTrivialCenter G)
-    (g : G) (hg : g ≠ 1) :
-    (conjugacyClass G g).Infinite := by
-  by_contra hinfinite
-  have hfinite : (conjugacyClass G g).Finite :=
-    Set.not_infinite.mp hinfinite
-  let z : GroupVonNeumannAlgebra G :=
-    finiteConjugacyClassOperator G g hfinite
-  obtain ⟨c, hc⟩ := hcenter z
-    (finiteConjugacyClassOperator_central G g hfinite)
-  have hc_zero : c = 0 := by
-    calc
-      c = fourierCoefficient G
-          (algebraMap ℂ (GroupVonNeumannAlgebra G) c) 1 :=
-            (fourierCoefficient_algebraMap_one G c).symm
-      _ = fourierCoefficient G z 1 := by rw [hc]
-      _ = 0 := finiteConjugacyClassOperator_fourier_one G g hg hfinite
-  have hone_zero : (1 : ℂ) = 0 := by
-    calc
-      1 = fourierCoefficient G z g :=
-        (finiteConjugacyClassOperator_fourier_self G g hfinite).symm
-      _ = fourierCoefficient G
-          (algebraMap ℂ (GroupVonNeumannAlgebra G) c) g := by rw [hc]
-      _ = 0 := fourierCoefficient_algebraMap_of_ne G c g hg
-  exact one_ne_zero hone_zero
-
-theorem fourierLinearMap_injective
-    (G : CountableDiscreteGroup.{u}) :
-    Function.Injective (fourierLinearMap G) := by
-  intro z w hzw
-  apply groupVonNeumann_eq_of_vacuum_eq G z w
-  ext g
-  exact congrFun hzw g
-
-theorem groupVonNeumannAlgebra_finiteDimensional_of_finite
-    (G : CountableDiscreteGroup.{u}) (hfinite : Finite G) :
-    FiniteDimensional ℂ (GroupVonNeumannAlgebra G) := by
-  letI : Finite G := hfinite
-  exact FiniteDimensional.of_injective
-    (fourierLinearMap G) (fourierLinearMap_injective G)
-
-theorem infinite_of_groupVonNeumannAlgebra_not_finiteDimensional
-    (G : CountableDiscreteGroup.{u})
-    (h : ¬FiniteDimensional ℂ (GroupVonNeumannAlgebra G)) :
-    Infinite G := by
-  apply not_finite_iff_infinite.mp
-  intro hfinite
-  exact h (groupVonNeumannAlgebra_finiteDimensional_of_finite G hfinite)
-
-theorem isICC_of_infinite_of_groupFactorHasTrivialCenter
-    (G : CountableDiscreteGroup.{u})
-    (hinfinite : Infinite G)
-    (hcenter : GroupFactorHasTrivialCenter G) :
-    IsICC G :=
-  ⟨hinfinite,
-    fun g hg ↦ conjugacyClass_infinite_of_trivialCenter G hcenter g hg⟩
-
-theorem isICC_of_isII₁GroupFactor
-    (G : CountableDiscreteGroup.{u})
-    (h : IsII₁GroupFactor G) :
-    IsICC G :=
-  isICC_of_infinite_of_groupFactorHasTrivialCenter G
-    (infinite_of_groupVonNeumannAlgebra_not_finiteDimensional G h.2) h.1
-
-theorem isICC_iff_isII₁GroupFactor
-    (G : CountableDiscreteGroup.{u}) :
-    IsICC G ↔ IsII₁GroupFactor G :=
-  ⟨isII₁GroupFactor_of_icc G, isICC_of_isII₁GroupFactor G⟩
-
-theorem provedICCFactorCriterion : ICCFactorCriterion.{u} where
-  icc_iff_ii₁ := isICC_iff_isII₁GroupFactor
-
-theorem icc_of_groupFactor_isomorphic_unconditional
-    {G H : CountableDiscreteGroup.{u}}
-    (hGH : TracialGroupFactorsIsomorphic G H)
-    (hH : IsICC H) :
-    IsICC G :=
-  icc_of_groupFactor_isomorphic provedICCFactorCriterion hGH hH
 
 end
 
@@ -50278,24 +36673,6 @@ def l2Curry (ι : Type u) (κ : Type v) :
 @[simp] theorem l2Curry_symm_apply {ι : Type u} {κ : Type v}
     (ξ : lp (fun _ : ι => GroupL2 κ) 2) (i : ι) (k : κ) :
     (l2Curry ι κ).symm ξ (i, k) = ξ i k := rfl
-
-theorem l2Curry_single {ι : Type u} {κ : Type v}
-    [DecidableEq ι] [DecidableEq κ]
-    (i : ι) (k : κ) (z : ℂ) :
-    l2Curry ι κ (lp.single 2 (i, k) z) =
-      lp.single 2 i (lp.single 2 k z) := by
-  ext j l
-  simp only [l2Curry_apply, lp.single_apply]
-  by_cases hi : i = j
-  · subst j
-    by_cases hk : k = l
-    · subst l
-      simp
-    · simp [hk]
-  · have hp : (i, k) ≠ (j, l) := by
-      intro h
-      exact hi (congrArg Prod.fst h)
-    simp [hi, hp]
 
 variable {A : Type u} {K : Type v} [Group A] [Group K]
 
@@ -51016,10 +37393,6 @@ def toTracialGroupFactorEquiv
   normal := starAlgEquiv_isNormal U.toStarAlgEquiv
   trace_preserving := U.trace_preserving
 
-theorem factors_isomorphic (U : PaperFactorUnitaryWitness G H) :
-    TracialGroupFactorsIsomorphic G H :=
-  ⟨U.toTracialGroupFactorEquiv⟩
-
 end PaperFactorUnitaryWitness
 
 structure PointedVonNeumannModel
@@ -51127,21 +37500,6 @@ def factorUnitaryWitness_of_spatialPresentations
     rw [γ.maps_vacuum, transport.maps_vacuum,
       ← lambdaPresentation.maps_vacuum,
       lambdaPresentation.unitary.symm_apply_apply]
-
-theorem factors_isomorphic_of_spatialPresentations
-    {G : CountableDiscreteGroup.{u}}
-    {H : CountableDiscreteGroup.{v}}
-    {ℋ : Type w} {𝒦 : Type x}
-    [NormedAddCommGroup ℋ] [InnerProductSpace ℂ ℋ] [CompleteSpace ℋ]
-    [NormedAddCommGroup 𝒦] [InnerProductSpace ℂ 𝒦] [CompleteSpace 𝒦]
-    {M : PointedVonNeumannModel ℋ}
-    {N : PointedVonNeumannModel 𝒦}
-    (γ : SpatialGroupFactorPresentation G M)
-    (lambdaPresentation : SpatialGroupFactorPresentation H N)
-    (transport : SpatialVonNeumannTransport M N) :
-    TracialGroupFactorsIsomorphic G H :=
-  (factorUnitaryWitness_of_spatialPresentations
-    γ lambdaPresentation transport).factors_isomorphic
 
 end
 
@@ -51265,16 +37623,6 @@ private theorem delta_eq_single (G : CountableDiscreteGroup)
   have heq : d = Classical.decEq G := Subsingleton.elim _ _
   cases heq
   rfl
-
-theorem carryFourierEquiv_vacuum (n : ℕ) :
-    carryFourierEquiv n (lp.single 2 (0 : E n) (1 : ℂ)) =
-      Lp.const 2 (carryHaar n) (1 : ℂ) :=
-  carryFourierEquiv_zero_single n
-
-theorem splitFourierEquiv_vacuum :
-    splitFourierEquiv (lp.single 2 (0 : D) (1 : ℂ)) =
-      Lp.const 2 productHaar (1 : ℂ) :=
-  splitFourierEquiv_zero_single
 
 theorem groupFactorUnitary_vacuum
     (φ : H →* MulAut (Multiplicative A))
@@ -51572,9 +37920,6 @@ namespace ConnesRigidity
 
 universe u v w
 
-def HasOrderFour (G : Type u) [Group G] : Prop :=
-  ∃ g : G, orderOf g = 4
-
 def HasNoOrderFour (G : Type u) [Group G] : Prop :=
   ∀ g : G, g ^ 4 = 1 → g ^ 2 = 1
 
@@ -51592,49 +37937,6 @@ theorem orderOf_eq_four_iff {G : Type u} [Group G] (g : G) :
       (orderOf_eq_prime_pow (p := 2) (n := 1)
         (by simpa using hsquare) (by simpa using hfour))
 
-theorem hasNoOrderFour_iff_not_hasOrderFour {G : Type u} [Group G] :
-    HasNoOrderFour G ↔ ¬HasOrderFour G := by
-  constructor
-  · intro hno ⟨g, hg⟩
-    obtain ⟨hfour, hsquare⟩ := (orderOf_eq_four_iff g).mp hg
-    exact hsquare (hno g hfour)
-  · intro hno g hfour
-    by_contra hsquare
-    exact hno ⟨g, (orderOf_eq_four_iff g).mpr ⟨hfour, hsquare⟩⟩
-
-theorem hasOrderFour_of_pow_four_eq_one_of_pow_two_ne_one
-    {G : Type u} [Group G] (g : G)
-    (hfour : g ^ 4 = 1) (hsquare : g ^ 2 ≠ 1) :
-    HasOrderFour G :=
-  ⟨g, (orderOf_eq_four_iff g).mpr ⟨hfour, hsquare⟩⟩
-
-theorem not_nonempty_mulEquiv_of_hasNoOrderFour_of_hasOrderFour
-    {G : Type u} {H : Type v} [Group G] [Group H]
-    (hG : HasNoOrderFour G) (hH : HasOrderFour H) :
-    ¬Nonempty (G ≃* H) := by
-  rintro ⟨e⟩
-  obtain ⟨h, hh⟩ := hH
-  have hpreimage : orderOf (e.symm h) = 4 :=
-    (e.symm.orderOf_eq h).trans hh
-  obtain ⟨hfour, hsquare⟩ := (orderOf_eq_four_iff (e.symm h)).mp hpreimage
-  exact hsquare (hG (e.symm h) hfour)
-
-theorem not_groupsIsomorphic_of_hasNoOrderFour_of_hasOrderFour
-    {G : ConnesRigidity.CountableDiscreteGroup.{u}}
-    {H : ConnesRigidity.CountableDiscreteGroup.{v}}
-    (hG : HasNoOrderFour G) (hH : HasOrderFour H) :
-    ¬ConnesRigidity.GroupsIsomorphic G H :=
-  not_nonempty_mulEquiv_of_hasNoOrderFour_of_hasOrderFour hG hH
-
-theorem mem_ker_of_pow_four_eq_one_of_torsionFree
-    {G : Type u} {Q : Type v} [Group G] [Group Q]
-    [IsMulTorsionFree Q] (π : G →* Q)
-    {g : G} (hg : g ^ 4 = 1) :
-    g ∈ π.ker := by
-  apply MonoidHom.mem_ker.mpr
-  apply (pow_eq_one_iff_left (by norm_num : (4 : ℕ) ≠ 0)).mp
-  simpa using congrArg π hg
-
 theorem mem_ker_of_pow_four_eq_one_of_no_nontrivial_torsion
     {G : Type u} {Q : Type v} [Group G] [Group Q]
     (π : G →* Q)
@@ -51647,14 +37949,6 @@ theorem mem_ker_of_pow_four_eq_one_of_no_nontrivial_torsion
   refine ⟨4, by norm_num, ?_⟩
   simpa using congrArg π hg
 
-theorem hasNoOrderFour_of_torsionFree_quotient
-    {G : Type u} {Q : Type v} [Group G] [Group Q]
-    [IsMulTorsionFree Q] (π : G →* Q)
-    (hker : ∀ g : G, g ∈ π.ker → g ^ 2 = 1) :
-    HasNoOrderFour G := by
-  intro g hg
-  exact hker g (mem_ker_of_pow_four_eq_one_of_torsionFree π hg)
-
 theorem hasNoOrderFour_of_quotient_without_nontrivial_torsion
     {G : Type u} {Q : Type v} [Group G] [Group Q]
     (π : G →* Q)
@@ -51664,19 +37958,6 @@ theorem hasNoOrderFour_of_quotient_without_nontrivial_torsion
   intro g hg
   exact hker g
     (mem_ker_of_pow_four_eq_one_of_no_nontrivial_torsion π hQ hg)
-
-theorem hasNoOrderFour_of_torsionFree_quotient_of_kernel_le_range
-    {G : Type u} {Q : Type v} {N : Type w}
-    [Group G] [Group Q] [Group N] [IsMulTorsionFree Q]
-    (π : G →* Q) (ι : N →* G)
-    (hker : π.ker ≤ ι.range)
-    (hN : ∀ n : N, n ^ 2 = 1) :
-    HasNoOrderFour G := by
-  apply hasNoOrderFour_of_torsionFree_quotient π
-  intro g hg
-  obtain ⟨n, hn⟩ := hker hg
-  subst g
-  simpa using congrArg ι (hN n)
 
 theorem hasNoOrderFour_of_quotient_without_nontrivial_torsion_of_kernel_le_range
     {G : Type u} {Q : Type v} {N : Type w}
@@ -51692,17 +37973,6 @@ theorem hasNoOrderFour_of_quotient_without_nontrivial_torsion_of_kernel_le_range
   subst g
   simpa using congrArg ι (hN n)
 
-theorem semidirect_hasNoOrderFour_of_torsionFree_of_exponentTwo
-    {N : Type u} {Q : Type v} [Group N] [Group Q]
-    [IsMulTorsionFree Q] (φ : Q →* MulAut N)
-    (hN : ∀ n : N, n ^ 2 = 1) :
-    HasNoOrderFour (N ⋊[φ] Q) := by
-  apply hasNoOrderFour_of_torsionFree_quotient_of_kernel_le_range
-    (SemidirectProduct.rightHom : (N ⋊[φ] Q) →* Q)
-    (SemidirectProduct.inl : N →* N ⋊[φ] Q)
-  · exact le_of_eq SemidirectProduct.range_inl_eq_ker_rightHom.symm
-  · exact hN
-
 theorem semidirect_hasNoOrderFour_of_no_nontrivial_torsion_of_exponentTwo
     {N : Type u} {Q : Type v} [Group N] [Group Q]
     (φ : Q →* MulAut N)
@@ -51716,28 +37986,6 @@ theorem semidirect_hasNoOrderFour_of_no_nontrivial_torsion_of_exponentTwo
   · exact le_of_eq SemidirectProduct.range_inl_eq_ker_rightHom.symm
   · exact hN
 
-theorem not_nonempty_mulEquiv_semidirect_of_torsionFree_of_exponentTwo
-    {N : Type u} {Q : Type v} {H : Type w}
-    [Group N] [Group Q] [Group H] [IsMulTorsionFree Q]
-    (φ : Q →* MulAut N)
-    (hN : ∀ n : N, n ^ 2 = 1)
-    (hH : HasOrderFour H) :
-    ¬Nonempty ((N ⋊[φ] Q) ≃* H) :=
-  not_nonempty_mulEquiv_of_hasNoOrderFour_of_hasOrderFour
-    (semidirect_hasNoOrderFour_of_torsionFree_of_exponentTwo φ hN) hH
-
-theorem not_nonempty_mulEquiv_semidirect_of_no_nontrivial_torsion_of_exponentTwo
-    {N : Type u} {Q : Type v} {H : Type w}
-    [Group N] [Group Q] [Group H]
-    (φ : Q →* MulAut N)
-    (hQ : ∀ q : Q, IsOfFinOrder q → q = 1)
-    (hN : ∀ n : N, n ^ 2 = 1)
-    (hH : HasOrderFour H) :
-    ¬Nonempty ((N ⋊[φ] Q) ≃* H) :=
-  not_nonempty_mulEquiv_of_hasNoOrderFour_of_hasOrderFour
-    (semidirect_hasNoOrderFour_of_no_nontrivial_torsion_of_exponentTwo
-      φ hQ hN) hH
-
 end ConnesRigidity
 
 end
@@ -51747,49 +37995,6 @@ section
 namespace ConnesRigidity
 
 noncomputable section
-
-open MeasureTheory
-
-def productHaarProbability : ProbabilityMeasure (X × Y) :=
-  ⟨productHaar, inferInstance⟩
-
-@[simp] theorem productHaarProbability_toMeasure :
-    (productHaarProbability : Measure (X × Y)) = productHaar := rfl
-
-def carryHaarProbability (n : ℕ) : ProbabilityMeasure (CarryGroup n) :=
-  ⟨carryHaar n, inferInstance⟩
-
-@[simp] theorem carryHaarProbability_toMeasure (n : ℕ) :
-    (carryHaarProbability n : Measure (CarryGroup n)) = carryHaar n := rfl
-
-theorem productHaar_kInvariant (k : K) :
-    MeasurePreserving
-      (fun z : X × Y => (kXLinear k z.1, kYLinear k z.2))
-      productHaar productHaar := by
-  exact productHaar_preserving_addEquiv
-    (paperSplitAddAut k)
-    (continuous_paperSplitAddAut k)
-    (continuous_paperSplitAddAut_symm k)
-
-theorem carryHaar_kInvariant (n : ℕ) (k : K) :
-    MeasurePreserving (kCarryAddAut n k : CarryGroup n → CarryGroup n)
-      (carryHaar n) (carryHaar n) :=
-  paperCarryAddAut_preserves_measure n k
-
-theorem productHaar_translation_ergodic :
-    ErgodicVAdd (X × Y) (X × Y) productHaar := by
-  infer_instance
-
-theorem carryHaar_translation_ergodic (n : ℕ) :
-    ErgodicVAdd (CarryGroup n) (CarryGroup n) (carryHaar n) := by
-  infer_instance
-
-theorem actingGroup_jointDetector_transitive
-    (v w : V) (hv : IsPrimitiveVector v) (hw : IsPrimitiveVector w) :
-    ∃ k : K,
-      kDLinear k (v, 0) = (w, 0) ∧
-      kDLinear k (0, diagonal v) = (0, diagonal w) :=
-  primitiveVector_jointDetector_transitive v w hv hw
 
 end
 
@@ -52138,30 +38343,6 @@ theorem lambdaFourMulDetectedMass_le_energy
             lambdaSpectralEnergy_eq_four_mul_measure]
           simp [μ', S₁, S₂, mul_comm]
 
-structure LambdaSpectralInput where
-
-  spectral : ∀ (W : Type)
-    (_ : NormedAddCommGroup W)
-    (_ : InnerProductSpace ℂ W)
-    (_ : CompleteSpace W)
-    (π : UnitaryRepresentation lambdaGroup W),
-      SpectralMeasureInterface lambdaSplitAbelianExtension W π
-
-structure LambdaProjectionSpectralInput where
-
-  projection : ∀ (W : Type)
-    (_ : NormedAddCommGroup W)
-    (_ : InnerProductSpace ℂ W)
-    (_ : CompleteSpace W)
-    (π : UnitaryRepresentation lambdaGroup W),
-      ProjectionValuedSpectralMeasure lambdaSplitAbelianExtension W π
-
-def LambdaProjectionSpectralInput.toLambdaSpectralInput
-    (analytic : LambdaProjectionSpectralInput) : LambdaSpectralInput where
-  spectral W hnorm hinner hcomplete π :=
-    (analytic.projection W hnorm hinner hcomplete π).toSpectralMeasureInterface
-      (quotientFixedApproximation lambdaSplitAbelianExtension π)
-
 theorem lambda_spectral_detection_gap
     (μ : ProbabilityMeasure (DiscreteCharacterSpace D))
     (hμ : IsInvariantSpectralMeasure
@@ -52185,67 +38366,6 @@ theorem lambda_hasFiniteSpectralDetection :
           spectralDetectionEnergy μ lambdaQuadraticDetector := by
     nlinarith
   simpa [lambda_detectors_ne] using hcombined
-
-def lambdaPrimitiveVectors (N : ℕ) : Finset (BinaryPolynomialVector N) := by
-  classical
-  exact Finset.univ.image (fun v : PrimitivePolynomialVector N ↦ v.val)
-
-theorem lambdaPrimitiveVectors_card (N : ℕ) (hN : 0 < N) :
-    (lambdaPrimitiveVectors N).card = 7 * 2 ^ (4 * N - 3) + 1 := by
-  classical
-  rw [lambdaPrimitiveVectors, Finset.card_image_iff.mpr]
-  · simpa using card_primitivePolynomialVector N hN
-  · intro u hu v hv heq
-    exact Subtype.ext heq
-
-theorem lambdaPrimitiveVectors_detecting_seventh
-    (N : ℕ) (hN : 0 < N)
-    (detecting : Finset (BinaryPolynomialVector N))
-    (hquarter : Fintype.card (BinaryPolynomialVector N) ≤
-      4 * detecting.card) :
-    (lambdaPrimitiveVectors N).card ≤
-      7 * (detecting ∩ lambdaPrimitiveVectors N).card := by
-  classical
-  apply DetectionGap.primitive_detecting_seventh
-    Finset.univ (lambdaPrimitiveVectors N) detecting (2 ^ (4 * N - 3))
-  · exact Finset.subset_univ _
-  · exact Finset.subset_univ _
-  · simpa [card_binaryPolynomialVector N] using
-      (DetectionGap.cube_card_eq_eight_mul_scale N hN)
-  · exact lambdaPrimitiveVectors_card N hN
-  · simpa using hquarter
-
-theorem lambda_finite_detection_coefficient
-    {ζ : Type*} [DecidableEq ζ]
-    (active : Finset ζ) (first second : ζ → ZMod 2)
-    (weight : ζ → ℚ) (outsideMass : ℚ)
-    (hweight : ∀ z ∈ active, 0 ≤ weight z)
-    (hgap : (1 / 7 : ℚ) * outsideMass ≤
-      ∑ z ∈ active.filter
-        (fun z ↦ first z ≠ 0 ∨ second z ≠ 0), weight z) :
-    (4 / 7 : ℚ) * outsideMass ≤
-      ∑ z ∈ active,
-        weight z *
-          (DetectionGap.bitEnergy (first z) +
-            DetectionGap.bitEnergy (second z)) :=
-  DetectionGap.spectral_coefficient_four_sevenths
-    active first second weight outsideMass hweight hgap
-
-theorem lambda_hasKazhdanPropertyT
-    (hUniversalLattice : ErshovJaikinUniversalLatticePropertyT)
-    (analytic : LambdaSpectralInput) :
-    HasKazhdanPropertyT lambdaGroup := by
-  apply spectral_criterion lambdaSplitAbelianExtension
-    (actingGroup_hasKazhdanPropertyT hUniversalLattice)
-    {lambdaLinearDetector, lambdaQuadraticDetector} (by norm_num)
-    lambda_hasFiniteSpectralDetection
-  exact analytic.spectral
-
-theorem lambda_hasKazhdanPropertyT_of_projection_valued_measure
-    (hUniversalLattice : ErshovJaikinUniversalLatticePropertyT)
-    (analytic : LambdaProjectionSpectralInput) :
-    HasKazhdanPropertyT lambdaGroup :=
-  lambda_hasKazhdanPropertyT hUniversalLattice analytic.toLambdaSpectralInput
 
 theorem lambda_hasKazhdanPropertyT_unconditional
     (hUniversalLattice : ErshovJaikinUniversalLatticePropertyT) :
@@ -52381,16 +38501,6 @@ theorem paperDividedSquare_orbit_infinite (b : B) (hb : b ≠ 0) :
     ¬(MulAction.orbit K b).Finite := by
   simpa [MulAction.orbit] using k_dividedSquare_orbit_infinite b hb
 
-theorem paperFiniteOrbit_card_eq_of_mulEquiv {m n : ℕ}
-    (f : Gamma m ≃* Gamma n) :
-    Nat.card (paperFiniteOrbitSubgroup m) =
-      Nat.card (paperFiniteOrbitSubgroup n) := by
-  apply semidirect_twoTorsionQuotient_finiteOrbit_card_eq
-    (kEAction m) (kEAction n) (E_four_nsmul m)
-    K_no_nontrivial_torsion (E_four_nsmul n)
-    K_no_nontrivial_torsion (fun _ _ => rfl) (fun _ _ => rfl)
-  exact f
-
 def paperExponentFourExtension (n : ℕ) : ExponentFourExtension V (E n) B where
   iota := iota n
   sigma := sigma n
@@ -52466,29 +38576,6 @@ theorem paperLambda_orderOf_ne_four (g : lambdaGroup) : orderOf g ≠ 4 := by
   obtain ⟨hfour, htwo⟩ := (orderOf_eq_four_iff g).mp hg
   exact htwo (paperLambda_hasNoOrderFour g hfour)
 
-theorem paperGamma_exists_exact_index_subgroup (n : ℕ) :
-    ∃ S : Subgroup (gammaGroup n),
-      S.index = 2 ^ (4 * n) ∧
-      S.FiniteIndex ∧ Nonempty (gammaGroup 0 ≃* S) := by
-  let embedding := gammaExactIndexEmbedding n
-  exact ⟨embedding.hom.range, embedding.index_eq,
-    embedding.range_finiteIndex (pow_ne_zero _ (by decide : (2 : ℕ) ≠ 0)),
-    ⟨embedding.rangeEquiv⟩⟩
-
-theorem paperGamma_commensurable (m n : ℕ) :
-    AbstractlyCommensurable (gammaGroup m) (gammaGroup n) := by
-  apply abstractlyCommensurable_of_common_embedding
-    (gammaExactIndexEmbedding m) (gammaExactIndexEmbedding n)
-  · exact pow_ne_zero _ (by decide : (2 : ℕ) ≠ 0)
-  · exact pow_ne_zero _ (by decide : (2 : ℕ) ≠ 0)
-
-theorem paperLambda_isII₁Factor : IsII₁GroupFactor lambdaGroup :=
-  isII₁GroupFactor_of_icc lambdaGroup lambda_isICC
-
-theorem paperGamma_isII₁Factor (n : ℕ) :
-    IsII₁GroupFactor (gammaGroup n) :=
-  isII₁GroupFactor_of_icc (gammaGroup n) (gamma_isICC n)
-
 def paperFamilyInput_of_universalLattice
     (hUniversal : ErshovJaikinUniversalLatticePropertyT) :
     PaperFamilyInput where
@@ -52529,23 +38616,6 @@ theorem lambda_icc : IsICC lambdaGroup :=
 theorem gamma_icc (n : ℕ) : IsICC (gammaGroup n) :=
   gamma_isICC n
 
-theorem lambda_finitelyGenerated (input : PaperAnalyticInput) :
-    Group.FG lambdaGroup :=
-  hasKazhdanPropertyT_finitelyGenerated lambdaGroup input.lambda_propertyT
-
-theorem gamma_finitelyGenerated (input : PaperAnalyticInput) (n : ℕ) :
-    Group.FG (gammaGroup n) :=
-  hasKazhdanPropertyT_finitelyGenerated (gammaGroup n)
-    (input.gamma_propertyT n)
-
-theorem factors_isomorphic (n : ℕ) :
-    TracialGroupFactorsIsomorphic (gammaGroup n) lambdaGroup :=
-  paper_factors_isomorphic n
-
-def exact_index_embedding (n : ℕ) :
-    ExactIndexEmbedding (gammaGroup 0) (gammaGroup n) (2 ^ (4 * n)) :=
-  gammaExactIndexEmbedding n
-
 theorem gamma_not_isomorphic_lambda (n : ℕ) :
     ¬GroupsIsomorphic (gammaGroup n) lambdaGroup :=
   not_groupsIsomorphic_of_orderFour (gamma_has_order_four n)
@@ -52575,48 +38645,6 @@ def infinitePropertyTFiber (input : PaperAnalyticInput) :
     (input : PaperAnalyticInput) (n : ℕ) :
     input.infinitePropertyTFiber.Gamma n = gammaGroup n := rfl
 
-theorem connesRigidityAssertion_false (input : PaperAnalyticInput) :
-    ¬ConnesRigidityAssertion :=
-  input.toPaperFamilyInput.connesRigidityAssertion_false
-
-noncomputable def factorEquiv (n : ℕ) :
-    TracialGroupFactorEquiv (gammaGroup n) lambdaGroup :=
-  Classical.choice (paper_factors_isomorphic n)
-
-def fullFamily (input : PaperAnalyticInput) :
-    Option ℕ → CountableDiscreteGroup :=
-  input.toPaperFamilyInput.fullFamily
-
-theorem fullFamily_pairwise_nonisomorphic
-    (input : PaperAnalyticInput) {i j : Option ℕ} (hij : i ≠ j) :
-    ¬GroupsIsomorphic (input.fullFamily i) (input.fullFamily j) :=
-  input.toPaperFamilyInput.fullFamily_not_isomorphic hij
-
-theorem fullFamily_factors (input : PaperAnalyticInput) (i : Option ℕ) :
-    TracialGroupFactorsIsomorphic (input.fullFamily i) lambdaGroup := by
-  cases i with
-  | none => exact groupFactorsIsomorphic_refl lambdaGroup
-  | some n => exact paper_factors_isomorphic n
-
-theorem fullFamily_rigidity (input : PaperAnalyticInput) (i : Option ℕ) :
-    Group.FG (input.fullFamily i) ∧
-      IsICC (input.fullFamily i) ∧
-      HasKazhdanPropertyT (input.fullFamily i) := by
-  cases i with
-  | none => exact ⟨input.lambda_finitelyGenerated,
-      lambda_isICC, input.lambda_propertyT⟩
-  | some n => exact ⟨input.gamma_finitelyGenerated n,
-      gamma_isICC n, input.gamma_propertyT n⟩
-
-theorem basicCounterexample (input : PaperAnalyticInput) :
-    IsICC lambdaGroup ∧ HasKazhdanPropertyT lambdaGroup ∧
-      IsICC (gammaGroup 0) ∧ HasKazhdanPropertyT (gammaGroup 0) ∧
-      TracialGroupFactorsIsomorphic (gammaGroup 0) lambdaGroup ∧
-      ¬GroupsIsomorphic (gammaGroup 0) lambdaGroup :=
-  ⟨lambda_isICC, input.lambda_propertyT,
-    gamma_isICC 0, input.gamma_propertyT 0,
-    paper_factors_isomorphic 0, gamma_not_isomorphic_lambda 0⟩
-
 end PaperAnalyticInput
 
 def paperAnalyticInput : PaperAnalyticInput :=
@@ -52625,37 +38653,15 @@ def paperAnalyticInput : PaperAnalyticInput :=
 def paperInfinitePropertyTFiber : InfinitePropertyTFiber :=
   paperAnalyticInput.infinitePropertyTFiber
 
-theorem paperConnesRigidityAssertion_false :
-    ¬ConnesRigidityAssertion :=
-  paperAnalyticInput.connesRigidityAssertion_false
+end ConnesRigidity
 
-def paperInfinitePropertyTFiber_of_analytic
-    (input : PaperAnalyticInput) : InfinitePropertyTFiber :=
-  input.infinitePropertyTFiber
+end
 
-theorem paperConnesRigidityAssertion_false_of_analytic
-    (input : PaperAnalyticInput) : ¬ConnesRigidityAssertion :=
-  input.connesRigidityAssertion_false
+section
 
-def paperInfinitePropertyTFiber_of_universalLattice
-    (hUniversal : ErshovJaikinUniversalLatticePropertyT) :
-    InfinitePropertyTFiber :=
-  (paperFamilyInput_of_universalLattice hUniversal).toInfinitePropertyTFiber
+noncomputable section
 
-theorem paperConnesRigidityAssertion_false_of_universalLattice
-    (hUniversal : ErshovJaikinUniversalLatticePropertyT) :
-    ¬ConnesRigidityAssertion :=
-  (paperFamilyInput_of_universalLattice hUniversal).connesRigidityAssertion_false
-
-def paperInfinitePropertyTFiber_of_suslinRelative
-    (hSuslinRelative : SuslinRelativeElementaryGeneration) :
-    InfinitePropertyTFiber :=
-  (show PaperAnalyticInput from ⟨hSuslinRelative⟩).infinitePropertyTFiber
-
-theorem paperConnesRigidityAssertion_false_of_suslinRelative
-    (hSuslinRelative : SuslinRelativeElementaryGeneration) :
-    ¬ConnesRigidityAssertion :=
-  (show PaperAnalyticInput from ⟨hSuslinRelative⟩).connesRigidityAssertion_false
+namespace ConnesRigidity
 
 end ConnesRigidity
 
@@ -52667,172 +38673,6 @@ noncomputable section
 
 namespace ConnesRigidity
 
-open ConnesRigidity
-
-universe u
-
-variable {G : CountableDiscreteGroup.{u}}
-variable {H : Type u} [NormedAddCommGroup H]
-  [InnerProductSpace ℂ H] [CompleteSpace H]
-
-theorem normalFixedOrthogonal_spectralGap
-    (N : Subgroup G) [N.Normal]
-    (π : UnitaryRepresentation G H)
-    (hN : HasRelativeKazhdanPropertyT G N) :
-    ∃ (F : Finset G) (δ : ℝ), 0 < δ ∧
-      ∀ x : H, x ∈ (normalFixedSubmodule N π)ᗮ → ‖x‖ = 1 →
-        ∃ g ∈ F, δ ≤ ‖(π g : H →L[ℂ] H) x - x‖ := by
-  obtain ⟨F, δ, hδ, hgap⟩ :=
-    hN.spectralGap_of_no_fixed N
-      (normalFixedOrthogonalRepresentation N π)
-      (normalFixedOrthogonalRepresentation_no_fixed N π)
-  refine ⟨F, δ, hδ, ?_⟩
-  intro x hx hnorm
-  let x' : (normalFixedSubmodule N π)ᗮ := ⟨x, hx⟩
-  have hnorm' : ‖x'‖ = 1 := hnorm
-  obtain ⟨g, hg, hbound⟩ := hgap x' hnorm'
-  exact ⟨g, hg, hbound⟩
-
-theorem normalFixedOrthogonalRepresentation_spectralGap
-    (N : Subgroup G) [N.Normal]
-    (π : UnitaryRepresentation G H)
-    (hN : HasRelativeKazhdanPropertyT G N) :
-    ∃ (F : Finset G) (δ : ℝ), 0 < δ ∧
-      ∀ x : (normalFixedSubmodule N π)ᗮ, ‖x‖ = 1 →
-        ∃ g ∈ F,
-          δ ≤ ‖(normalFixedOrthogonalRepresentation N π g :
-            (normalFixedSubmodule N π)ᗮ →L[ℂ]
-              (normalFixedSubmodule N π)ᗮ) x - x‖ :=
-  hN.spectralGap_of_no_fixed N
-    (normalFixedOrthogonalRepresentation N π)
-    (normalFixedOrthogonalRepresentation_no_fixed N π)
-
-abbrev normalFixedBundledQuotientRepresentation
-    (N : Subgroup G) [N.Normal]
-    (π : UnitaryRepresentation G H) :
-    UnitaryRepresentation (normalQuotientGroup G N)
-      (normalFixedSubmodule N π) :=
-  normalFixedQuotientRepresentation N π
-
-@[simp] theorem normalFixedBundledQuotientRepresentation_mk
-    (N : Subgroup G) [N.Normal]
-    (π : UnitaryRepresentation G H) (g : G) :
-    normalFixedBundledQuotientRepresentation N π
-        (normalQuotientHom G N g) =
-      normalFixedRepresentation N π g := by
-  rfl
-
-theorem normalFixedQuotient_hasAlmostInvariantUnitVectors
-    (N : Subgroup G) [N.Normal]
-    (π : UnitaryRepresentation G H)
-    (hN : HasRelativeKazhdanPropertyT G N)
-    (hπ : π.HasAlmostInvariantUnitVectors) :
-    (normalFixedBundledQuotientRepresentation N π).HasAlmostInvariantUnitVectors := by
-  classical
-  obtain ⟨F, δ, hδ, hgap⟩ :=
-    normalFixedOrthogonalRepresentation_spectralGap N π hN
-  intro S ε hε
-  let lift : normalQuotientGroup G N → G :=
-    fun q => (normalQuotientHom_surjective G N q).choose
-  have hlift (q : normalQuotientGroup G N) :
-      normalQuotientHom G N (lift q) = q :=
-    (normalQuotientHom_surjective G N q).choose_spec
-  let τ : ℝ := min (δ / 2) (ε / 2)
-  have hτ : 0 < τ := lt_min (by positivity) (by positivity)
-  obtain ⟨ξ, hξunit, hξ⟩ := hπ (F ∪ S.image lift) τ hτ
-  let M : Submodule ℂ H := normalFixedSubmodule N π
-  let z : H := ξ - M.starProjection ξ
-  have hzmem : z ∈ Mᗮ := Submodule.sub_starProjection_mem_orthogonal ξ
-  have hzsmall : ‖z‖ < 1 / 2 := by
-    by_contra hnot
-    have hzlower : (1 / 2 : ℝ) ≤ ‖z‖ := le_of_not_gt hnot
-    have hz : z ≠ 0 := by
-      intro hzero
-      rw [hzero, norm_zero] at hzlower
-      norm_num at hzlower
-    let w : Mᗮ :=
-      ⟨((‖z‖ : ℂ)⁻¹) • z, (Mᗮ).smul_mem _ hzmem⟩
-    have hwnorm : ‖w‖ = 1 := norm_smul_inv_norm hz
-    obtain ⟨g, hg, hbound⟩ := hgap w hwnorm
-    have hcontract :
-        ‖(π g : H →L[ℂ] H) z - z‖ ≤
-          ‖(π g : H →L[ℂ] H) ξ - ξ‖ := by
-      exact normalFixed_orthogonalResidual_displacement_le N π g ξ
-    have hwformula :
-        ‖(normalFixedOrthogonalRepresentation N π g :
-            Mᗮ →L[ℂ] Mᗮ) w - w‖ =
-          ‖(π g : H →L[ℂ] H) z - z‖ / ‖z‖ := by
-      change ‖(π g : H →L[ℂ] H)
-        (((‖z‖ : ℂ)⁻¹) • z) - ((‖z‖ : ℂ)⁻¹) • z‖ = _
-      rw [map_smul, ← smul_sub]
-      rw [norm_smul, norm_inv, Complex.norm_real,
-        Real.norm_of_nonneg (norm_nonneg z)]
-      simp [div_eq_mul_inv, mul_comm]
-    rw [hwformula] at hbound
-    have hzpos : 0 < ‖z‖ := norm_pos_iff.mpr hz
-    have hbound' : δ * ‖z‖ ≤
-        ‖(π g : H →L[ℂ] H) z - z‖ :=
-      (le_div_iff₀ hzpos).mp hbound
-    have hgsmall := hξ g (Finset.mem_union_left _ hg)
-    have hτδ : τ ≤ δ / 2 := min_le_left _ _
-    nlinarith
-  let p : M :=
-    ⟨M.starProjection ξ, Submodule.starProjection_apply_mem M ξ⟩
-  have hpbig : (1 / 2 : ℝ) < ‖p‖ := by
-    have htriangle : ‖ξ‖ ≤ ‖(p : H)‖ + ‖z‖ := by
-      calc
-        ‖ξ‖ = ‖(p : H) + z‖ := by
-          congr 1
-          dsimp [p, z]
-          abel
-        _ ≤ ‖(p : H)‖ + ‖z‖ := norm_add_le _ _
-    change (1 / 2 : ℝ) < ‖(p : H)‖
-    rw [hξunit] at htriangle
-    nlinarith
-  have hppos : 0 < ‖p‖ := lt_trans (by norm_num) hpbig
-  have hpzero : p ≠ 0 := norm_pos_iff.mp hppos
-  let x : M := ((‖p‖ : ℂ)⁻¹) • p
-  refine ⟨x, norm_smul_inv_norm hpzero, ?_⟩
-  intro q hq
-  have hgmem : lift q ∈ S.image lift :=
-    Finset.mem_image.mpr ⟨q, hq, rfl⟩
-  have hgsmall := hξ (lift q) (Finset.mem_union_right F hgmem)
-  have hτε : τ ≤ ε / 2 := min_le_right _ _
-  have hpdisplacement :
-      ‖(normalFixedRepresentation N π (lift q) : M →L[ℂ] M) p - p‖ ≤
-        ‖(π (lift q) : H →L[ℂ] H) ξ - ξ‖ := by
-    exact normalFixed_starProjection_displacement_le N π (lift q) ξ
-  have hqeq : q = normalQuotientHom G N (lift q) := (hlift q).symm
-  rw [hqeq, normalFixedBundledQuotientRepresentation_mk]
-  dsimp [x]
-  rw [map_smul, ← smul_sub, norm_smul, norm_inv,
-    Complex.norm_real, Real.norm_of_nonneg (norm_nonneg (p : H))]
-  rw [inv_mul_eq_div]
-  change 0 < ‖(p : H)‖ at hppos
-  apply (div_lt_iff₀ hppos).2
-  change ‖(π (lift q) : H →L[ℂ] H) (p : H) - (p : H)‖ ≤
-    ‖(π (lift q) : H →L[ℂ] H) ξ - ξ‖ at hpdisplacement
-  change (1 / 2 : ℝ) < ‖(p : H)‖ at hpbig
-  nlinarith
-
-theorem hasKazhdanPropertyT_of_relative_and_quotient
-    (N : Subgroup G) [N.Normal]
-    (hN : HasRelativeKazhdanPropertyT G N)
-    (hquot : HasKazhdanPropertyT (normalQuotientGroup G N)) :
-    HasKazhdanPropertyT G := by
-  intro H _ _ _ π hπ
-  obtain ⟨x, hxzero, hxinvariant⟩ :=
-    hquot (normalFixedSubmodule N π)
-      inferInstance inferInstance inferInstance
-      (normalFixedBundledQuotientRepresentation N π)
-      (normalFixedQuotient_hasAlmostInvariantUnitVectors N π hN hπ)
-  refine ⟨(x : H), ?_, ?_⟩
-  · exact fun hx => hxzero (Subtype.ext hx)
-  · intro g
-    have hfixed := hxinvariant (normalQuotientHom G N g)
-    rw [normalFixedBundledQuotientRepresentation_mk] at hfixed
-    exact congrArg Subtype.val hfixed
-
 end ConnesRigidity
 
 end
@@ -52842,169 +38682,8 @@ section
 noncomputable section
 
 namespace ConnesRigidity
-
-open ConnesRigidity MeasureTheory
-
-universe u
-
-variable {A : Type u} [AddCommGroup A] [TopologicalSpace A] [DiscreteTopology A]
-variable {G H : CountableDiscreteGroup.{u}}
-variable [MeasurableSpace (DiscreteCharacterSpace A)]
-  [BorelSpace (DiscreteCharacterSpace A)]
-
-noncomputable def RelativeFourierAtomCertificate.testingSet
-    {E : SplitAbelianExtension A G H}
-    (certificate : RelativeFourierAtomCertificate E) : Finset G := by
-  classical
-  exact certificate.shears.image E.splitting ∪
-    certificate.translations.image
-      (fun a => E.inclusion (Multiplicative.ofAdd a))
-
-theorem exists_kernel_fixed_of_fourierAtomCertificate_vector
-    {E : SplitAbelianExtension A G H}
-    (certificate : RelativeFourierAtomCertificate E)
-    {W : Type u} [NormedAddCommGroup W]
-    [InnerProductSpace ℂ W] [CompleteSpace W]
-    (π : UnitaryRepresentation G W) (x : W) (hx : ‖x‖ = 1)
-    (hsmall : ∀ g ∈ certificate.testingSet,
-      ‖(π g : W →L[ℂ] W) x - x‖ < certificate.gap / 2) :
-    ∃ y : W, y ≠ 0 ∧
-      ∀ a : A,
-        (π (E.inclusion (Multiplicative.ofAdd a)) : W →L[ℂ] W) y = y := by
-  classical
-  let Φ := jointPositiveSpectralFunctional E π
-  let μ := Φ.probabilityMeasure x hx
-  have hshears :
-      ∀ h ∈ certificate.shears,
-        ∀ s : Set (DiscreteCharacterSpace A), MeasurableSet s →
-          |((μ : Measure (DiscreteCharacterSpace A)).map
-              (dualCharacterAction E.action h)).real s -
-            (μ : Measure (DiscreteCharacterSpace A)).real s| <
-              certificate.gap := by
-    intro h hh s hs
-    have hmem : E.splitting h ∈ certificate.testingSet := by
-      apply Finset.mem_union_left
-      exact Finset.mem_image.mpr ⟨h, hh, rfl⟩
-    have hbound :=
-      abs_jointScalarMeasure_map_measureReal_sub_le E π x hx h hs
-    have hdisplacement := hsmall (E.splitting h) hmem
-    change
-      |((Φ.measure x).map (dualCharacterAction E.action h)).real s -
-        (Φ.measure x).real s| < certificate.gap
-    linarith
-  have htranslations :
-      ∀ a ∈ certificate.translations,
-        spectralDetectionEnergy μ a < certificate.gap ^ 2 := by
-    intro a ha
-    have hmem : E.inclusion (Multiplicative.ofAdd a) ∈
-        certificate.testingSet := by
-      apply Finset.mem_union_right
-      exact Finset.mem_image.mpr ⟨a, ha, rfl⟩
-    have hdisplacement :=
-      hsmall (E.inclusion (Multiplicative.ofAdd a)) hmem
-    change
-      (∫ χ : DiscreteCharacterSpace A,
-        ‖((χ (Multiplicative.ofAdd a) : Circle) : ℂ) - 1‖ ^ 2
-          ∂(Φ.measure x)) < certificate.gap ^ 2
-    rw [Φ.measure_energy x a]
-    have hnorm := norm_nonneg
-      ((π (E.inclusion (Multiplicative.ofAdd a)) : W →L[ℂ] W) x - x)
-    nlinarith [certificate.gap_pos]
-  exact exists_kernel_fixed_of_joint_atom_pos E π x hx
-    (certificate.positive_atom μ hshears htranslations)
-
-theorem relativeKazhdanPair_of_fourierAtomCertificate_unconditional
-    {E : SplitAbelianExtension A G H}
-    (certificate : RelativeFourierAtomCertificate E) :
-    IsRelativeKazhdanPair G E.inclusion.range
-      certificate.testingSet (certificate.gap / 2) := by
-  refine ⟨div_pos certificate.gap_pos (by norm_num), ?_⟩
-  intro W _ _ _ π x hx hsmall
-  obtain ⟨y, hy, hyfixed⟩ :=
-    exists_kernel_fixed_of_fourierAtomCertificate_vector
-      certificate π x hx hsmall
-  refine ⟨y, hy, ?_⟩
-  intro n
-  obtain ⟨a, ha⟩ := n.property
-  rw [← ha]
-  exact hyfixed (Multiplicative.toAdd a)
-
-end ConnesRigidity
-
-end
-
-section
-
-noncomputable section
-
-namespace ConnesRigidity
-
-open ConnesRigidity
-
-universe u
-
-variable {A : Type u} [AddCommGroup A] [TopologicalSpace A] [DiscreteTopology A]
-variable {G H : CountableDiscreteGroup.{u}}
-variable [MeasurableSpace (DiscreteCharacterSpace A)]
-  [BorelSpace (DiscreteCharacterSpace A)]
-
-omit [BorelSpace (DiscreteCharacterSpace A)] in
-
-theorem relative_propertyT_of_finite_spectral_detection
-    (E : SplitAbelianExtension A G H)
-    (hH : HasKazhdanPropertyT H)
-    (J : Finset A) {c : ℝ} (hc : 0 < c)
-    (hdetection : HasFiniteSpectralDetection E J c)
-    (spectral : ∀ (W : Type u)
-      (_ : NormedAddCommGroup W)
-      (_ : InnerProductSpace ℂ W)
-      (_ : CompleteSpace W)
-      (π : UnitaryRepresentation G W),
-        SpectralMeasureInterface E W π) :
-    HasRelativeKazhdanPropertyT G E.inclusion.range := by
-  intro W _ _ _ π hπ
-  let P := spectral W inferInstance inferInstance inferInstance π
-  obtain ⟨x, hx⟩ := exists_positive_spectral_atom E π P hH hπ J hc hdetection
-  obtain ⟨y, hy, hkernel, _⟩ := P.positive_atom_invariant x hx
-  refine ⟨y, hy, ?_⟩
-  rintro ⟨g, hg⟩
-  obtain ⟨a, rfl⟩ := hg
-  exact hkernel (Multiplicative.toAdd a)
 
 section ActualSplitGroup
-
-local instance relativeLambdaDiscreteTopology : TopologicalSpace D := ⊥
-
-local instance relativeLambdaDiscrete : DiscreteTopology D := ⟨rfl⟩
-
-local instance relativeLambdaDecidableEq : DecidableEq D := Classical.decEq _
-
-local instance relativeLambdaDualMeasurable :
-    MeasurableSpace (DiscreteCharacterSpace D) :=
-  borel (DiscreteCharacterSpace D)
-
-local instance relativeLambdaDualBorel :
-    BorelSpace (DiscreteCharacterSpace D) := ⟨rfl⟩
-
-theorem lambda_hasRelativeKazhdanPropertyT
-    (hUniversalLattice : ErshovJaikinUniversalLatticePropertyT)
-    (analytic : LambdaSpectralInput) :
-    HasRelativeKazhdanPropertyT lambdaGroup
-      lambdaSplitAbelianExtension.quotient.ker := by
-  rw [lambdaSplitAbelianExtension.exact]
-  exact relative_propertyT_of_finite_spectral_detection
-    lambdaSplitAbelianExtension
-    (actingGroup_hasKazhdanPropertyT hUniversalLattice)
-    {lambdaLinearDetector, lambdaQuadraticDetector} (by norm_num)
-    lambda_hasFiniteSpectralDetection analytic.spectral
-
-theorem lambda_hasRelativeKazhdanPropertyT_of_projection_valued_measure
-    (hUniversalLattice : ErshovJaikinUniversalLatticePropertyT)
-    (analytic : LambdaProjectionSpectralInput) :
-    HasRelativeKazhdanPropertyT lambdaGroup
-      lambdaSplitAbelianExtension.quotient.ker :=
-  lambda_hasRelativeKazhdanPropertyT
-    hUniversalLattice analytic.toLambdaSpectralInput
 
 end ActualSplitGroup
 
@@ -53018,185 +38697,6 @@ noncomputable section
 
 namespace ConnesRigidity
 
-open MeasureTheory
-
-def polynomialShearTInv (z : PolynomialCirclePair) : PolynomialCirclePair :=
-  ((fun n ↦ z.1 n * (z.2 (n + 1))⁻¹), z.2)
-
-def polynomialShearSInv (z : PolynomialCirclePair) : PolynomialCirclePair :=
-  (z.1, (fun n ↦ z.2 n * (z.1 (n + 1))⁻¹))
-
-def polynomialShearNInv (z : PolynomialCirclePair) : PolynomialCirclePair :=
-  ((fun n ↦ z.1 n * (z.2 n)⁻¹), z.2)
-
-theorem measurable_polynomialShearT : Measurable polynomialShearT := by
-  apply Measurable.prodMk
-  · apply measurable_pi_lambda
-    intro n
-    exact ((measurable_pi_apply n).comp measurable_fst).mul
-      ((measurable_pi_apply (n + 1)).comp measurable_snd)
-  · exact measurable_snd
-
-theorem measurable_polynomialShearS : Measurable polynomialShearS := by
-  apply Measurable.prodMk
-  · exact measurable_fst
-  · apply measurable_pi_lambda
-    intro n
-    exact ((measurable_pi_apply n).comp measurable_snd).mul
-      ((measurable_pi_apply (n + 1)).comp measurable_fst)
-
-theorem measurable_polynomialShearN : Measurable polynomialShearN := by
-  apply Measurable.prodMk
-  · apply measurable_pi_lambda
-    intro n
-    exact ((measurable_pi_apply n).comp measurable_fst).mul
-      ((measurable_pi_apply n).comp measurable_snd)
-  · exact measurable_snd
-
-theorem measurable_polynomialShearTInv : Measurable polynomialShearTInv := by
-  apply Measurable.prodMk
-  · apply measurable_pi_lambda
-    intro n
-    exact ((measurable_pi_apply n).comp measurable_fst).mul
-      (((measurable_pi_apply (n + 1)).comp measurable_snd).inv)
-  · exact measurable_snd
-
-theorem measurable_polynomialShearSInv : Measurable polynomialShearSInv := by
-  apply Measurable.prodMk
-  · exact measurable_fst
-  · apply measurable_pi_lambda
-    intro n
-    exact ((measurable_pi_apply n).comp measurable_snd).mul
-      (((measurable_pi_apply (n + 1)).comp measurable_fst).inv)
-
-theorem measurable_polynomialShearNInv : Measurable polynomialShearNInv := by
-  apply Measurable.prodMk
-  · apply measurable_pi_lambda
-    intro n
-    exact ((measurable_pi_apply n).comp measurable_fst).mul
-      (((measurable_pi_apply n).comp measurable_snd).inv)
-  · exact measurable_snd
-
-@[simp] theorem polynomialShearTInv_apply_shear
-    (z : PolynomialCirclePair) :
-    polynomialShearTInv (polynomialShearT z) = z := by
-  apply Prod.ext
-  · funext n
-    simp [polynomialShearTInv, polynomialShearT,
-      polynomialSequenceMul, polynomialSequenceTail, mul_assoc]
-  · rfl
-
-@[simp] theorem polynomialShearT_apply_inv
-    (z : PolynomialCirclePair) :
-    polynomialShearT (polynomialShearTInv z) = z := by
-  apply Prod.ext
-  · funext n
-    simp [polynomialShearTInv, polynomialShearT,
-      polynomialSequenceMul, polynomialSequenceTail, mul_assoc]
-  · rfl
-
-@[simp] theorem polynomialShearSInv_apply_shear
-    (z : PolynomialCirclePair) :
-    polynomialShearSInv (polynomialShearS z) = z := by
-  apply Prod.ext
-  · rfl
-  · funext n
-    simp [polynomialShearSInv, polynomialShearS,
-      polynomialSequenceMul, polynomialSequenceTail, mul_assoc]
-
-@[simp] theorem polynomialShearS_apply_inv
-    (z : PolynomialCirclePair) :
-    polynomialShearS (polynomialShearSInv z) = z := by
-  apply Prod.ext
-  · rfl
-  · funext n
-    simp [polynomialShearSInv, polynomialShearS,
-      polynomialSequenceMul, polynomialSequenceTail, mul_assoc]
-
-@[simp] theorem polynomialShearNInv_apply_shear
-    (z : PolynomialCirclePair) :
-    polynomialShearNInv (polynomialShearN z) = z := by
-  apply Prod.ext
-  · funext n
-    simp [polynomialShearNInv, polynomialShearN,
-      polynomialSequenceMul, mul_assoc]
-  · rfl
-
-@[simp] theorem polynomialShearN_apply_inv
-    (z : PolynomialCirclePair) :
-    polynomialShearN (polynomialShearNInv z) = z := by
-  apply Prod.ext
-  · funext n
-    simp [polynomialShearNInv, polynomialShearN,
-      polynomialSequenceMul, mul_assoc]
-  · rfl
-
-def polynomialShearTEquiv :
-    PolynomialCirclePair ≃ᵐ PolynomialCirclePair where
-  toFun := polynomialShearT
-  invFun := polynomialShearTInv
-  left_inv := polynomialShearTInv_apply_shear
-  right_inv := polynomialShearT_apply_inv
-  measurable_toFun := measurable_polynomialShearT
-  measurable_invFun := measurable_polynomialShearTInv
-
-def polynomialShearSEquiv :
-    PolynomialCirclePair ≃ᵐ PolynomialCirclePair where
-  toFun := polynomialShearS
-  invFun := polynomialShearSInv
-  left_inv := polynomialShearSInv_apply_shear
-  right_inv := polynomialShearS_apply_inv
-  measurable_toFun := measurable_polynomialShearS
-  measurable_invFun := measurable_polynomialShearSInv
-
-def polynomialShearNEquiv :
-    PolynomialCirclePair ≃ᵐ PolynomialCirclePair where
-  toFun := polynomialShearN
-  invFun := polynomialShearNInv
-  left_inv := polynomialShearNInv_apply_shear
-  right_inv := polynomialShearN_apply_inv
-  measurable_toFun := measurable_polynomialShearN
-  measurable_invFun := measurable_polynomialShearNInv
-
-@[simp] theorem polynomialShearTEquiv_apply (z : PolynomialCirclePair) :
-    polynomialShearTEquiv z = polynomialShearT z := rfl
-
-@[simp] theorem polynomialShearSEquiv_apply (z : PolynomialCirclePair) :
-    polynomialShearSEquiv z = polynomialShearS z := rfl
-
-@[simp] theorem polynomialShearNEquiv_apply (z : PolynomialCirclePair) :
-    polynomialShearNEquiv z = polynomialShearN z := rfl
-
-theorem measurableSet_polynomialShearT_image
-    {U : Set PolynomialCirclePair} (hU : MeasurableSet U) :
-    MeasurableSet (polynomialShearT '' U) :=
-  polynomialShearTEquiv.measurableSet_image.mpr hU
-
-theorem measurableSet_polynomialShearS_image
-    {U : Set PolynomialCirclePair} (hU : MeasurableSet U) :
-    MeasurableSet (polynomialShearS '' U) :=
-  polynomialShearSEquiv.measurableSet_image.mpr hU
-
-theorem measurableSet_polynomialShearN_image
-    {U : Set PolynomialCirclePair} (hU : MeasurableSet U) :
-    MeasurableSet (polynomialShearN '' U) :=
-  polynomialShearNEquiv.measurableSet_image.mpr hU
-
-theorem polynomialShearT_image_eq_preimage_inv
-    (U : Set PolynomialCirclePair) :
-    polynomialShearT '' U = polynomialShearTInv ⁻¹' U :=
-  polynomialShearTEquiv.toEquiv.image_eq_preimage_symm U
-
-theorem polynomialShearS_image_eq_preimage_inv
-    (U : Set PolynomialCirclePair) :
-    polynomialShearS '' U = polynomialShearSInv ⁻¹' U :=
-  polynomialShearSEquiv.toEquiv.image_eq_preimage_symm U
-
-theorem polynomialShearN_image_eq_preimage_inv
-    (U : Set PolynomialCirclePair) :
-    polynomialShearN '' U = polynomialShearNInv ⁻¹' U :=
-  polynomialShearNEquiv.toEquiv.image_eq_preimage_symm U
-
 end ConnesRigidity
 
 end
@@ -53207,166 +38707,6 @@ noncomputable section
 
 namespace ConnesRigidity
 
-open ConnesRigidity MeasureTheory
-
-theorem polynomialCharacterCoefficientPair_dualCharacterAction_inv_of_equivariant
-    (h : integralElementaryRankTwoActingGroup)
-    (e : PolynomialCirclePair ≃ᵐ PolynomialCirclePair)
-    (he : ∀ χ : PolynomialRankTwoCharacter,
-      polynomialCharacterCoefficientPair
-          (dualCharacterAction
-            integralElementaryRankTwoSplitAbelianExtension.action h χ) =
-        e (polynomialCharacterCoefficientPair χ))
-    (χ : PolynomialRankTwoCharacter) :
-    polynomialCharacterCoefficientPair
-        (dualCharacterAction
-          integralElementaryRankTwoSplitAbelianExtension.action h⁻¹ χ) =
-      e.symm (polynomialCharacterCoefficientPair χ) := by
-  apply e.injective
-  calc
-    e (polynomialCharacterCoefficientPair
-        (dualCharacterAction
-          integralElementaryRankTwoSplitAbelianExtension.action h⁻¹ χ)) =
-        polynomialCharacterCoefficientPair
-          (dualCharacterAction
-            integralElementaryRankTwoSplitAbelianExtension.action h
-            (dualCharacterAction
-              integralElementaryRankTwoSplitAbelianExtension.action h⁻¹ χ)) :=
-      (he _).symm
-    _ = polynomialCharacterCoefficientPair χ := by
-      rw [← dualCharacterAction_mul, mul_inv_cancel,
-        dualCharacterAction_one]
-    _ = e (e.symm (polynomialCharacterCoefficientPair χ)) := by simp
-
-def polynomialDualShearTInv
-    (χ : PolynomialRankTwoCharacter) : PolynomialRankTwoCharacter :=
-  dualCharacterAction integralElementaryRankTwoSplitAbelianExtension.action
-    polynomialShearTActing⁻¹ χ
-
-def polynomialDualShearSInv
-    (χ : PolynomialRankTwoCharacter) : PolynomialRankTwoCharacter :=
-  dualCharacterAction integralElementaryRankTwoSplitAbelianExtension.action
-    polynomialShearSActing⁻¹ χ
-
-def polynomialDualShearNInv
-    (χ : PolynomialRankTwoCharacter) : PolynomialRankTwoCharacter :=
-  dualCharacterAction integralElementaryRankTwoSplitAbelianExtension.action
-    polynomialShearNActing⁻¹ χ
-
-@[simp] theorem polynomialDualShearTInv_apply_shear
-    (χ : PolynomialRankTwoCharacter) :
-    polynomialDualShearTInv (polynomialDualShearT χ) = χ := by
-  change
-    dualCharacterAction integralElementaryRankTwoSplitAbelianExtension.action
-        polynomialShearTActing⁻¹
-      (dualCharacterAction integralElementaryRankTwoSplitAbelianExtension.action
-        polynomialShearTActing χ) = χ
-  rw [← dualCharacterAction_mul, inv_mul_cancel, dualCharacterAction_one]
-
-@[simp] theorem polynomialDualShearT_apply_inv
-    (χ : PolynomialRankTwoCharacter) :
-    polynomialDualShearT (polynomialDualShearTInv χ) = χ := by
-  change
-    dualCharacterAction integralElementaryRankTwoSplitAbelianExtension.action
-        polynomialShearTActing
-      (dualCharacterAction integralElementaryRankTwoSplitAbelianExtension.action
-        polynomialShearTActing⁻¹ χ) = χ
-  rw [← dualCharacterAction_mul, mul_inv_cancel, dualCharacterAction_one]
-
-@[simp] theorem polynomialDualShearSInv_apply_shear
-    (χ : PolynomialRankTwoCharacter) :
-    polynomialDualShearSInv (polynomialDualShearS χ) = χ := by
-  change
-    dualCharacterAction integralElementaryRankTwoSplitAbelianExtension.action
-        polynomialShearSActing⁻¹
-      (dualCharacterAction integralElementaryRankTwoSplitAbelianExtension.action
-        polynomialShearSActing χ) = χ
-  rw [← dualCharacterAction_mul, inv_mul_cancel, dualCharacterAction_one]
-
-@[simp] theorem polynomialDualShearS_apply_inv
-    (χ : PolynomialRankTwoCharacter) :
-    polynomialDualShearS (polynomialDualShearSInv χ) = χ := by
-  change
-    dualCharacterAction integralElementaryRankTwoSplitAbelianExtension.action
-        polynomialShearSActing
-      (dualCharacterAction integralElementaryRankTwoSplitAbelianExtension.action
-        polynomialShearSActing⁻¹ χ) = χ
-  rw [← dualCharacterAction_mul, mul_inv_cancel, dualCharacterAction_one]
-
-@[simp] theorem polynomialDualShearNInv_apply_shear
-    (χ : PolynomialRankTwoCharacter) :
-    polynomialDualShearNInv (polynomialDualShearN χ) = χ := by
-  change
-    dualCharacterAction integralElementaryRankTwoSplitAbelianExtension.action
-        polynomialShearNActing⁻¹
-      (dualCharacterAction integralElementaryRankTwoSplitAbelianExtension.action
-        polynomialShearNActing χ) = χ
-  rw [← dualCharacterAction_mul, inv_mul_cancel, dualCharacterAction_one]
-
-@[simp] theorem polynomialDualShearN_apply_inv
-    (χ : PolynomialRankTwoCharacter) :
-    polynomialDualShearN (polynomialDualShearNInv χ) = χ := by
-  change
-    dualCharacterAction integralElementaryRankTwoSplitAbelianExtension.action
-        polynomialShearNActing
-      (dualCharacterAction integralElementaryRankTwoSplitAbelianExtension.action
-        polynomialShearNActing⁻¹ χ) = χ
-  rw [← dualCharacterAction_mul, mul_inv_cancel, dualCharacterAction_one]
-
-theorem polynomialCharacterCoefficientPair_polynomialDualShearT_inv
-    (χ : PolynomialRankTwoCharacter) :
-    polynomialCharacterCoefficientPair
-        (dualCharacterAction
-          integralElementaryRankTwoSplitAbelianExtension.action
-          polynomialShearTActing⁻¹ χ) =
-      polynomialShearTEquiv.symm (polynomialCharacterCoefficientPair χ) := by
-  apply polynomialCharacterCoefficientPair_dualCharacterAction_inv_of_equivariant
-    polynomialShearTActing polynomialShearTEquiv
-  intro ψ
-  exact polynomialCharacterCoefficientPair_polynomialDualShearT ψ
-
-theorem polynomialCharacterCoefficientPair_polynomialDualShearS_inv
-    (χ : PolynomialRankTwoCharacter) :
-    polynomialCharacterCoefficientPair
-        (dualCharacterAction
-          integralElementaryRankTwoSplitAbelianExtension.action
-          polynomialShearSActing⁻¹ χ) =
-      polynomialShearSEquiv.symm (polynomialCharacterCoefficientPair χ) := by
-  apply polynomialCharacterCoefficientPair_dualCharacterAction_inv_of_equivariant
-    polynomialShearSActing polynomialShearSEquiv
-  intro ψ
-  exact polynomialCharacterCoefficientPair_polynomialDualShearS ψ
-
-theorem polynomialCharacterCoefficientPair_polynomialDualShearN_inv
-    (χ : PolynomialRankTwoCharacter) :
-    polynomialCharacterCoefficientPair
-        (dualCharacterAction
-          integralElementaryRankTwoSplitAbelianExtension.action
-          polynomialShearNActing⁻¹ χ) =
-      polynomialShearNEquiv.symm (polynomialCharacterCoefficientPair χ) := by
-  apply polynomialCharacterCoefficientPair_dualCharacterAction_inv_of_equivariant
-    polynomialShearNActing polynomialShearNEquiv
-  intro ψ
-  exact polynomialCharacterCoefficientPair_polynomialDualShearN ψ
-
-theorem polynomialCharacterCoefficientPair_polynomialDualShearT_invFun
-    (χ : PolynomialRankTwoCharacter) :
-    polynomialCharacterCoefficientPair (polynomialDualShearTInv χ) =
-      polynomialShearTInv (polynomialCharacterCoefficientPair χ) :=
-  polynomialCharacterCoefficientPair_polynomialDualShearT_inv χ
-
-theorem polynomialCharacterCoefficientPair_polynomialDualShearS_invFun
-    (χ : PolynomialRankTwoCharacter) :
-    polynomialCharacterCoefficientPair (polynomialDualShearSInv χ) =
-      polynomialShearSInv (polynomialCharacterCoefficientPair χ) :=
-  polynomialCharacterCoefficientPair_polynomialDualShearS_inv χ
-
-theorem polynomialCharacterCoefficientPair_polynomialDualShearN_invFun
-    (χ : PolynomialRankTwoCharacter) :
-    polynomialCharacterCoefficientPair (polynomialDualShearNInv χ) =
-      polynomialShearNInv (polynomialCharacterCoefficientPair χ) :=
-  polynomialCharacterCoefficientPair_polynomialDualShearN_inv χ
-
 end ConnesRigidity
 
 end
@@ -53376,116 +38716,8 @@ section
 noncomputable section
 
 namespace ConnesRigidity
-
-open MeasureTheory Set
-
-theorem equivariant_preimage_image_eq
-    {X Y : Type*} [MeasurableSpace X] [MeasurableSpace Y]
-    (φ : X → Y) (f : X → X) (e : Y ≃ᵐ Y)
-    (hcov : ∀ x : X, φ (f x) = e.symm (φ x))
-    (U : Set Y) :
-    φ ⁻¹' (e '' U) = f ⁻¹' (φ ⁻¹' U) := by
-  ext x
-  constructor
-  · rintro ⟨y, hy, heq⟩
-    change φ (f x) ∈ U
-    rw [hcov x, ← heq]
-    simpa using hy
-  · intro hx
-    refine ⟨e.symm (φ x), ?_, e.apply_symm_apply (φ x)⟩
-    rw [← hcov x]
-    exact hx
-
-theorem measurableEquivariantPushforward_image_measureReal
-    {X Y : Type*} [MeasurableSpace X] [MeasurableSpace Y]
-    (μ : Measure X) (φ : X → Y) (hφ : Measurable φ)
-    (f : X → X) (hf : Measurable f)
-    (e : Y ≃ᵐ Y)
-    (hcov : ∀ x : X, φ (f x) = e.symm (φ x))
-    {U : Set Y} (hU : MeasurableSet U) :
-    (μ.map φ).real (e '' U) = (μ.map f).real (φ ⁻¹' U) := by
-  rw [map_measureReal_apply hφ (e.measurableSet_image.mpr hU),
-    map_measureReal_apply hf (hU.preimage hφ),
-    equivariant_preimage_image_eq φ f e hcov U]
-
-theorem measurableEquivariantPushforward_image_variation_le
-    {X Y : Type*} [MeasurableSpace X] [MeasurableSpace Y]
-    (μ : Measure X) (φ : X → Y) (hφ : Measurable φ)
-    (f : X → X) (hf : Measurable f)
-    (e : Y ≃ᵐ Y)
-    (hcov : ∀ x : X, φ (f x) = e.symm (φ x))
-    {U : Set Y} (hU : MeasurableSet U) {C : ℝ}
-    (hvariation :
-      |(μ.map f).real (φ ⁻¹' U) - μ.real (φ ⁻¹' U)| ≤ C) :
-    |(μ.map φ).real (e '' U) - (μ.map φ).real U| ≤ C := by
-  rw [measurableEquivariantPushforward_image_measureReal
-    μ φ hφ f hf e hcov hU,
-    map_measureReal_apply hφ hU]
-  exact hvariation
 
 section PolynomialSpectralShears
-
-variable {V : Type} [NormedAddCommGroup V]
-  [InnerProductSpace ℂ V] [CompleteSpace V]
-
-def shalomValuationSpectralMeasure
-    (π : ConnesRigidity.UnitaryRepresentation
-      integralElementaryRankTwoGroup V)
-    (x : V) (hx : ‖x‖ = 1) : Measure PolynomialCirclePair :=
-  (integralElementaryJointSpectralProbability π x hx :
-    Measure PolynomialRankTwoCharacter).map
-      polynomialCharacterCoefficientPair
-
-theorem shalom_valuationSpectral_shear_image_variation
-    (π : ConnesRigidity.UnitaryRepresentation
-      integralElementaryRankTwoGroup V)
-    (x : V) (hx : ‖x‖ = 1)
-    (h : integralElementaryRankTwoActingGroup)
-    (e : PolynomialCirclePair ≃ᵐ PolynomialCirclePair)
-    (hcov : ∀ χ : PolynomialRankTwoCharacter,
-      polynomialCharacterCoefficientPair
-          (dualCharacterAction
-            integralElementaryRankTwoSplitAbelianExtension.action h χ) =
-        e.symm (polynomialCharacterCoefficientPair χ))
-    {U : Set PolynomialCirclePair} (hU : MeasurableSet U) :
-    |(shalomValuationSpectralMeasure π x hx).real (e '' U) -
-      (shalomValuationSpectralMeasure π x hx).real U| ≤
-        2 * ‖(π (integralElementaryRankTwoInr h) :
-          V →L[ℂ] V) x - x‖ := by
-  unfold shalomValuationSpectralMeasure
-  apply measurableEquivariantPushforward_image_variation_le
-    (integralElementaryJointSpectralProbability π x hx :
-      Measure PolynomialRankTwoCharacter)
-    polynomialCharacterCoefficientPair
-    measurable_polynomialCharacterCoefficientPair
-    (dualCharacterAction
-      integralElementaryRankTwoSplitAbelianExtension.action h)
-    (dualCharacterAction_continuous
-      integralElementaryRankTwoSplitAbelianExtension.action h).measurable
-    e hcov hU
-  exact integralElementaryJointSpectralProbability_shear_map_variation
-    π x hx h (hU.preimage measurable_polynomialCharacterCoefficientPair)
-
-theorem shalom_valuationSpectral_shear_image_variation_lt_one_fifth
-    (π : ConnesRigidity.UnitaryRepresentation
-      integralElementaryRankTwoGroup V)
-    (x : V) (hx : ‖x‖ = 1)
-    (h : integralElementaryRankTwoActingGroup)
-    (e : PolynomialCirclePair ≃ᵐ PolynomialCirclePair)
-    (hcov : ∀ χ : PolynomialRankTwoCharacter,
-      polynomialCharacterCoefficientPair
-          (dualCharacterAction
-            integralElementaryRankTwoSplitAbelianExtension.action h χ) =
-        e.symm (polynomialCharacterCoefficientPair χ))
-    (hsmall : ‖(π (integralElementaryRankTwoInr h) :
-      V →L[ℂ] V) x - x‖ < (1 / 10 : ℝ))
-    {U : Set PolynomialCirclePair} (hU : MeasurableSet U) :
-    |(shalomValuationSpectralMeasure π x hx).real (e '' U) -
-      (shalomValuationSpectralMeasure π x hx).real U| <
-        (1 / 5 : ℝ) := by
-  have hle := shalom_valuationSpectral_shear_image_variation
-    π x hx h e hcov hU
-  nlinarith
 
 end PolynomialSpectralShears
 
@@ -53497,117 +38729,7 @@ section
 
 namespace ConnesRigidity
 
-open ConnesRigidity
-
 noncomputable section
-
-universe u
-
-variable {G H : Type u} [Group G]
-  [NormedAddCommGroup H] [InnerProductSpace ℂ H] [CompleteSpace H]
-
-def unitaryDisplacement (π : UnitaryRepresentation G H) (ξ : H) (g : G) : ℝ :=
-  ‖(π g : H →L[ℂ] H) ξ - ξ‖
-
-@[simp] theorem unitaryDisplacement_nonneg
-    (π : UnitaryRepresentation G H) (ξ : H) (g : G) :
-    0 ≤ unitaryDisplacement π ξ g :=
-  norm_nonneg _
-
-@[simp] theorem unitaryDisplacement_one
-    (π : UnitaryRepresentation G H) (ξ : H) :
-    unitaryDisplacement π ξ 1 = 0 := by
-  simp [unitaryDisplacement]
-
-theorem unitaryDisplacement_mul_le
-    (π : UnitaryRepresentation G H) (ξ : H) (g h : G) :
-    unitaryDisplacement π ξ (g * h) ≤
-      unitaryDisplacement π ξ g + unitaryDisplacement π ξ h := by
-  have hrewrite :
-      (π (g * h) : H →L[ℂ] H) ξ - ξ =
-        (π g : H →L[ℂ] H)
-          ((π h : H →L[ℂ] H) ξ - ξ) +
-        ((π g : H →L[ℂ] H) ξ - ξ) := by
-    rw [map_mul]
-    change
-      (π g : H →L[ℂ] H) ((π h : H →L[ℂ] H) ξ) - ξ = _
-    rw [map_sub]
-    module
-  unfold unitaryDisplacement
-  rw [hrewrite]
-  calc
-    ‖(π g : H →L[ℂ] H)
-          ((π h : H →L[ℂ] H) ξ - ξ) +
-        ((π g : H →L[ℂ] H) ξ - ξ)‖
-        ≤ ‖(π g : H →L[ℂ] H)
-              ((π h : H →L[ℂ] H) ξ - ξ)‖ +
-          ‖(π g : H →L[ℂ] H) ξ - ξ‖ := norm_add_le _ _
-    _ = ‖(π g : H →L[ℂ] H) ξ - ξ‖ +
-          ‖(π h : H →L[ℂ] H) ξ - ξ‖ := by
-      rw [Unitary.norm_map]
-      exact add_comm _ _
-
-@[simp] theorem unitaryDisplacement_inv
-    (π : UnitaryRepresentation G H) (ξ : H) (g : G) :
-    unitaryDisplacement π ξ g⁻¹ = unitaryDisplacement π ξ g := by
-  have hcancel :
-      (π g : H →L[ℂ] H) ((π g⁻¹ : H →L[ℂ] H) ξ) = ξ := by
-    change (↑(π g * π g⁻¹) : H →L[ℂ] H) ξ = ξ
-    rw [← map_mul]
-    simp
-  unfold unitaryDisplacement
-  calc
-    ‖(π g⁻¹ : H →L[ℂ] H) ξ - ξ‖ =
-        ‖(π g : H →L[ℂ] H)
-          ((π g⁻¹ : H →L[ℂ] H) ξ - ξ)‖ :=
-      (Unitary.norm_map (π g) _).symm
-    _ = ‖ξ - (π g : H →L[ℂ] H) ξ‖ := by
-      rw [map_sub, hcancel]
-    _ = ‖(π g : H →L[ℂ] H) ξ - ξ‖ := norm_sub_rev _ _
-
-theorem unitaryDisplacement_conjugate_le
-    (π : UnitaryRepresentation G H) (ξ : H) (g h : G) :
-    unitaryDisplacement π ξ (g * h * g⁻¹) ≤
-      2 * unitaryDisplacement π ξ g + unitaryDisplacement π ξ h := by
-  calc
-    unitaryDisplacement π ξ (g * h * g⁻¹) ≤
-        unitaryDisplacement π ξ (g * h) +
-          unitaryDisplacement π ξ g⁻¹ :=
-      unitaryDisplacement_mul_le π ξ (g * h) g⁻¹
-    _ ≤ (unitaryDisplacement π ξ g + unitaryDisplacement π ξ h) +
-          unitaryDisplacement π ξ g := by
-      rw [unitaryDisplacement_inv]
-      exact add_le_add_left (unitaryDisplacement_mul_le π ξ g h) _
-    _ = 2 * unitaryDisplacement π ξ g +
-          unitaryDisplacement π ξ h := by ring
-
-theorem unitaryDisplacement_commutator_le
-    (π : UnitaryRepresentation G H) (ξ : H) (g h : G) :
-    unitaryDisplacement π ξ (g * h * g⁻¹ * h⁻¹) ≤
-      2 * (unitaryDisplacement π ξ g + unitaryDisplacement π ξ h) := by
-  calc
-    unitaryDisplacement π ξ (g * h * g⁻¹ * h⁻¹) ≤
-        unitaryDisplacement π ξ (g * h * g⁻¹) +
-          unitaryDisplacement π ξ h⁻¹ :=
-      unitaryDisplacement_mul_le π ξ (g * h * g⁻¹) h⁻¹
-    _ ≤ (2 * unitaryDisplacement π ξ g +
-          unitaryDisplacement π ξ h) +
-          unitaryDisplacement π ξ h := by
-      rw [unitaryDisplacement_inv]
-      exact add_le_add_left (unitaryDisplacement_conjugate_le π ξ g h) _
-    _ = 2 * (unitaryDisplacement π ξ g +
-          unitaryDisplacement π ξ h) := by ring
-
-theorem unitaryDisplacement_list_prod_le
-    (π : UnitaryRepresentation G H) (ξ : H) (w : List G) :
-    unitaryDisplacement π ξ w.prod ≤
-      (w.map (unitaryDisplacement π ξ)).sum := by
-  induction w with
-  | nil => simp
-  | cons g w ih =>
-      simpa using
-        (unitaryDisplacement_mul_le π ξ g w.prod).trans
-          (add_le_add_right ih _)
 
 end
 
@@ -53620,78 +38742,6 @@ section
 namespace ConnesRigidity
 
 noncomputable section
-
-theorem characteristicTwoQuotient_has_four_torsion :
-    ∃ u : CharacteristicTwoSpecialLinear, orderOf u = 4 :=
-  exists_order_four_characteristicTwoSpecialLinear
-
-theorem shiftedCarryInvariant_injective {m n : ℕ}
-    (h : 2 ^ (4 * m) = 2 ^ (4 * n)) : m = n :=
-  paperInvariantCard_injective h
-
-theorem shiftedCarryKernel_cardinality (n : ℕ) :
-    Nat.card (shiftKernel n) = 2 ^ (4 * n) :=
-  shiftKernel_card n
-
-theorem manuscriptActingGroup_torsionFree
-    (g : K) (hg : IsOfFinOrder g) : g = 1 :=
-  K_no_nontrivial_torsion g hg
-
-theorem manuscriptActingGroup_isICC :
-    ConnesRigidity.IsICC actingGroup :=
-  actingGroup_isICC
-
-theorem manuscriptActingGroup_surjects_characteristicTwo :
-    Function.Surjective pi₂ :=
-  pi₂_surjective
-
-theorem manuscriptCarryDual_has_order_four (n : ℕ) :
-    ∃ η : E n, addOrderOf η = 4 :=
-  ⟨epsilon n e, epsilon_addOrderOf n⟩
-
-abbrev manuscriptSplitGroup : ConnesRigidity.CountableDiscreteGroup :=
-  lambdaGroup
-
-theorem manuscriptSplitGroup_isICC :
-    ConnesRigidity.IsICC manuscriptSplitGroup :=
-  lambda_isICC
-
-abbrev manuscriptCarryGroup (n : ℕ) :
-    ConnesRigidity.CountableDiscreteGroup :=
-  gammaGroup n
-
-theorem manuscriptGamma_has_order_four (n : ℕ) :
-    ∃ g : manuscriptCarryGroup n, orderOf g = 4 :=
-  gamma_has_order_four n
-
-theorem manuscriptGamma_isICC (n : ℕ) :
-    ConnesRigidity.IsICC (manuscriptCarryGroup n) :=
-  gamma_isICC n
-
-theorem manuscriptGroupFactors_isomorphic (n : ℕ) :
-    ConnesRigidity.TracialGroupFactorsIsomorphic
-      (manuscriptCarryGroup n) manuscriptSplitGroup :=
-  paper_factors_isomorphic n
-
-theorem manuscriptGamma_intrinsicInvariant (n : ℕ) :
-    paperGroupCardinalInvariant.value (manuscriptCarryGroup n) =
-      2 ^ (4 * n) :=
-  paperInvariant_card n
-
-theorem manuscriptGamma_pairwise_nonisomorphic
-    {m n : ℕ} (hmn : m ≠ n) :
-    ¬ConnesRigidity.GroupsIsomorphic
-      (manuscriptCarryGroup m) (manuscriptCarryGroup n) :=
-  gamma_pairwise_nonisomorphic hmn
-
-def manuscriptGamma_exactIndexEmbedding (n : ℕ) :
-    ExactIndexEmbedding (manuscriptCarryGroup 0)
-      (manuscriptCarryGroup n) (2 ^ (4 * n)) :=
-  gammaExactIndexEmbedding n
-
-def infinitePropertyTFiber_of_paperFamily
-    (F : PaperFamilyInput) : InfinitePropertyTFiber :=
-  F.toInfinitePropertyTFiber
 
 def manuscriptInfinitePropertyTFiber : InfinitePropertyTFiber :=
   paperInfinitePropertyTFiber
@@ -53705,6 +38755,383 @@ theorem exists_nonisomorphic_propertyT_icc_groups_with_isomorphic_factors :
       ConnesRigidity.HasKazhdanPropertyT Λ ∧
       ConnesRigidity.TracialGroupFactorsIsomorphic Γ Λ ∧
       ¬ConnesRigidity.GroupsIsomorphic Γ Λ := by
+  let _ := @ConnesRigidity.FeedbackBooleanPolynomial.two_eq_zero_zmod_two
+  let _ := @ConnesRigidity.FeedbackBooleanPolynomial.StrictPair.{0}
+  let _ := @ConnesRigidity.FeedbackBooleanPolynomial.BinaryQuadraticPolynomial.{0}
+  let _ := @ConnesRigidity.FeedbackBooleanPolynomial.BinaryQuadraticPolynomial.mk.{0}
+  let _ := @ConnesRigidity.FeedbackBooleanPolynomial.BinaryQuadraticPolynomial.constant.{0}
+  let _ := @ConnesRigidity.FeedbackBooleanPolynomial.BinaryQuadraticPolynomial.linear.{0}
+  let _ := @ConnesRigidity.FeedbackBooleanPolynomial.BinaryQuadraticPolynomial.quadratic.{0}
+  let _ := @ConnesRigidity.CountableDiscreteGroup.instCoeSortType.{0}
+  let _ := @ConnesRigidity.l2Reindex_symm.{0, 0}
+  let _ := @ConnesRigidity.unitaryLinearIsometryEquiv_apply.{0}
+  let _ := @ConnesRigidity.linearIsometryEquivUnitary_apply.{0}
+  let _ := @ConnesRigidity.FiniteIndex.inducedLinearIsometryEquiv_apply.{0}
+  let _ := @ConnesRigidity.FiniteIndex.inducedRepresentation_apply.{0}
+  let _ := @ConnesRigidity.e_zero
+  let _ := @ConnesRigidity.e_apply
+  let _ := @ConnesRigidity.square_zero
+  let _ := @ConnesRigidity.diagonal_val
+  let _ := @ConnesRigidity.polarization_val
+  let _ := @ConnesRigidity.truncatePolynomial_apply
+  let _ := @ConnesRigidity.truncateVector_apply
+  let _ := @ConnesRigidity.instCountableQ
+  let _ := @ConnesRigidity.modThreeAtZero_apply
+  let _ := @ConnesRigidity.modThreeAtZero_C
+  let _ := @ConnesRigidity.modThreeAtZero_X
+  let _ := @ConnesRigidity.modThreeGroupHom_apply_entry
+  let _ := @ConnesRigidity.modTwoPolynomial_apply
+  let _ := @ConnesRigidity.modTwoPolynomial_C
+  let _ := @ConnesRigidity.modTwoPolynomial_X
+  let _ := @ConnesRigidity.modTwoGroupHom_apply_entry
+  let _ := @ConnesRigidity.pi₂_apply
+  let _ := @ConnesRigidity.pi₂_apply_entry
+  let _ := @ConnesRigidity.constantTermGroupHom_apply_entry
+  let _ := @ConnesRigidity.constantTermToLevelThree_apply_coe
+  let _ := @ConnesRigidity.finiteGeneratedCosetRepresentation_apply.{0}
+  let _ := @ConnesRigidity.suslinEvaluation_entry
+  let _ := @ConnesRigidity.suslinConstantSection_entry
+  let _ := @ConnesRigidity.localGlobalElementarySubgroup_integralPolynomial
+  let _ := @ConnesRigidity.localGlobalElementarySubgroup_integer
+  let _ := @ConnesRigidity.LocalElementaryProof.coordinateRotation_smul_right.{0}
+  let _ := @ConnesRigidity.LocalElementaryProof.coordinateRotation_smul_other.{0}
+  let _ := @ConnesRigidity.MonicMatrixElimination.lowerBlockMatrix_zero_zero.{0}
+  let _ := @ConnesRigidity.MonicMatrixElimination.lowerBlockMatrix_succ_zero.{0}
+  let _ := @ConnesRigidity.MonicMatrixElimination.lowerBlockMatrix_zero_succ.{0}
+  let _ := @ConnesRigidity.MonicMatrixElimination.lowerBlockMatrix_succ_succ.{0}
+  let _ := @ConnesRigidity.StabilizedBlockReduction.finTwoPlusOne_symm_castSucc
+  let _ := @ConnesRigidity.StabilizedBlockReduction.finTwoPlusOne_symm_last
+  let _ := @ConnesRigidity.StabilizedBlockReduction.stabilizedTwoHom_castSucc_last.{0}
+  let _ := @ConnesRigidity.StabilizedBlockReduction.stabilizedTwoHom_last_castSucc.{0}
+  let _ := @ConnesRigidity.StabilizedBlockReduction.stabilizedTwoHom_last_last.{0}
+  let _ := @ConnesRigidity.MennickeIdentity.mennickeBlock_val.{0}
+  let _ := @ConnesRigidity.suslinSignedSwap_inv_eq.{0}
+  let _ := @ConnesRigidity.suslinSignedSwap_inv_zero_zero.{0}
+  let _ := @ConnesRigidity.suslinSignedSwap_inv_zero_one.{0}
+  let _ := @ConnesRigidity.suslinSignedSwap_inv_one_zero.{0}
+  let _ := @ConnesRigidity.suslinSignedSwap_inv_one_one.{0}
+  let _ := @ConnesRigidity.suslinSignedSwap_conjugate_zero_one.{0}
+  let _ := @ConnesRigidity.suslinSignedSwap_conjugate_one_zero.{0}
+  let _ := @ConnesRigidity.suslinPolynomialDilate_entry
+  let _ := @ConnesRigidity.cornulierRoot_val
+  let _ := @ConnesRigidity.tensorFunctional_tmul
+  let _ := @ConnesRigidity.carry_apply
+  let _ := @ConnesRigidity.tensorFunctional_smul_left
+  let _ := @ConnesRigidity.tensorFunctional_smul_right
+  let _ := @ConnesRigidity.carry_smul_left
+  let _ := @ConnesRigidity.carry_smul_right
+  let _ := @ConnesRigidity.carryBilinear
+  let _ := @ConnesRigidity.carryBilinear_apply
+  let _ := @ConnesRigidity.shiftVector_apply
+  let _ := @ConnesRigidity.shift_apply
+  let _ := @ConnesRigidity.CarryGroup.ext_iff
+  let _ := @ConnesRigidity.CarryGroup.zero_linear
+  let _ := @ConnesRigidity.CarryGroup.zero_quadratic
+  let _ := @ConnesRigidity.CarryGroup.neg_linear
+  let _ := @ConnesRigidity.CarryGroup.neg_quadratic
+  let _ := @ConnesRigidity.CarryGroup.coefficientFunctional_apply
+  let _ := @ConnesRigidity.CarryGroup.shift_coefficientFunctional_e
+  let _ := @ConnesRigidity.CarryGroup.orderFourElement_linear
+  let _ := @ConnesRigidity.CarryGroup.orderFourElement_quadratic
+  let _ := @ConnesRigidity.binaryRootsEquiv_apply
+  let _ := @ConnesRigidity.binaryRootsEquiv_val
+  let _ := @ConnesRigidity.continuousBinaryBidual.{0}
+  let _ := @ConnesRigidity.continuousBinaryBidualEvaluation.{0}
+  let _ := @ConnesRigidity.continuousBinaryBidualEvaluation_apply.{0}
+  let _ := @ConnesRigidity.continuousBinaryBidualEquiv.{0}
+  let _ := @ConnesRigidity.continuousBinaryBidualEquiv_apply.{0}
+  let _ := @ConnesRigidity.pointwiseEvaluationCharacter_apply.{0}
+  let _ := @ConnesRigidity.pointwiseEvaluationHom_apply.{0}
+  let _ := @ConnesRigidity.pointwisePontryaginDualEquiv_symm_apply.{0}
+  let _ := @ConnesRigidity.FiniteCarry.Point
+  let _ := @ConnesRigidity.FiniteCarry.carry_zero_left
+  let _ := @ConnesRigidity.FiniteCarry.carry_zero_right
+  let _ := @ConnesRigidity.FiniteCarry.carry_comm
+  let _ := @ConnesRigidity.FiniteCarry.carry_add_left
+  let _ := @ConnesRigidity.FiniteCarry.carry_add_right
+  let _ := @ConnesRigidity.FiniteCarry.Carry.ext_iff
+  let _ := @ConnesRigidity.FiniteCarry.Carry.zero_low
+  let _ := @ConnesRigidity.FiniteCarry.Carry.zero_high
+  let _ := @ConnesRigidity.FiniteCarry.Carry.add_low
+  let _ := @ConnesRigidity.FiniteCarry.Carry.add_high
+  let _ := @ConnesRigidity.FiniteCarry.Carry.neg_low
+  let _ := @ConnesRigidity.FiniteCarry.Carry.neg_high
+  let _ := @ConnesRigidity.FiniteCarry.Carry.pointEquiv
+  let _ := @ConnesRigidity.FiniteCarry.Carry.pointEquiv_apply
+  let _ := @ConnesRigidity.FiniteCarry.Carry.codeEquiv_apply
+  let _ := @ConnesRigidity.FiniteCarry.Carry.codeEquiv_symm_apply
+  let _ := @ConnesRigidity.FiniteCarry.Carry.exponent_four
+  let _ := @ConnesRigidity.FiniteCarry.Carry.card
+  let _ := @ConnesRigidity.CarryGroup.pointEvaluation_low
+  let _ := @ConnesRigidity.CarryGroup.pointEvaluation_high
+  let _ := @ConnesRigidity.CarryGroup.evalFour_orderFourElement
+  let _ := @ConnesRigidity.fourthRootCharacter_apply
+  let _ := @ConnesRigidity.fourthRootCharacter_zero
+  let _ := @ConnesRigidity.pontryaginDual_one_apply.{0}
+  let _ := @ConnesRigidity.evalFourContinuous_apply
+  let _ := @ConnesRigidity.fourthRootCharacter.comp_apply.{0}
+  let _ := @ConnesRigidity.dualAction_apply.{0, 0}
+  let _ := @ConnesRigidity.rho
+  let _ := @ConnesRigidity.rho_apply
+  let _ := @ConnesRigidity.carryKernelInclusion_linear
+  let _ := @ConnesRigidity.carryKernelInclusion_quadratic
+  let _ := @ConnesRigidity.carryPullback_linear
+  let _ := @ConnesRigidity.carryPullback_quadratic
+  let _ := @ConnesRigidity.shiftKernelInclusion_linear
+  let _ := @ConnesRigidity.shiftKernelInclusion_quadratic
+  let _ := @ConnesRigidity.shiftSection_apply
+  let _ := @ConnesRigidity.carryPullbackSection_linear
+  let _ := @ConnesRigidity.carryPullbackSection_quadratic
+  let _ := @ConnesRigidity.carryPullbackContinuous_apply
+  let _ := @ConnesRigidity.carryPullbackSectionContinuous_apply
+  let _ := @ConnesRigidity.carryPullbackContinuous_section_apply
+  let _ := @ConnesRigidity.kernelProjection_apply_coe
+  let _ := @ConnesRigidity.kernelProjectionContinuous_apply
+  let _ := @ConnesRigidity.shiftKernelInclusionContinuous_apply
+  let _ := @ConnesRigidity.kernelProjectionContinuous_inclusion_apply
+  let _ := @ConnesRigidity.d_polarization
+  let _ := @ConnesRigidity.binaryRootCharacter_apply
+  let _ := @ConnesRigidity.carryLinearEvaluation_apply
+  let _ := @ConnesRigidity.carryLinearEvaluationContinuous_apply
+  let _ := @ConnesRigidity.iotaCharacter_apply
+  let _ := @ConnesRigidity.quadraticInclusionContinuous_apply
+  let _ := @ConnesRigidity.quadraticRestriction_apply
+  let _ := @ConnesRigidity.quadraticCharacter_apply
+  let _ := @ConnesRigidity.quadraticPairing_apply
+  let _ := @ConnesRigidity.linearSection_linear
+  let _ := @ConnesRigidity.linearSection_quadratic
+  let _ := @ConnesRigidity.linearSection_zero
+  let _ := @ConnesRigidity.kernelCharacter_apply
+  let _ := @ConnesRigidity.sigma_epsilon
+  let _ := @ConnesRigidity.carryCoordinatesMeasurableEquiv_apply
+  let _ := @ConnesRigidity.carryComplexCharacter_apply
+  let _ := @ConnesRigidity.carryFourierBasis_coe
+  let _ := @ConnesRigidity.carryBidualEvaluation_apply
+  let _ := @ConnesRigidity.splitBinaryEvaluation_apply
+  let _ := @ConnesRigidity.splitPontryaginCharacter_apply
+  let _ := @ConnesRigidity.splitComplexCharacter_apply
+  let _ := @ConnesRigidity.splitFourierBasis_coe
+  let _ := @ConnesRigidity.HaarProbabilityAction.haar.{0, 0}
+  let _ := @ConnesRigidity.HaarProbabilityAction.action_add.{0, 0}
+  let _ := @ConnesRigidity.EquivariantHaarEquiv.refl.{0, 0}
+  let _ := @ConnesRigidity.EquivariantHaarEquiv.trans.{0, 0, 0, 0}
+  let _ := @ConnesRigidity.CrossedProductModel.trace.{0}
+  let _ := @ConnesRigidity.kLinear_apply
+  let _ := @ConnesRigidity.kTensorLinear_tmul
+  let _ := @ConnesRigidity.kDividedSquareLinear_polarization
+  let _ := @ConnesRigidity.kDLinear_apply
+  let _ := @ConnesRigidity.kDAction_toAdd
+  let _ := @ConnesRigidity.Lambda_mul_right
+  let _ := @ConnesRigidity.lambdaProjection_inl
+  let _ := @ConnesRigidity.lambdaProjection_inr
+  let _ := @ConnesRigidity.InfinitePropertyTFiber.exact_index_embeddings.{0}
+  let _ := @ConnesRigidity.InfinitePropertyTFiber.commensurable.{0}
+  let _ := @ConnesRigidity.kCarryAddAut_linear
+  let _ := @ConnesRigidity.kCarryAddAut_quadratic
+  let _ := @ConnesRigidity.kCarryAction_linear
+  let _ := @ConnesRigidity.kCarryAction_quadratic
+  let _ := @ConnesRigidity.paperSplitAddAut_apply
+  let _ := @ConnesRigidity.paperSplitAddAut_symm_apply
+  let _ := @ConnesRigidity.kCarryAddAut_symm_apply
+  let _ := @ConnesRigidity.crossedFiberwiseOperator_apply.{0, 0}
+  let _ := @ConnesRigidity.crossedMultiplier_apply.{0, 0}
+  let _ := @ConnesRigidity.crossedFiberwiseEquiv_apply.{0, 0, 0}
+  let _ := @ConnesRigidity.crossedIndexEquiv_apply.{0, 0}
+  let _ := @ConnesRigidity.crossedBaseHaarEquiv_apply.{0, 0, 0}
+  let _ := @ConnesRigidity.crossedActionL2Equiv_apply.{0, 0}
+  let _ := @ConnesRigidity.crossedGroupUnitary_apply.{0, 0}
+  let _ := @ConnesRigidity.crossedHaarHilbertEquiv_apply.{0, 0, 0}
+  let _ := @ConnesRigidity.carryEAddAction_apply
+  let _ := @ConnesRigidity.crossedOperatorBlock_apply.{0, 0}
+  let _ := @ConnesRigidity.dualCharacterAction_trivial.{0}
+  let _ := @ConnesRigidity.ProjectionValuedSpectralMeasure.{0}
+  let _ := @ConnesRigidity.ProjectionValuedSpectralMeasure.mk.{0}
+  let _ := @ConnesRigidity.ProjectionValuedSpectralMeasure.projection.{0}
+  let _ := @ConnesRigidity.ProjectionValuedSpectralMeasure.projection_empty.{0}
+  let _ := @ConnesRigidity.ProjectionValuedSpectralMeasure.projection_univ.{0}
+  let _ := @ConnesRigidity.ProjectionValuedSpectralMeasure.projection_inter.{0}
+  let _ := @ConnesRigidity.ProjectionValuedSpectralMeasure.projection_self_adjoint.{0}
+  let _ := @ConnesRigidity.ProjectionValuedSpectralMeasure.projection_iUnion.{0}
+  let _ := @ConnesRigidity.ProjectionValuedSpectralMeasure.scalar.{0}
+  let _ := @ConnesRigidity.ProjectionValuedSpectralMeasure.scalar_apply.{0}
+  let _ := @ConnesRigidity.ProjectionValuedSpectralMeasure.projection_covariance.{0}
+  let _ := @ConnesRigidity.ProjectionValuedSpectralMeasure.scalar_covariance.{0}
+  let _ := @ConnesRigidity.ProjectionValuedSpectralMeasure.kernel_eigenprojection.{0}
+  let _ := @ConnesRigidity.ProjectionValuedSpectralMeasure.energy_identity.{0}
+  let _ := @ConnesRigidity.ProjectionValuedSpectralMeasure.scalar_univ_real.{0}
+  let _ := @ConnesRigidity.ProjectionValuedSpectralMeasure.scalar_isProbabilityMeasure.{0}
+  let _ := @ConnesRigidity.ProjectionValuedSpectralMeasure.probabilityMeasure.{0}
+  let _ := @ConnesRigidity.ProjectionValuedSpectralMeasure.probabilityMeasure_invariant.{0}
+  let _ := @ConnesRigidity.ProjectionValuedSpectralMeasure.probabilityMeasure_energy.{0}
+  let _ := @ConnesRigidity.ProjectionValuedSpectralMeasure.trivialProjection_ne_zero_of_atom_pos.{0}
+  let _ := @ConnesRigidity.ProjectionValuedSpectralMeasure.trivialProjection_kernel_fixed.{0}
+  let _ := @ConnesRigidity.ProjectionValuedSpectralMeasure.trivialProjection_quotient_fixed.{0}
+  let _ := @ConnesRigidity.ProjectionValuedSpectralMeasure.positive_atom_invariant.{0}
+  let _ := @ConnesRigidity.quotientFixedOrthogonalIsometry_apply.{0}
+  let _ := @ConnesRigidity.quotientFixedOrthogonalRepresentation_apply.{0}
+  let _ := @ConnesRigidity.spectralUnitTest_apply.{0}
+  let _ := @ConnesRigidity.spectralEnergyTest_apply.{0}
+  let _ := @ConnesRigidity.PositiveSpectralFunctional.probabilityMeasure_toMeasure.{0}
+  let _ := @ConnesRigidity.spectralFiniteAverageTest_apply.{0, 0}
+  let _ := @ConnesRigidity.spectralKernelOperator_coe.{0}
+  let _ := @ConnesRigidity.spectralCharacter_apply_coe.{0}
+  let _ := @ConnesRigidity.spectralCharacterEvaluation_apply.{0}
+  let _ := @ConnesRigidity.dualCharacterHomeomorph_apply.{0}
+  let _ := @ConnesRigidity.quotientSpectralOperatorConjugation_coe.{0}
+  let _ := @ConnesRigidity.dualCharacterActionContinuousMap_apply.{0}
+  let _ := @ConnesRigidity.characterRealSqrt_apply.{0}
+  let _ := @ConnesRigidity.characterVectorFunctionalLinear_apply.{0, 0}
+  let _ := @ConnesRigidity.characterVectorFunctional_apply.{0, 0}
+  let _ := @ConnesRigidity.jointCharacterFunctional_apply.{0}
+  let _ := @ConnesRigidity.RelativeFourierAtomCertificate.{0}
+  let _ := @ConnesRigidity.RelativeFourierAtomCertificate.mk.{0}
+  let _ := @ConnesRigidity.RelativeFourierAtomCertificate.shears.{0}
+  let _ := @ConnesRigidity.RelativeFourierAtomCertificate.translations.{0}
+  let _ := @ConnesRigidity.RelativeFourierAtomCertificate.gap.{0}
+  let _ := @ConnesRigidity.RelativeFourierAtomCertificate.gap_pos.{0}
+  let _ := @ConnesRigidity.RelativeFourierAtomCertificate.positive_atom.{0}
+  let _ := @ConnesRigidity.affineFixedSet.{0}
+  let _ := @ConnesRigidity.mem_affineFixedSet.{0}
+  let _ := @ConnesRigidity.affineLinearRepresentation_apply.{0}
+  let _ := @ConnesRigidity.mem_affineLinearStabilizer.{0}
+  let _ := @ConnesRigidity.CornulierUltralimit.EquivariantHilbertKernelRealization.mk.{0}
+  let _ := @ConnesRigidity.CornulierUltralimit.EquivariantHilbertKernelRealization.{0}
+  let _ := @ConnesRigidity.CornulierUltralimit.EquivariantHilbertKernelRealization.realization.{0}
+  let _ := @ConnesRigidity.CornulierUltralimit.EquivariantHilbertKernelRealization.representation.{0}
+  let _ := @ConnesRigidity.CornulierUltralimit.EquivariantHilbertKernelRealization.equivariant.{0}
+  let _ := @ConnesRigidity.CornulierUltralimit.equivariantPairCocycle.{0}
+  let _ := @ConnesRigidity.CornulierUltralimit.equivariantPairCocycle_mul.{0}
+  let _ := @ConnesRigidity.CornulierUltralimit.unitaryCocycleAffineAction_apply.{0}
+  let _ := @ConnesRigidity.CornulierUltralimit.equivariantPairAffineAction.{0}
+  let _ := @ConnesRigidity.CornulierUltralimit.equivariantPairAffineAction_apply.{0}
+  let _ := @ConnesRigidity.CornulierUltralimit.equivariantPairAffineAction_apply_zero.{0}
+  let _ := @ConnesRigidity.CornulierUltralimit.markedOrbitAction_apply.{0}
+  let _ := @ConnesRigidity.normalFixedLinearIsometryEquiv.{0}
+  let _ := @ConnesRigidity.normalFixedRepresentation.{0}
+  let _ := @ConnesRigidity.normalFixedRepresentation_apply.{0}
+  let _ := @ConnesRigidity.normalFixedRepresentation_apply_eq_one.{0}
+  let _ := @ConnesRigidity.normalFixedQuotientRepresentation.{0}
+  let _ := @ConnesRigidity.normalFixedQuotientRepresentation_apply_mk.{0}
+  let _ := @ConnesRigidity.normalFixedOrthogonalRepresentation_apply.{0}
+  let _ := @ConnesRigidity.diagonalDisplacement_apply.{0}
+  let _ := @ConnesRigidity.diagonalLinearIsometryHom_apply.{0}
+  let _ := @ConnesRigidity.CornulierUltralimit.entrywisePow_apply.{0}
+  let _ := @ConnesRigidity.gaussianKernel_apply.{0}
+  let _ := @ConnesRigidity.gaussianAffineKernel.{0}
+  let _ := @ConnesRigidity.gaussianAffineKernel_apply.{0}
+  let _ := @ConnesRigidity.HasUniformRelativeKazhdanDisplacement.mono.{0}
+  let _ := @ConnesRigidity.cornulierHilbertLength_one.{0}
+  let _ := @ConnesRigidity.IsAffineFixed.affineInvariantOrthogonalProjection.{0}
+  let _ := @ConnesRigidity.shalomCircleMeasurable
+  let _ := @ConnesRigidity.shalomCircleBorel
+  let _ := @ConnesRigidity.integerDualMeasurable
+  let _ := @ConnesRigidity.integerDualBorel
+  let _ := @ConnesRigidity.integerShalomTranslation_zero_one
+  let _ := @ConnesRigidity.integerShalomTranslation_one_one
+  let _ := @ConnesRigidity.integerShearDualMeasurable
+  let _ := @ConnesRigidity.integerShearDualBorel
+  let _ := @ConnesRigidity.shalomTorusCircleMeasurable
+  let _ := @ConnesRigidity.shalomTorusCircleBorel
+  let _ := @ConnesRigidity.ShalomTorus
+  let _ := @ConnesRigidity.torusShearTpos
+  let _ := @ConnesRigidity.torusShearSpos
+  let _ := @ConnesRigidity.torusShearTneg
+  let _ := @ConnesRigidity.torusShearSneg
+  let _ := @ConnesRigidity.torusShearTpos_apply
+  let _ := @ConnesRigidity.torusShearSpos_apply
+  let _ := @ConnesRigidity.torusShearTneg_apply
+  let _ := @ConnesRigidity.torusShearSneg_apply
+  let _ := @ConnesRigidity.torusShearTpos_symm
+  let _ := @ConnesRigidity.torusShearSpos_symm
+  let _ := @ConnesRigidity.torusShearTneg_symm
+  let _ := @ConnesRigidity.torusShearSneg_symm
+  let _ := @ConnesRigidity.atomIntegerDualMeasurable
+  let _ := @ConnesRigidity.atomIntegerDualBorel
+  let _ := @ConnesRigidity.integerTranslationZero_eq_dualCoordinate
+  let _ := @ConnesRigidity.integerTranslationOne_eq_dualCoordinate
+  let _ := @ConnesRigidity.polynomialSequenceTail_apply
+  let _ := @ConnesRigidity.polynomialCharacterCoefficients_apply
+  let _ := @ConnesRigidity.mem_polynomialCharacterNoFree
+  let _ := @ConnesRigidity.shalomPolynomial_negX_mul_X_pow
+  let _ := @ConnesRigidity.shalomConstantVector_apply
+  let _ := @ConnesRigidity.shalomConstantSpecialLinear_apply
+  let _ := @ConnesRigidity.shalomConstantActing_apply
+  let _ := @ConnesRigidity.isProjectionSupremum_image_starAlgEquiv.{0, 0}
+  let _ := @ConnesRigidity.starAlgEquiv_isNormal.{0, 0}
+  let _ := @ConnesRigidity.characterBitLinear_apply
+  let _ := @ConnesRigidity.dualToPair_linear_apply
+  let _ := @ConnesRigidity.dualToPair_quadratic_apply
+  let _ := @ConnesRigidity.pairToDual_apply
+  let _ := @ConnesRigidity.pairDualHomeomorph_apply
+  let _ := @ConnesRigidity.pairDualHomeomorph_symm_apply
+  let _ := @ConnesRigidity.dualCarryPullback_apply
+  let _ := @ConnesRigidity.shiftKernelRestriction_apply
+  let _ := @ConnesRigidity.gammaEmbedding_left
+  let _ := @ConnesRigidity.gammaEmbedding_right
+  let _ := @ConnesRigidity.kEAddAction_apply
+  let _ := @ConnesRigidity.doubleIntoTwoTorsion_val.{0}
+  let _ := @ConnesRigidity.twoTorsionEquiv.{0, 0}
+  let _ := @ConnesRigidity.twoTorsionEquiv_val.{0, 0}
+  let _ := @ConnesRigidity.twoTorsionEquiv_map_doubled.{0, 0}
+  let _ := @ConnesRigidity.twoTorsionQuotientEquiv.{0, 0}
+  let _ := @ConnesRigidity.ExponentFourExtension.iotaIntoTwoTorsion_val.{0, 0, 0}
+  let _ := @ConnesRigidity.twoTorsion_smul_val.{0, 0}
+  let _ := @ConnesRigidity.mem_finiteOrbitSubgroup.{0, 0}
+  let _ := @ConnesRigidity.orbit_image_eq_of_equivariant.{0, 0, 0, 0}
+  let _ := @ConnesRigidity.finiteOrbit_iff_of_equivariant.{0, 0, 0, 0}
+  let _ := @ConnesRigidity.finiteOrbitSubgroupEquiv.{0, 0, 0, 0}
+  let _ := @ConnesRigidity.finiteOrbitSubgroupEquiv_val.{0, 0, 0, 0}
+  let _ := @ConnesRigidity.twoTorsionQuotientEquiv_mk.{0, 0}
+  let _ := @ConnesRigidity.ExponentFourExtension.sigmaIntoRetractionKer_val.{0, 0, 0}
+  let _ := @ConnesRigidity.ExponentFourExtension.quotientIotaBase_apply.{0, 0, 0}
+  let _ := @ConnesRigidity.ExponentFourExtension.quotientSigmaToB_apply.{0, 0, 0}
+  let _ := @ConnesRigidity.two_pow_four_injective
+  let _ := @ConnesRigidity.intrinsicConjugationAut_mk.{0}
+  let _ := @ConnesRigidity.intrinsicRestrictedEquiv_apply_val.{0, 0}
+  let _ := @ConnesRigidity.intrinsicSubquotientEquiv_mk.{0, 0}
+  let _ := @ConnesRigidity.semidirectTwoTorsionInl_apply.{0, 0}
+  let _ := @ConnesRigidity.semidirectTwoTorsionInclusionEquiv_apply_val.{0, 0}
+  let _ := @ConnesRigidity.primitiveCount_zero
+  let _ := @ConnesRigidity.polynomialVectorVal_apply
+  let _ := @ConnesRigidity.IsPrimitiveVector.ne_zero
+  let _ := @ConnesRigidity.divX_X_mul_add_C
+  let _ := @ConnesRigidity.coeff_zero_X_mul_add_C
+  let _ := @ConnesRigidity.linearDetectorAt
+  let _ := @ConnesRigidity.quadraticDetectorAt
+  let _ := @ConnesRigidity.kDLinear_linearDetectorAt
+  let _ := @ConnesRigidity.kDLinear_quadraticDetectorAt
+  let _ := @ConnesRigidity.boundedVectorLinearDirect_apply
+  let _ := @ConnesRigidity.dualPointAction_linear
+  let _ := @ConnesRigidity.dualPointAction_quadratic
+  let _ := @ConnesRigidity.homeomorphPushProbability_toMeasure.{0, 0}
+  let _ := @ConnesRigidity.l2Curry_apply.{0, 0}
+  let _ := @ConnesRigidity.l2Curry_symm_apply.{0, 0}
+  let _ := @ConnesRigidity.semidirectFubiniCoordinates_apply.{0, 0}
+  let _ := @ConnesRigidity.semidirectFubini_symm_apply.{0, 0}
+  let _ := @ConnesRigidity.semidirectFubini_conj_leftRegular_apply.{0, 0}
+  let _ := @ConnesRigidity.semidirectFubini_leftRegular_inl.{0, 0}
+  let _ := @ConnesRigidity.semidirectFubini_leftRegular_inr.{0, 0}
+  let _ := @ConnesRigidity.normalFourierCoordinates_apply.{0, 0, 0}
+  let _ := @ConnesRigidity.normalFourierCoordinates_symm_apply.{0, 0, 0}
+  let _ := @ConnesRigidity.PaperFactorUnitaryWitness.toStarAlgEquiv_coe.{0, 0}
+  let _ := @ConnesRigidity.spectralPairProbability_toMeasure
+  let _ := @ConnesRigidity.paperVectorDistribMulAction
+  let _ := @ConnesRigidity.paperVector_smul
+  let _ := @ConnesRigidity.paperDividedSquare_smul
+  let _ := @ConnesRigidity.paperDual_smul
+  let _ := @ConnesRigidity.paperDual_smul_toAdd
+  let _ := @ConnesRigidity.paperDual_smul_ofAdd
+  let _ := @ConnesRigidity.gamma_parameter_eq_of_mulEquiv
+  let _ := @ConnesRigidity.gamma_pairwise_nonisomorphic
+  let _ := @ConnesRigidity.PaperAnalyticInput.lambda_propertyT
+  let _ := @ConnesRigidity.PaperAnalyticInput.gamma_propertyT
+  let _ := @ConnesRigidity.PaperAnalyticInput.lambda_icc
+  let _ := @ConnesRigidity.PaperAnalyticInput.gamma_icc
+  let _ := @ConnesRigidity.PaperAnalyticInput.gamma_not_isomorphic_lambda
+  let _ := @ConnesRigidity.PaperAnalyticInput.toPaperFamilyInput_lambda
+  let _ := @ConnesRigidity.PaperAnalyticInput.toPaperFamilyInput_gamma
+  let _ := @ConnesRigidity.PaperAnalyticInput.infinitePropertyTFiber_lambda
+  let _ := @ConnesRigidity.PaperAnalyticInput.infinitePropertyTFiber_gamma
   let F := manuscriptInfinitePropertyTFiber
   refine ⟨F.Gamma 0, F.Lambda, F.gamma_fg 0, F.lambda_fg,
     F.gamma_icc 0, F.gamma_propertyT 0, F.lambda_icc,
@@ -53736,44 +39163,6 @@ theorem
       (groupFactorsIsomorphic_symm (F.factors_isomorphic n))
   · intro m n hmn
     exact F.gamma_pairwise_nonisomorphic hmn
-
-theorem manuscriptConnesRigidityAssertion_false :
-    ¬ConnesRigidity.ConnesRigidityAssertion :=
-  paperConnesRigidityAssertion_false
-
-def manuscriptInfinitePropertyTFiber_of_analytic
-    (analytic : PaperAnalyticInput) :
-    InfinitePropertyTFiber :=
-  analytic.infinitePropertyTFiber
-
-theorem manuscriptConnesRigidityAssertion_false_of_analytic
-    (analytic : PaperAnalyticInput) :
-    ¬ConnesRigidity.ConnesRigidityAssertion :=
-  analytic.connesRigidityAssertion_false
-
-def manuscriptInfinitePropertyTFiber_of_universalLattice
-    (hUniversal : ErshovJaikinUniversalLatticePropertyT) :
-    InfinitePropertyTFiber :=
-  paperInfinitePropertyTFiber_of_universalLattice hUniversal
-
-theorem manuscriptConnesRigidityAssertion_false_of_universalLattice
-    (hUniversal : ErshovJaikinUniversalLatticePropertyT) :
-    ¬ConnesRigidity.ConnesRigidityAssertion :=
-  paperConnesRigidityAssertion_false_of_universalLattice hUniversal
-
-def manuscriptInfinitePropertyTFiber_of_suslinRelative
-    (hSuslinRelative : SuslinRelativeElementaryGeneration) :
-    InfinitePropertyTFiber :=
-  paperInfinitePropertyTFiber_of_suslinRelative hSuslinRelative
-
-theorem manuscriptConnesRigidityAssertion_false_of_suslinRelative
-    (hSuslinRelative : SuslinRelativeElementaryGeneration) :
-    ¬ConnesRigidity.ConnesRigidityAssertion :=
-  paperConnesRigidityAssertion_false_of_suslinRelative hSuslinRelative
-
-theorem connesRigidityAssertion_false_of_paperFamily
-    (F : PaperFamilyInput.{0}) : ¬ConnesRigidity.ConnesRigidityAssertion :=
-  F.connesRigidityAssertion_false
 
 end
 
