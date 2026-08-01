@@ -1,0 +1,3 @@
+# the archive holds upstream trees as tags; keep the working tree clean
+*.pyc
+__pycache__/

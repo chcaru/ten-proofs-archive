@@ -1,0 +1,68 @@
+name: track upstream
+
+# openai/ten-proofs is republished as a parentless root commit each time, so
+# every push destroys the previous state. This job watches it, preserves any
+# new head as a permanent tag in this repository, and records what changed.
+#
+# The heartbeat is deliberate: a row is written on every poll, not only on
+# change, so the record distinguishes "nothing changed" from "nobody looked".
+
+on:
+  schedule:
+    - cron: "17 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: track-upstream
+  cancel-in-progress: false
+
+jobs:
+  poll:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Poll upstream and preserve any new head
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          before=$(git tag -l 'snapshot-*' | wc -l)
+          python3 tools/snapshot.py poll | tee /tmp/poll.out
+          after=$(git tag -l 'snapshot-*' | wc -l)
+          echo "TAGS_BEFORE=$before" >> "$GITHUB_ENV"
+          echo "TAGS_AFTER=$after"   >> "$GITHUB_ENV"
+
+      - name: Record the observation
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          sha=$(gh api repos/openai/ten-proofs/commits/main --jq .sha)
+          meta=$(gh api repos/openai/ten-proofs --jq '[.stargazers_count,.forks_count,.subscribers_count]|@tsv')
+          test -f poll-log.tsv || printf 'observed_utc\thead_sha\tstars\tforks\twatchers\n' > poll-log.tsv
+          printf '%s\t%s\t%s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$sha" "$meta" >> poll-log.tsv
+
+      - name: Commit
+        run: |
+          set -euo pipefail
+          git config user.name  "ten-proofs-archive"
+          git config user.email "actions@github.com"
+          git add -A
+          if git diff --cached --quiet; then
+            echo "nothing to record"
+            exit 0
+          fi
+          if [ "${TAGS_AFTER}" != "${TAGS_BEFORE}" ]; then
+            msg="upstream changed: new head preserved"
+          else
+            msg="poll: unchanged"
+          fi
+          git commit -m "$msg [skip ci]"
+          git push origin HEAD
+          git push origin --tags

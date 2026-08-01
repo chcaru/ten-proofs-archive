@@ -1,0 +1,125 @@
+{
+  "author": "Boris Alexeev <balexeev@openai.com>",
+  "axioms_ok": true,
+  "blobs": 43,
+  "challenge_files": 12,
+  "challenges": {
+    "A_SpherePacking": {
+      "enable_nanoda": true,
+      "permitted_axioms": [
+        "Classical.choice",
+        "Quot.sound",
+        "propext"
+      ]
+    },
+    "B_BinaryCodes": {
+      "enable_nanoda": true,
+      "permitted_axioms": [
+        "Classical.choice",
+        "Quot.sound",
+        "propext"
+      ]
+    },
+    "B_SphericalCodes": {
+      "enable_nanoda": true,
+      "permitted_axioms": [
+        "Classical.choice",
+        "Quot.sound",
+        "propext"
+      ]
+    },
+    "C_PermanentFormulaLowerBound": {
+      "enable_nanoda": true,
+      "permitted_axioms": [
+        "Classical.choice",
+        "Quot.sound",
+        "propext"
+      ]
+    },
+    "D_NonSoficGroup": {
+      "enable_nanoda": true,
+      "permitted_axioms": [
+        "Classical.choice",
+        "Quot.sound",
+        "propext"
+      ]
+    },
+    "E_ConnesRigidity": {
+      "enable_nanoda": false,
+      "permitted_axioms": [
+        "Classical.choice",
+        "Quot.sound",
+        "propext"
+      ]
+    },
+    "F_EhrhartVolumeInequality": {
+      "enable_nanoda": true,
+      "permitted_axioms": [
+        "Classical.choice",
+        "Quot.sound",
+        "propext"
+      ]
+    },
+    "G_QuantumParallelRepetition": {
+      "enable_nanoda": false,
+      "permitted_axioms": [
+        "Classical.choice",
+        "Quot.sound",
+        "propext"
+      ]
+    },
+    "H_GapCVP": {
+      "enable_nanoda": false,
+      "permitted_axioms": [
+        "Classical.choice",
+        "Quot.sound",
+        "propext"
+      ]
+    },
+    "I_MulticolorTriangleRamsey": {
+      "enable_nanoda": true,
+      "permitted_axioms": [
+        "Classical.choice",
+        "Quot.sound",
+        "propext"
+      ]
+    },
+    "J_CompactnessConjecture": {
+      "enable_nanoda": true,
+      "permitted_axioms": [
+        "Classical.choice",
+        "Quot.sound",
+        "propext"
+      ]
+    },
+    "J_TwoDegenerateGraphs": {
+      "enable_nanoda": true,
+      "permitted_axioms": [
+        "Classical.choice",
+        "Quot.sound",
+        "propext"
+      ]
+    }
+  },
+  "committed_utc": "2026-08-01T10:02:08Z",
+  "forks": "",
+  "lakefile_roots": 13,
+  "lean_bytes": 20952180,
+  "lean_files": 23,
+  "message": ".",
+  "missing_roots": [
+    "C_PermanentSuperquadraticStandalone"
+  ],
+  "nanoda_off": 3,
+  "nanoda_off_names": [
+    "E_ConnesRigidity",
+    "G_QuantumParallelRepetition",
+    "H_GapCVP"
+  ],
+  "nanoda_on": 9,
+  "observed_utc": "2026-08-01T21:48:35+00:00",
+  "parents": "(none - root commit)",
+  "sha": "e62211d28e3a9131950c89caa6542cfe5eff3bca",
+  "stars": "",
+  "total_bytes": 20980823
+}
