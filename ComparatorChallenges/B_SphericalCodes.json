@@ -1,0 +1,19 @@
+{
+  "challenge_module": "ComparatorChallenges.B_SphericalCodes",
+  "solution_module": "MetricCodes",
+  "theorem_names": [
+    "MetricCodes.Spherical.kissing_variationalRate_lt",
+    "MetricCodes.Spherical.packingExponent_gt",
+    "MetricCodes.Spherical.classicalPackingObjective_lt_packingExponent",
+    "MetricCodes.Spherical.classicalPackingExponent_lt_packingExponent",
+    "MetricCodes.Spherical.HigherHierarchy.hierarchyPackingExponent_eq_criticalBinaryExponent",
+    "MetricCodes.Spherical.HigherHierarchy.hierarchyKissingExponent_lt_published",
+    "SpherePacking.packingConstant_sharp_binary_asymptotic_upper"
+  ],
+  "permitted_axioms": [
+    "propext",
+    "Quot.sound",
+    "Classical.choice"
+  ],
+  "enable_nanoda": true
+}

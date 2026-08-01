@@ -1,0 +1,50 @@
+version: "v0.3"
+
+project:
+  name: "Ten advances in mathematics and theoretical computer science"
+  authors:
+    - "OpenAI"
+  license: "Apache-2.0"
+
+sources: []
+
+status:
+  scope: >-
+    Lean formalizations spanning sphere packing, binary and spherical
+    codes, permanent lower bounds, non-sofic groups, Connes rigidity, Ehrhart's
+    volume inequality, quantum parallel repetition, closest-vector hardness,
+    multicolor triangle Ramsey numbers, compactness, and degenerate graphs.
+  axioms:
+    - "propext"
+    - "Classical.choice"
+    - "Quot.sound"
+  main_results:
+    - name: "Sharp Cohn–Elkies sphere-packing bounds"
+      comparator_config: "ComparatorChallenges/A_SpherePacking.json"
+    - name: "Improved binary-code bounds"
+      comparator_config: "ComparatorChallenges/B_BinaryCodes.json"
+    - name: "Spherical-code hierarchy and geometric bounds"
+      comparator_config: "ComparatorChallenges/B_SphericalCodes.json"
+    - name: "Permanent formula and arithmetic-circuit lower bounds"
+      comparator_config: "ComparatorChallenges/C_PermanentFormulaLowerBound.json"
+    - name: "Existence of a finitely presented non-sofic group"
+      comparator_config: "ComparatorChallenges/D_NonSoficGroup.json"
+    - name: "Counterexample to Connes's rigidity conjecture"
+      comparator_config: "ComparatorChallenges/E_ConnesRigidity.json"
+    - name: "Sharp Ehrhart volume inequality"
+      comparator_config: "ComparatorChallenges/F_EhrhartVolumeInequality.json"
+    - name: "Quantum parallel repetition"
+      comparator_config: "ComparatorChallenges/G_QuantumParallelRepetition.json"
+    - name: "Closest-vector and related decoding hardness"
+      comparator_config: "ComparatorChallenges/H_GapCVP.json"
+    - name: "Multicolor triangle Ramsey numbers"
+      comparator_config: "ComparatorChallenges/I_MulticolorTriangleRamsey.json"
+    - name: "Counterexample to the compactness conjecture"
+      comparator_config: "ComparatorChallenges/J_CompactnessConjecture.json"
+    - name: "Counterexample for two-degenerate graphs"
+      comparator_config: "ComparatorChallenges/J_TwoDegenerateGraphs.json"
+
+automation: {}
+
+review:
+  status: "agent-reviewed"
