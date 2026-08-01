@@ -1,0 +1,13 @@
+{
+  "challenge_module": "ComparatorChallenges.E_ConnesRigidity",
+  "solution_module": "ConnesRigidity",
+  "theorem_names": [
+    "ConnesRigidity.connesRigidityAssertion_false"
+  ],
+  "permitted_axioms": [
+    "propext",
+    "Quot.sound",
+    "Classical.choice"
+  ],
+  "enable_nanoda": true
+}

@@ -1,0 +1,31 @@
+
+import ConnesRigidity.PropertyTExactCertificateCoefficientEncodingBase
+import ConnesRigidity.CertificateLiterals.PropertyTExactCertificateCoefficientEncodingLeaves.Part065B.Entry000
+
+namespace ConnesRigidity
+
+namespace AffineSymplecticCertificate
+
+set_option maxRecDepth 1000000
+
+@[irreducible] noncomputable def coefficientSourceEncoding_065_b :
+    Array Int :=
+  (ConnesRigidity.CertificateLiterals.PropertyTExactCertificateCoefficientEncodingLeaves.Part065B.Entry000.data).getD 0 #[]
+
+set_option maxHeartbeats 0 in
+
+theorem coefficientEncodingLeafCheck_065_b :
+    coefficientCheckData ((coefficientPositiveTermChunk 2).drop 4500) =
+      (coefficientSourceEncoding_065_b,
+        18958120832) := by
+  unfold coefficientCheckData coefficientSourceEncoding_065_b
+  unfold coefficientPositiveTermChunk coefficientPositiveEdgeChunks
+    coefficientPositiveChunkSizes positiveEdges positiveEdgeData
+    positiveEdgeTermRow positiveEdgeEntries integerOuterTerms
+    edgeOfData tableIndex productIndex
+    productIndexDataRow
+  decide +kernel
+
+end AffineSymplecticCertificate
+
+end ConnesRigidity

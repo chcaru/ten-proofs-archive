@@ -1,0 +1,14 @@
+
+import ConnesRigidity.PropertyTExactCertificateOrbitCanonicalData
+import ConnesRigidity.CertificateLiterals.PropertyTExactCertificateOrbitCanonicalPackedData.Entry000
+import ConnesRigidity.CertificateLiterals.PropertyTExactCertificateOrbitCanonicalPackedData.Entry001
+
+namespace ConnesRigidity.AffineSymplecticOrbitCertificate
+
+@[irreducible] noncomputable def canonicalPackedActionData : List (List Int) :=
+  ConnesRigidity.CertificateLiterals.PropertyTExactCertificateOrbitCanonicalPackedData.Entry000.data
+
+@[irreducible] noncomputable def canonicalPackedWitnessData : List (List Int) :=
+  ConnesRigidity.CertificateLiterals.PropertyTExactCertificateOrbitCanonicalPackedData.Entry001.data
+
+end ConnesRigidity.AffineSymplecticOrbitCertificate

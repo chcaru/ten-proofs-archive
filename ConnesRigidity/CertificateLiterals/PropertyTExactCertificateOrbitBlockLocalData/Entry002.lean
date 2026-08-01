@@ -1,0 +1,12 @@
+
+import Lean
+
+namespace ConnesRigidity.CertificateLiterals.PropertyTExactCertificateOrbitBlockLocalData.Entry002
+
+private def rows0000 : List (List Int) :=
+  [12574118429120, 8422664, -682448, 25312176, -24975440, 18829184] :: [8422664, 26232631149431, 18320742, -43708150, -94245634, -10300208] :: [-682448, 18320742, 3105688038443, -16332600, 41464109, -10659456] :: [25312176, -43708150, -16332600, 4585480787612, 13388136, 10100764] :: [-24975440, -94245634, 41464109, 13388136, 212353139222590, 25636139] :: [18829184, -10300208, -10659456, 10100764, 25636139, 28058222026449] :: []
+
+def data : List (List Int) :=
+  rows0000
+
+end ConnesRigidity.CertificateLiterals.PropertyTExactCertificateOrbitBlockLocalData.Entry002
