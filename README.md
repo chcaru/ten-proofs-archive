@@ -30,8 +30,11 @@ verifiable after upstream drops them.
 | `snapshots.tsv` | One row per state: shape, verification settings, build integrity |
 | `snapshots/<sha>.json` | The full record for a state, including per-challenge settings |
 | `poll-log.tsv` | One row per observation, including observations that saw no change |
+| `claims.tsv` | One row per state: declared theorems, unresolved claims, `sorry` counts, axioms |
+| `claim-churn.md` | Every theorem added to or removed from a challenge, with dates |
 | `tools/snapshot.py` | `seed` (recompute from tags) and `poll` (capture a new head) |
-| `.github/workflows/track.yml` | Hourly poll; preserves any new head automatically |
+| `tools/claims.py` | Regenerates `claims.tsv` and `claim-churn.md` from the tags |
+| `.github/workflows/track.yml` | Polls every 15 minutes; preserves any new head automatically |
 
 The `poll-log.tsv` heartbeat is intentional. Recording only changes cannot
 distinguish *"upstream was stable"* from *"nobody was watching"*, and that
@@ -94,6 +97,69 @@ that exists for less than 15 minutes, and upstream once produced four distinct
 states in 23 minutes. States between 06:10:06 and 07:42:26 that nobody forked
 are gone permanently. **Nine is a floor, not a count** — and `poll-log.tsv`
 exists so that the difference between "stable" and "unobserved" stays visible.
+
+## Did the claims change, or only the proofs?
+
+Rewriting a proof is unremarkable. Changing what you claim to have proved is
+not. Upstream keeps no history, so nobody downstream can tell those apart. The
+archive can. `tools/claims.py` regenerates [`claims.tsv`](claims.tsv) and
+[`claim-churn.md`](claim-churn.md) from the tags.
+
+Each challenge's JSON names the theorems it commits to proving. That list moved
+twice:
+
+| | released | 10:02 → 10:25 | 18:08 → now |
+| --- | ---: | ---: | ---: |
+| declared theorems | 40 | 41 | 38 |
+
+Measured against the released state, **8 declared theorems are no longer listed
+and 6 are new**. Both changes are worth stating precisely, because the headline
+number is misleading in opposite directions.
+
+**The seven de-listed spherical-codes theorems were not withdrawn.** All seven
+are still declared and still proved in `MetricCodes.lean`. They were demoted
+from the challenge's headline list behind consolidated `main_general`,
+`strict_hierarchy` and `main_binary_theorem` statements. This is
+re-headlining, not retraction.
+
+**The one claim that genuinely disappeared was replaced by a stronger one.** At
+release, `E_ConnesRigidity` asked for `¬ConnesRigidityAssertion`, where
+
+```lean
+def ConnesRigidityAssertion : Prop :=
+  ∀ Γ Λ : CountableDiscreteGroup.{0},
+    IsICC Γ → HasKazhdanPropertyT Γ → TracialGroupFactorsIsomorphic Γ Λ →
+    IsICC Λ ∧ GroupsIsomorphic Γ Λ
+```
+
+Λ carries no hypotheses there. Refuting the implication only requires the
+*conclusion* to fail, so a witness whose Λ is simply not ICC would discharge it
+without saying anything about Connes' conjecture. From 10:02 the challenge
+instead asks directly for
+
+```lean
+∃ Γ Λ, Group.FG Γ ∧ Group.FG Λ ∧ IsICC Γ ∧ HasKazhdanPropertyT Γ ∧
+  IsICC Λ ∧ HasKazhdanPropertyT Λ ∧ TracialGroupFactorsIsomorphic Γ Λ ∧
+  ¬ GroupsIsomorphic Γ Λ
+```
+
+which forces finite generation, ICC **and** Property (T) on *both* groups, plus
+a second theorem producing an infinite pairwise non-isomorphic family. The
+loophole is closed and the claim is strictly stronger.
+
+**Nothing weakened, in any state.** Across all nine:
+
+- every declared theorem resolves to a real declaration in the tree — 40/40,
+  41/41, 38/38, never a dangling claim
+- solution modules contain **zero** `sorry`, at every state
+- the axiom allowlist never moves
+
+**Which is the point.** The maintenance here was conscientious: a loophole was
+found and closed, coverage went up, a build defect was repaired. None of it is
+visible from upstream. A reader who forked at 07:42 and one who forked at 00:22
+hold materially different mathematics, and neither can discover that, or that
+the difference is an *improvement*. Silent revision costs an artifact its credit
+for getting better, not just its cover for getting worse.
 
 ## Reproducing any claim
 

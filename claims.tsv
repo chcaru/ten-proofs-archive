@@ -1,0 +1,10 @@
+tag	sha	committed_utc	challenges	declared_theorems	unresolved	statement_files_distinct_so_far	sorry_statements	sorry_solutions	axioms
+snapshot-01-released-fork	66af8383b1db	2026-08-01T07:42:26Z	12	40	0	12	44	0	Classical.choice,Quot.sound,propext
+snapshot-00-initial	a13547c6be45	2026-08-01T08:42:25Z	12	40	0	23	44	0	Classical.choice,Quot.sound,propext
+snapshot-02-push1	e62211d28e3a	2026-08-01T10:02:08Z	12	41	0	24	45	0	Classical.choice,Quot.sound,propext
+snapshot-03-push2	a1f2a54815c8	2026-08-01T10:20:42Z	12	41	0	25	45	0	Classical.choice,Quot.sound,propext
+snapshot-04-push3	cca357b19759	2026-08-01T10:22:00Z	12	41	0	25	45	0	Classical.choice,Quot.sound,propext
+snapshot-05-push4	bfa69a496585	2026-08-01T10:25:18Z	12	41	0	25	45	0	Classical.choice,Quot.sound,propext
+snapshot-06-push5	d0e1ae7de131	2026-08-01T18:08:14Z	12	38	0	30	42	0	Classical.choice,Quot.sound,propext
+snapshot-07-39fba5b07	39fba5b073b8	2026-08-01T23:29:17Z	12	38	0	30	42	0	Classical.choice,Quot.sound,propext
+snapshot-08-94bc0feb6	94bc0feb6a9f	2026-08-02T00:22:31Z	12	38	0	30	42	0	Classical.choice,Quot.sound,propext
