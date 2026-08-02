@@ -15,9 +15,9 @@ replaces the entire repository, so the previous state becomes unreachable from
 any ref and is eventually garbage-collected. There are no tags, no releases and
 no changelog.
 
-Seven distinct states were captured on the day of release, six of them within
-twelve hours. The artifact changed **six times after the version people first
-read**, including changes to the proof files themselves.
+**Nine distinct states** have been captured so far, all within twenty hours of
+release. The artifact changed **eight times after the version people first
+read**, including repeated changes to the proof files themselves.
 
 This archive pins each of those states to a permanent tag so they remain
 verifiable after upstream drops them.
@@ -41,15 +41,19 @@ distinction is the whole point of the archive.
 
 Times are UTC on 2026-08-01. The repository was created at 06:10:06.
 
-| Committed | SHA | Blobs | `.lean` | `.lean` bytes | nanoda | Note |
-| --- | --- | ---: | ---: | ---: | ---: | --- |
-| 07:42:26 | `66af8383b` | 6,129 | 4,319 | 210,723,976 | 10 / 12 | The version most readers saw. Survives **only** in third-party forks |
-| 08:42:25 | `a13547c6b` | 6,130 | 4,319 | 210,693,429 | 10 / 12 | 2,552 files changed, 68,398 lines deleted |
-| 10:02:08 | `e62211d28` | 43 | 23 | 20,952,180 | **9 / 12** | The collapse. Also the low point for verification coverage |
-| 10:20:42 | `a1f2a5481` | 43 | 23 | 20,950,627 | 10 / 12 | |
-| 10:22:00 | `cca357b19` | 43 | 23 | 20,950,627 | 10 / 12 | |
-| 10:25:18 | `bfa69a496` | 43 | 23 | 20,950,627 | 10 / 12 | |
-| 18:08:14 | `d0e1ae7de` | 43 | 23 | 21,638,952 | **12 / 12** | Same shape, 20 of 43 files rewritten |
+Times are UTC. 07:42 through 18:08 are 2026-08-01; the last row is 2026-08-02.
+
+| Committed | SHA | Blobs | `.lean` | `.lean` bytes | nanoda | Build | Note |
+| --- | --- | ---: | ---: | ---: | ---: | :---: | --- |
+| 07:42:26 | `66af8383b` | 6,129 | 4,319 | 210,723,976 | 10 / 12 | broken | The version most readers saw. Survived **only** in third-party forks |
+| 08:42:25 | `a13547c6b` | 6,130 | 4,319 | 210,693,429 | 10 / 12 | broken | 2,552 files changed, 68,398 lines deleted. **Never appeared in the event feed** |
+| 10:02:08 | `e62211d28` | 43 | 23 | 20,952,180 | **9 / 12** | broken | The collapse. Also the low point for verification coverage |
+| 10:20:42 | `a1f2a5481` | 43 | 23 | 20,950,627 | 10 / 12 | broken | |
+| 10:22:00 | `cca357b19` | 43 | 23 | 20,950,627 | 10 / 12 | broken | |
+| 10:25:18 | `bfa69a496` | 43 | 23 | 20,950,627 | 10 / 12 | broken | |
+| 18:08:14 | `d0e1ae7de` | 43 | 23 | 21,638,952 | **12 / 12** | broken | Same shape, 20 of 43 files rewritten |
+| 23:29:17 | `39fba5b07` | 43 | 23 | 21,638,952 | 12 / 12 | **fixed** | Dangling lakefile root removed; a stale `formalization.yaml` path corrected |
+| 00:22:31 | `94bc0feb6` | 43 | 23 | 21,638,888 | 12 / 12 | fixed | `MetricCodes.lean` edited again |
 
 ### What the data shows
 
@@ -70,15 +74,26 @@ and `Lean.ofReduceBool` are excluded throughout, which means a proof leaning on
 `sorry` or `native_decide` fails the harness mechanically. This is the strongest
 and most stable property of the artifact.
 
-**One build defect has survived every rewrite.** `lakefile.toml` has declared 13
-`ComparatorChallenges` roots against 12 present files in all seven states;
-`C_PermanentSuperquadraticStandalone` has never existed. Separately, a stranger
-fixed a different build error at 08:35 — before upstream did.
+**A build defect stood for seventeen hours, then was silently fixed.**
+`lakefile.toml` declared 13 `ComparatorChallenges` roots against 12 present
+files in the first seven states; `C_PermanentSuperquadraticStandalone` never
+existed. It was removed at 23:29, along with a `formalization.yaml` entry still
+pointing at `MetricCodes/Base.lean`, a path that stopped existing at the 10:02
+collapse. Separately, a stranger fixed a different build error at 08:35 — before
+upstream did. Any claim about this artifact's build integrity is only true of a
+specific timestamp.
 
-**The last change was not repackaging.** The 18:08 push kept the file list
-identical while rewriting 20 of 43 files: `MetricCodes.lean` +49%,
-`ConnesRigidity.lean` −29%, `formalization.yaml` +155%. The formal content of a
-published mathematical result changed after publication, with no record.
+**Changes to the proofs continued after the shape settled.** The 18:08 push kept
+the file list identical while rewriting 20 of 43 files: `MetricCodes.lean` +49%,
+`ConnesRigidity.lean` −29%, `formalization.yaml` +155%. The 00:22 push edited
+`MetricCodes.lean` again. The formal content of a published mathematical result
+kept changing after publication, with no record.
+
+**What this archive cannot do.** Polling every 15 minutes cannot catch a state
+that exists for less than 15 minutes, and upstream once produced four distinct
+states in 23 minutes. States between 06:10:06 and 07:42:26 that nobody forked
+are gone permanently. **Nine is a floor, not a count** — and `poll-log.tsv`
+exists so that the difference between "stable" and "unobserved" stays visible.
 
 ## Reproducing any claim
 

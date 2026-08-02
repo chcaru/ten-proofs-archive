@@ -9,7 +9,12 @@ name: track upstream
 
 on:
   schedule:
-    - cron: "17 * * * *"
+    # Upstream once produced four distinct states in 23 minutes, so an hourly
+    # poll would have collapsed them into one. GitHub delays scheduled runs
+    # under load, so this is a best effort, not a guarantee: any state that
+    # exists for less than one poll interval is lost, and poll-log.tsv is what
+    # makes that gap visible rather than silent.
+    - cron: "*/15 * * * *"
   workflow_dispatch:
 
 permissions:
