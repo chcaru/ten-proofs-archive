@@ -24,6 +24,11 @@ on:
     # poll-log.tsv is what makes that gap visible rather than silent.
     - cron: "*/15 * * * *"
   workflow_dispatch:
+    inputs:
+      run_minutes:
+        description: "How long to keep polling in this run (minutes)"
+        required: false
+        default: "50"
 
 permissions:
   contents: write
@@ -37,7 +42,7 @@ concurrency:
 env:
   # Poll this often inside a single run, and keep looping this long.
   POLL_INTERVAL_SECONDS: 300
-  RUN_MINUTES: 50
+  RUN_MINUTES: ${{ github.event.inputs.run_minutes || '50' }}
 
 jobs:
   poll:
