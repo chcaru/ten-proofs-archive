@@ -34,7 +34,7 @@ verifiable after upstream drops them.
 | `claim-churn.md` | Every theorem added to or removed from a challenge, with dates |
 | `tools/snapshot.py` | `seed` (recompute from tags) and `poll` (capture a new head) |
 | `tools/claims.py` | Regenerates `claims.tsv` and `claim-churn.md` from the tags |
-| `.github/workflows/track.yml` | Polls every 15 minutes; preserves any new head automatically |
+| `.github/workflows/track.yml` | Polls every 5 minutes in a loop; preserves any new head automatically |
 
 The `poll-log.tsv` heartbeat is intentional. Recording only changes cannot
 distinguish *"upstream was stable"* from *"nobody was watching"*, and that
@@ -92,11 +92,25 @@ the file list identical while rewriting 20 of 43 files: `MetricCodes.lean` +49%,
 `MetricCodes.lean` again. The formal content of a published mathematical result
 kept changing after publication, with no record.
 
-**What this archive cannot do.** Polling every 15 minutes cannot catch a state
-that exists for less than 15 minutes, and upstream once produced four distinct
+**What this archive cannot do.** A poll cannot catch a state that exists for less
+than one poll interval, and upstream once produced four distinct
 states in 23 minutes. States between 06:10:06 and 07:42:26 that nobody forked
 are gone permanently. **Nine is a floor, not a count** — and `poll-log.tsv`
 exists so that the difference between "stable" and "unobserved" stays visible.
+
+**And the archive had to take its own advice about that.** The workflow was
+originally written with a `*/15` cron and described as polling every 15
+minutes. It did not. Measured from `poll-log.tsv`, the observed interval was
+**min 29 / median 61 / max 82 minutes**, followed by a 129-minute gap: GitHub
+throttles scheduled workflows on low-activity repositories and may skip them
+entirely. A configured cadence is not an observed one, which is the same
+mistake this archive exists to make visible — so the number here is now
+measured rather than declared.
+
+The fix does not rely on the schedule for resolution. Each run polls **every 5
+minutes for 50 minutes** in a loop, so a late trigger costs coverage but never
+granularity, and a new head is committed and tagged the moment it is seen
+rather than at the end of the run. Check `poll-log.tsv` gaps, not the cron.
 
 ## Did the claims change, or only the proofs?
 

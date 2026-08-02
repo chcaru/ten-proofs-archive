@@ -9,65 +9,106 @@ name: track upstream
 
 on:
   schedule:
-    # Upstream once produced four distinct states in 23 minutes, so an hourly
-    # poll would have collapsed them into one. GitHub delays scheduled runs
-    # under load, so this is a best effort, not a guarantee: any state that
-    # exists for less than one poll interval is lost, and poll-log.tsv is what
-    # makes that gap visible rather than silent.
+    # Upstream once produced four distinct states in 23 minutes, so a coarse
+    # poll would collapse them into one.
+    #
+    # This cron is deliberately optimistic and is NOT what GitHub delivers.
+    # Measured over the first runs of this workflow, the observed interval was
+    # min 29 / median 61 / max 82 minutes, with a 129-minute gap after that:
+    # GitHub heavily throttles scheduled runs on low-activity repositories and
+    # may drop them entirely. The job therefore does not rely on the schedule
+    # for granularity -- it polls in a loop for most of an hour once started,
+    # so a late trigger costs coverage but never resolution.
+    #
+    # Any state that exists for less than one poll interval is still lost, and
+    # poll-log.tsv is what makes that gap visible rather than silent.
     - cron: "*/15 * * * *"
   workflow_dispatch:
 
 permissions:
   contents: write
 
+# Only one pending run is ever kept per group -- GitHub cancels an older pending
+# run when a newer one queues -- so the loop below cannot pile up a backlog.
 concurrency:
   group: track-upstream
   cancel-in-progress: false
 
+env:
+  # Poll this often inside a single run, and keep looping this long.
+  POLL_INTERVAL_SECONDS: 300
+  RUN_MINUTES: 50
+
 jobs:
   poll:
     runs-on: ubuntu-latest
+    timeout-minutes: 60
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      - name: Poll upstream and preserve any new head
+      - name: Poll upstream in a loop and preserve any new head
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          set -euo pipefail
-          before=$(git tag -l 'snapshot-*' | wc -l)
-          python3 tools/snapshot.py poll | tee /tmp/poll.out
-          after=$(git tag -l 'snapshot-*' | wc -l)
-          echo "TAGS_BEFORE=$before" >> "$GITHUB_ENV"
-          echo "TAGS_AFTER=$after"   >> "$GITHUB_ENV"
+          set -uo pipefail
 
-      - name: Record the observation
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          set -euo pipefail
-          sha=$(gh api repos/openai/ten-proofs/commits/main --jq .sha)
-          meta=$(gh api repos/openai/ten-proofs --jq '[.stargazers_count,.forks_count,.subscribers_count]|@tsv')
-          test -f poll-log.tsv || printf 'observed_utc\thead_sha\tstars\tforks\twatchers\n' > poll-log.tsv
-          printf '%s\t%s\t%s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$sha" "$meta" >> poll-log.tsv
-
-      - name: Commit
-        run: |
-          set -euo pipefail
           git config user.name  "ten-proofs-archive"
           git config user.email "actions@github.com"
-          git add -A
-          if git diff --cached --quiet; then
-            echo "nothing to record"
-            exit 0
-          fi
-          if [ "${TAGS_AFTER}" != "${TAGS_BEFORE}" ]; then
-            msg="upstream changed: new head preserved"
-          else
-            msg="poll: unchanged"
-          fi
-          git commit -m "$msg [skip ci]"
-          git push origin HEAD
-          git push origin --tags
+
+          publish() {
+            # Rebase before pushing: a previous run may still be finishing.
+            git add -A
+            if git diff --cached --quiet; then
+              return 0
+            fi
+            git commit -m "$1 [skip ci]"
+            for attempt in 1 2 3; do
+              git pull --rebase --autostash origin "${GITHUB_REF_NAME}" >/dev/null 2>&1 || true
+              if git push origin "HEAD:${GITHUB_REF_NAME}" && git push origin --tags; then
+                return 0
+              fi
+              echo "push attempt ${attempt} failed, retrying"
+              sleep 5
+            done
+            echo "could not publish after 3 attempts" >&2
+            return 1
+          }
+
+          deadline=$(( $(date +%s) + RUN_MINUTES * 60 ))
+          polls=0
+
+          while :; do
+            before=$(git tag -l 'snapshot-*' | wc -l)
+
+            # A transient network failure must not end the run.
+            if ! python3 tools/snapshot.py poll; then
+              echo "poll failed, continuing"
+            fi
+
+            after=$(git tag -l 'snapshot-*' | wc -l)
+
+            sha=$(gh api repos/openai/ten-proofs/commits/main --jq .sha 2>/dev/null || echo "unknown")
+            meta=$(gh api repos/openai/ten-proofs --jq '[.stargazers_count,.forks_count,.subscribers_count]|@tsv' 2>/dev/null || printf '\t\t')
+            test -f poll-log.tsv || printf 'observed_utc\thead_sha\tstars\tforks\twatchers\n' > poll-log.tsv
+            printf '%s\t%s\t%s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$sha" "$meta" >> poll-log.tsv
+
+            polls=$(( polls + 1 ))
+
+            # Preserving a new state is urgent; publish it immediately rather
+            # than waiting for the loop to finish.
+            if [ "${after}" != "${before}" ]; then
+              echo "upstream changed -> ${sha}"
+              publish "upstream changed: new head preserved"
+            fi
+
+            now=$(date +%s)
+            [ "${now}" -ge "${deadline}" ] && break
+            remaining=$(( deadline - now ))
+            [ "${remaining}" -lt "${POLL_INTERVAL_SECONDS}" ] && sleep "${remaining}" || sleep "${POLL_INTERVAL_SECONDS}"
+            [ "$(date +%s)" -ge "${deadline}" ] && break
+          done
+
+          # One commit for the run's heartbeat rows, rather than one per poll.
+          publish "poll: unchanged (${polls} observations)"
