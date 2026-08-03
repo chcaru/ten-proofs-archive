@@ -21,7 +21,11 @@ separates the two.
     - removed: `E_ConnesRigidity` &rarr; `ConnesRigidity2.exists_nonisomorphic_propertyT_icc_groups_with_isomorphic_factors`
 - **04-push3** -- 41 declared theorems (no change)
 - **05-push4** -- 41 declared theorems (no change)
-- **06-push5** -- 38 declared theorems (-3) **claims changed**
+- **r1-aae1395c9** -- 41 declared theorems (no change)
+- **r2-6060af02c** -- 41 declared theorems (no change)
+- **r3-706c3c30a** -- 41 declared theorems (no change)
+- **r4-0166452d0** -- 41 declared theorems (no change)
+- **r5-5a102c122** -- 38 declared theorems (-3) **claims changed**
     - added: `B_SphericalCodes` &rarr; `MetricCodes.Johnson.main_binary_theorem`
     - added: `B_SphericalCodes` &rarr; `MetricCodes.Spherical.HigherHierarchy.NumericalMaximum.eventually_kissingNumber_lt_published`
     - added: `B_SphericalCodes` &rarr; `MetricCodes.Spherical.HigherHierarchy.main_general`
@@ -33,6 +37,7 @@ separates the two.
     - removed: `B_SphericalCodes` &rarr; `MetricCodes.Spherical.kissing_variationalRate_lt`
     - removed: `B_SphericalCodes` &rarr; `MetricCodes.Spherical.packingExponent_gt`
     - removed: `B_SphericalCodes` &rarr; `SpherePacking.packingConstant_sharp_binary_asymptotic_upper`
+- **06-push5** -- 38 declared theorems (no change)
 - **07-39fba5b07** -- 38 declared theorems (no change)
 - **08-94bc0feb6** -- 38 declared theorems (no change)
 
@@ -59,12 +64,12 @@ separates the two.
 
 | challenge | statement versions | solution versions |
 | --- | ---: | ---: |
-| `A_SpherePacking` | 3 | 3 |
-| `B_BinaryCodes` | 3 | 4 |
-| `B_SphericalCodes` | 2 | 4 |
+| `A_SpherePacking` | 3 | 4 |
+| `B_BinaryCodes` | 3 | 6 |
+| `B_SphericalCodes` | 4 | 6 |
 | `C_PermanentFormulaLowerBound` | 2 | 3 |
 | `D_NonSoficGroup` | 2 | 3 |
-| `E_ConnesRigidity` | 4 | 5 |
+| `E_ConnesRigidity` | 4 | 6 |
 | `F_EhrhartVolumeInequality` | 3 | 3 |
 | `G_QuantumParallelRepetition` | 3 | 3 |
 | `H_GapCVP` | 2 | 3 |
