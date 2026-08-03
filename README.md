@@ -54,9 +54,29 @@ Times are UTC. 07:42 through 18:08 are 2026-08-01; the last row is 2026-08-02.
 | 10:20:42 | `a1f2a5481` | 43 | 23 | 20,950,627 | 10 / 12 | broken | |
 | 10:22:00 | `cca357b19` | 43 | 23 | 20,950,627 | 10 / 12 | broken | |
 | 10:25:18 | `bfa69a496` | 43 | 23 | 20,950,627 | 10 / 12 | broken | |
-| 18:08:14 | `d0e1ae7de` | 43 | 23 | 21,638,952 | **12 / 12** | broken | Same shape, 20 of 43 files rewritten |
+| ★ 11:21:53 | `aae1395c9` | 43 | 23 | 20,950,627 | **12 / 12** | broken | Three-line push: both `enable_nanoda` flags on, and `formalization.yaml` renamed to the public title |
+| ★ 11:46:12 | `6060af02c` | 43 | 23 | 20,369,623 | 12 / 12 | broken | **The only state with a parent.** Message: *"Remove unused Connes rigidity proof declarations"* — 14,989 deletions, no claim changed |
+| ★ 12:29:41 | `706c3c30a` | 43 | 23 | 20,369,623 | 12 / 12 | broken | Root commit again; the 24-minute history ends here |
+| ★ 15:57:46 | `0166452d0` | 43 | 23 | 18,108,692 | 12 / 12 | broken | Last state declaring 41 theorems |
+| ★ 17:11:14 | `5a102c122` | 43 | 23 | 20,699,786 | 12 / 12 | broken | Declared theorems 41 → **38**, and `sorry` 45 → **42**, together |
+| 18:08:14 | `d0e1ae7de` | 43 | 23 | 21,638,952 | 12 / 12 | broken | Same shape, 20 of 43 files rewritten |
 | 23:29:17 | `39fba5b07` | 43 | 23 | 21,638,952 | 12 / 12 | **fixed** | Dangling lakefile root removed; a stale `formalization.yaml` path corrected |
 | 00:22:31 | `94bc0feb6` | 43 | 23 | 21,638,888 | 12 / 12 | fixed | `MetricCodes.lean` edited again |
+
+**★ = recovered from third-party forks, not from polling.** Run `python tools/forks.py` to repeat
+the sweep; add `--tag` to record anything new. The method: enumerate every fork, `git ls-remote`
+**all refs** (not just the default branch — third-party working branches sit on old upstream
+states), fetch each distinct SHA by its **full 40 characters** (abbreviated SHAs fail over the git
+wire protocol), walk each commit's ancestry, and keep those authored upstream.
+
+**This archive's own polling missed five of fourteen states.** A poller only sees what is on the
+branch at the moment it looks; five states lived and were replaced between looks. They exist here
+only because other people had independently forked the repository during those windows.
+
+> **As of 2026-08-02, GitHub shows no public evidence that this repository was ever rewritten.**
+> `repos/openai/ten-proofs/events` returns 30 events, all `ForkEvent`/`WatchEvent` and **zero
+> `PushEvent`**; `git ls-remote` returns one ref, no tags, no branches. From first rewrite to the
+> total disappearance of the public record: about **25 hours**.
 
 ### What the data shows
 
